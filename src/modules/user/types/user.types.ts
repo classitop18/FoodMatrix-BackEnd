@@ -43,7 +43,7 @@ export interface VerifyUserDTO {
   otp: string;
 }
 
-export interface VerifyEmailDTO{
+export interface VerifyEmailDTO {
   token: string;
 }
 
@@ -68,4 +68,11 @@ export interface PaginatedResponse<T> {
     total: number;
     totalPages: number;
   };
+}
+
+
+
+export interface CheckPropertyExist<T>{
+  field:string,
+  value:string
 }

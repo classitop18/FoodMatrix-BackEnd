@@ -4,6 +4,7 @@ export enum EmailJobType {
   WELCOME = "send-welcome",
   ORDER_CONFIRMATION = "send-order-confirmation",
   INVOICE = "send-invoice",
+  OTP_VERIFICATION = "send-otp-verification",
 }
 
 export interface BaseEmailJobData {
@@ -20,6 +21,13 @@ export interface VerificationEmailJobData extends BaseEmailJobData {
   name?: string;
   token: string;
   expiresIn?: number; // minutes
+}
+
+export interface OtpVerificationEmailJobData {
+  to: string;
+  otp: string | number;
+  name?: string;
+  expiresMins?: number;
 }
 
 export interface PasswordResetEmailJobData extends BaseEmailJobData {

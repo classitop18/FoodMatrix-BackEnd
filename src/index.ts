@@ -5,13 +5,21 @@ import morgan from "morgan";
 import { logger } from "./utils/logger.utils";
 import { CONFIG } from "./utils/env.config";
 import { connectDatabase } from "./database/db";
+import appRouter from "./routes";
+import { sendError } from "./utils/response.utils";
 
 const app = express();
 const PORT = CONFIG.PORT || 3000;
 
+
 // Security middlewares
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:3001", // frontend URL
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  credentials: true, // if you want to send cookies or auth headers
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -34,12 +42,19 @@ app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+
+app.use("/api/v1", appRouter)
+
 // Global error handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   logger.error(err.stack || err.message || err);
-  res.status(err.status || 500).json({
-    error: err.message || "Internal Server Error",
-  });
+
+  return sendError(
+    res,err?.message || "Internal Server Error" , null, err?.status || 500
+  )
+  // res.status(err.status || 500).json({
+  //   error: err.message || "Internal Server Error",
+  // });
 });
 
 // Start server
@@ -47,6 +62,9 @@ const server = app.listen(PORT, async () => {
   await connectDatabase();
   logger.info(`Server is running on port ${PORT}`);
 });
+
+
+
 
 // Graceful shutdown
 const shutdown = () => {

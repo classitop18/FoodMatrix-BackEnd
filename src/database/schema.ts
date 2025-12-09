@@ -14,6 +14,8 @@ import {
   rolesEnum,
   sexEnum,
 } from "./enums";
+import { pgEnum } from "drizzle-orm/pg-core";
+
 
 // ================== USERS TABLE ==================
 export const users = pgTable("users", {
@@ -70,7 +72,7 @@ export const accounts = pgTable("accounts", {
 
   accountName: text("account_name"),
 
-  type: accountTypeEnum("type").notNull(),
+  accountType: accountTypeEnum("account_type"),
 
   primaryAdminId: varchar("primary_admin_id", { length: 36 })
     .notNull()

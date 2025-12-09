@@ -98,15 +98,15 @@ FoodMatrix Backend is a scalable, enterprise-grade REST API built with TypeScrip
 
 ### Core Technologies
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| **Node.js** | 18+ | Runtime environment |
-| **TypeScript** | 5.0+ | Type-safe development |
-| **Express.js** | 5.2+ | Web framework |
-| **PostgreSQL** | 15+ | Primary database |
-| **Drizzle ORM** | 0.45+ | Type-safe ORM |
-| **Redis** | 7+ | Queue and caching |
-| **BullMQ** | 5.65+ | Job queue management |
+| Technology      | Version | Purpose               |
+| --------------- | ------- | --------------------- |
+| **Node.js**     | 18+     | Runtime environment   |
+| **TypeScript**  | 5.0+    | Type-safe development |
+| **Express.js**  | 5.2+    | Web framework         |
+| **PostgreSQL**  | 15+     | Primary database      |
+| **Drizzle ORM** | 0.45+   | Type-safe ORM         |
+| **Redis**       | 7+      | Queue and caching     |
+| **BullMQ**      | 5.65+   | Job queue management  |
 
 ### Key Dependencies
 
@@ -114,20 +114,20 @@ FoodMatrix Backend is a scalable, enterprise-grade REST API built with TypeScrip
 
 ```json
 {
-  "express": "^5.2.1",           // Web framework
-  "drizzle-orm": "^0.45.0",      // Type-safe ORM
+  "express": "^5.2.1", // Web framework
+  "drizzle-orm": "^0.45.0", // Type-safe ORM
   "@neondatabase/serverless": "^1.0.2", // Neon DB driver
-  "bcrypt": "^6.0.0",            // Password hashing
-  "jsonwebtoken": "^9.0.3",      // JWT authentication
-  "bullmq": "^5.65.1",           // Queue system
-  "ioredis": "^5.8.2",           // Redis client
-  "winston": "^3.19.0",          // Logging
-  "nodemailer": "^7.0.11",       // Email sending
-  "handlebars": "^4.7.8",        // Email templates
-  "helmet": "^8.1.0",            // Security headers
-  "cors": "^2.8.5",              // CORS middleware
-  "zod": "^4.1.13",              // Schema validation
-  "dotenv": "^17.2.3"            // Environment variables
+  "bcrypt": "^6.0.0", // Password hashing
+  "jsonwebtoken": "^9.0.3", // JWT authentication
+  "bullmq": "^5.65.1", // Queue system
+  "ioredis": "^5.8.2", // Redis client
+  "winston": "^3.19.0", // Logging
+  "nodemailer": "^7.0.11", // Email sending
+  "handlebars": "^4.7.8", // Email templates
+  "helmet": "^8.1.0", // Security headers
+  "cors": "^2.8.5", // CORS middleware
+  "zod": "^4.1.13", // Schema validation
+  "dotenv": "^17.2.3" // Environment variables
 }
 ```
 
@@ -135,11 +135,11 @@ FoodMatrix Backend is a scalable, enterprise-grade REST API built with TypeScrip
 
 ```json
 {
-  "typescript": "^5.0+",         // TypeScript compiler
-  "ts-node-dev": "^2.0.0",       // Development server
-  "drizzle-kit": "^0.31.8",      // Database migrations
-  "prettier": "^3.7.4",          // Code formatting
-  "@types/*": "latest"           // TypeScript definitions
+  "typescript": "^5.0+", // TypeScript compiler
+  "ts-node-dev": "^2.0.0", // Development server
+  "drizzle-kit": "^0.31.8", // Database migrations
+  "prettier": "^3.7.4", // Code formatting
+  "@types/*": "latest" // TypeScript definitions
 }
 ```
 
@@ -336,26 +336,26 @@ npm run db:studio
 
 ### Development
 
-| Script | Command | Description |
-|--------|---------|-------------|
-| **dev** | `npm run dev` | Start development server with hot-reload |
-| **build** | `npm run build` | Compile TypeScript to JavaScript |
-| **start** | `npm start` | Start production server (requires build) |
+| Script    | Command         | Description                              |
+| --------- | --------------- | ---------------------------------------- |
+| **dev**   | `npm run dev`   | Start development server with hot-reload |
+| **build** | `npm run build` | Compile TypeScript to JavaScript         |
+| **start** | `npm start`     | Start production server (requires build) |
 
 ### Code Quality
 
-| Script | Command | Description |
-|--------|---------|-------------|
-| **lint** | `npm run lint` | Run ESLint to check code quality |
-| **format** | `npm run format` | Format code with Prettier |
+| Script     | Command          | Description                      |
+| ---------- | ---------------- | -------------------------------- |
+| **lint**   | `npm run lint`   | Run ESLint to check code quality |
+| **format** | `npm run format` | Format code with Prettier        |
 
 ### Database
 
-| Script | Command | Description |
-|--------|---------|-------------|
-| **db:generate** | `npm run db:generate` | Generate database migrations |
-| **db:push** | `npm run db:push` | Push schema changes to database |
-| **db:studio** | `npm run db:studio` | Open Drizzle Studio (GUI) |
+| Script          | Command               | Description                     |
+| --------------- | --------------------- | ------------------------------- |
+| **db:generate** | `npm run db:generate` | Generate database migrations    |
+| **db:push**     | `npm run db:push`     | Push schema changes to database |
+| **db:studio**   | `npm run db:studio`   | Open Drizzle Studio (GUI)       |
 
 ### Complete Workflow
 
@@ -457,6 +457,7 @@ GET /health
 ```
 
 **Response:**
+
 ```json
 {
   "status": "ok",
@@ -466,7 +467,7 @@ GET /health
 
 ### Authentication Endpoints
 
-*(To be documented based on implementation)*
+_(To be documented based on implementation)_
 
 ```http
 POST /api/v1/auth/register
@@ -514,34 +515,34 @@ Stores user authentication and profile information.
 
 ```typescript
 {
-  id: UUID (PK)
-  email: string (unique)
-  username: string (unique, nullable)
-  password: string (hashed)
-  isVerified: boolean
-  avatar: string (nullable)
-  isMfaEnabled: boolean
-  otp: string (nullable)
-  otpExpiresAt: timestamp (nullable)
-  firstName: string
-  lastName: string (nullable)
-  phone: string (nullable)
+  id: UUID(PK);
+  email: string(unique);
+  username: string(unique, nullable);
+  password: string(hashed);
+  isVerified: boolean;
+  avatar: string(nullable);
+  isMfaEnabled: boolean;
+  otp: string(nullable);
+  otpExpiresAt: timestamp(nullable);
+  firstName: string;
+  lastName: string(nullable);
+  phone: string(nullable);
   // Address fields
-  addressLine1: string (nullable)
-  addressLine2: string (nullable)
-  city: string (nullable)
-  state: string (nullable)
-  country: string (nullable)
-  zipCode: string (nullable)
-  formattedAddress: string (nullable)
+  addressLine1: string(nullable);
+  addressLine2: string(nullable);
+  city: string(nullable);
+  state: string(nullable);
+  country: string(nullable);
+  zipCode: string(nullable);
+  formattedAddress: string(nullable);
   // Geolocation
-  latitude: decimal (nullable)
-  longitude: decimal (nullable)
-  placeId: string (nullable)
+  latitude: decimal(nullable);
+  longitude: decimal(nullable);
+  placeId: string(nullable);
   // Timestamps
-  createdAt: timestamp
-  updatedAt: timestamp
-  lastLoginAt: timestamp (nullable)
+  createdAt: timestamp;
+  updatedAt: timestamp;
+  lastLoginAt: timestamp(nullable);
 }
 ```
 
@@ -606,16 +607,16 @@ Tracks household members (both users and internal members).
 
 ```typescript
 // Account Types
-accountTypeEnum: 'individual' | 'family'
+accountTypeEnum: "individual" | "family";
 
 // Budget Allocation Periods
-budgetAllocationEnum: 'daily' | 'weekly' | 'monthly' | 'annual'
+budgetAllocationEnum: "daily" | "weekly" | "monthly" | "annual";
 
 // Member Roles
-rolesEnum: 'owner' | 'super_admin' | 'member' | 'viewer'
+rolesEnum: "owner" | "super_admin" | "member" | "viewer";
 
 // Sex
-sexEnum: 'male' | 'female' | 'other'
+sexEnum: "male" | "female" | "other";
 ```
 
 ---
@@ -631,6 +632,7 @@ FoodMatrix uses **BullMQ** with **Redis** for background job processing, ensurin
 Located in `src/queues/email.queue.ts`
 
 **Features:**
+
 - Retry mechanism (3 attempts)
 - Exponential backoff
 - Job monitoring via Bull Board
@@ -639,17 +641,17 @@ Located in `src/queues/email.queue.ts`
 **Usage Example:**
 
 ```typescript
-import { emailQueue } from './queues/email.queue';
+import { emailQueue } from "./queues/email.queue";
 
 // Add email job to queue
-await emailQueue.add('send-verification', {
-  to: 'user@example.com',
-  subject: 'Verify Your Email',
-  template: 'verify-email',
+await emailQueue.add("send-verification", {
+  to: "user@example.com",
+  subject: "Verify Your Email",
+  template: "verify-email",
   context: {
-    name: 'John Doe',
-    verificationLink: 'https://...'
-  }
+    name: "John Doe",
+    verificationLink: "https://...",
+  },
 });
 ```
 
@@ -658,6 +660,7 @@ await emailQueue.add('send-verification', {
 Access Bull Board at: `http://localhost:3000/admin/queues`
 
 **Features:**
+
 - View active, completed, and failed jobs
 - Retry failed jobs
 - Monitor queue metrics
@@ -672,6 +675,7 @@ Access Bull Board at: `http://localhost:3000/admin/queues`
 FoodMatrix uses **Winston** for structured logging with multiple transports.
 
 **Log Levels:**
+
 - `error`: Error messages
 - `warn`: Warning messages
 - `info`: Informational messages
@@ -679,6 +683,7 @@ FoodMatrix uses **Winston** for structured logging with multiple transports.
 - `debug`: Debug messages
 
 **Log Files:**
+
 - `logs/error/error-YYYY-MM-DD.log` - Error logs only
 - `logs/combined/combined-YYYY-MM-DD.log` - All logs
 - `logs/exceptions/exceptions-YYYY-MM-DD.log` - Uncaught exceptions
@@ -686,14 +691,15 @@ FoodMatrix uses **Winston** for structured logging with multiple transports.
 **Usage:**
 
 ```typescript
-import { logger } from './utils/logger.utils';
+import { logger } from "./utils/logger.utils";
 
-logger.info('User registered successfully', { userId: '123' });
-logger.error('Database connection failed', { error: err });
-logger.warn('High memory usage detected');
+logger.info("User registered successfully", { userId: "123" });
+logger.error("Database connection failed", { error: err });
+logger.warn("High memory usage detected");
 ```
 
 **Features:**
+
 - Daily log rotation
 - Colored console output (development)
 - JSON format (production)
@@ -810,7 +816,7 @@ CMD ["npm", "start"]
 **Docker Compose:**
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   app:
@@ -947,4 +953,4 @@ Built with ❤️ using:
 
 **Made with 💚 by the FoodMatrix Team**
 
-*Last Updated: December 8, 2025*
+_Last Updated: December 8, 2025_

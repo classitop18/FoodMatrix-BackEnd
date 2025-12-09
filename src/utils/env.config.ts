@@ -15,6 +15,11 @@ const envSchema = z.object({
   REDIS_PORT: z.string().default("6379"),
   TOKEN_EXPIRATION_MINUTES: z.string().default("60"), // 24 hours
   TOKEN_SECRET: z.string().min(10),
+  REFRESH_TOKEN_EXPIRATION_MINUTES: z.string().default("10080"), // 7 days
+  REFRESH_TOKEN_SECRET: z.string().min(10),
+  ACCESS_TOKEN_EXPIRY_MINUTES: z.string().default("60"),
+  ACCESS_TOKEN_SECRET: z.string().min(10),
+  OTP_EXPIRATION_MINUTES: z.string().default("10"), // 10 minutes
 });
 
 // Parse + validate

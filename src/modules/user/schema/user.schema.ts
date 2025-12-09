@@ -79,6 +79,11 @@ export const verifyUserSchema = z.object({
   otp: z.string().length(6, "OTP must be 6 digits"),
 });
 
+export const userLoginSchema = z.object({
+  emailOrUsername: z.string().min(1, "Email or username is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
 export const verifyEmailSchema = z.object({
   token: z.string().min(1, "Verification token is required"),
 });
@@ -110,4 +115,16 @@ export const paginationSchema = z.object({
     .pipe(z.number().min(1).max(100))
     .optional()
     .default(10),
+});
+
+
+
+
+export const CheckPropertyExistSchema = z.object({
+  field: z.string({
+    message: "Field name is required",
+  }),
+  value: z.string({
+    message: "Value is required",
+  }),
 });

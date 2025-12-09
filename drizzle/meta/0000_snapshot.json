@@ -1,5 +1,5 @@
 {
-  "id": "f496451f-608f-4f1d-8426-3870f16a3141",
+  "id": "90a248fb-3996-4a09-adb4-26e673ffc67b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -27,12 +27,12 @@
           "primaryKey": false,
           "notNull": false
         },
-        "type": {
-          "name": "type",
+        "account_type": {
+          "name": "account_type",
           "type": "account_type",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "primary_admin_id": {
           "name": "primary_admin_id",
@@ -182,8 +182,12 @@
           "name": "accounts_primary_admin_id_users_id_fk",
           "tableFrom": "accounts",
           "tableTo": "users",
-          "columnsFrom": ["primary_admin_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "primary_admin_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -193,7 +197,9 @@
         "accounts_account_number_unique": {
           "name": "accounts_account_number_unique",
           "nullsNotDistinct": false,
-          "columns": ["account_number"]
+          "columns": [
+            "account_number"
+          ]
         }
       },
       "policies": {},
@@ -264,8 +270,12 @@
           "name": "members_account_id_accounts_id_fk",
           "tableFrom": "members",
           "tableTo": "accounts",
-          "columnsFrom": ["account_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -273,8 +283,12 @@
           "name": "members_user_id_users_id_fk",
           "tableFrom": "members",
           "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -452,12 +466,16 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": ["email"]
+          "columns": [
+            "email"
+          ]
         },
         "users_username_unique": {
           "name": "users_username_unique",
           "nullsNotDistinct": false,
-          "columns": ["username"]
+          "columns": [
+            "username"
+          ]
         }
       },
       "policies": {},
@@ -465,7 +483,240 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.account_type": {
+      "name": "account_type",
+      "schema": "public",
+      "values": [
+        "individual",
+        "family",
+        "group"
+      ]
+    },
+    "public.activity_level": {
+      "name": "activity_level",
+      "schema": "public",
+      "values": [
+        "sedentary",
+        "moderate",
+        "active",
+        "very_active"
+      ]
+    },
+    "public.allergy": {
+      "name": "allergy",
+      "schema": "public",
+      "values": [
+        "nuts",
+        "dairy",
+        "gluten",
+        "shellfish",
+        "soy",
+        "eggs"
+      ]
+    },
+    "public.budget_allocation": {
+      "name": "budget_allocation",
+      "schema": "public",
+      "values": [
+        "daily",
+        "weekly",
+        "monthly",
+        "annual"
+      ]
+    },
+    "public.budget_flexibility": {
+      "name": "budget_flexibility",
+      "schema": "public",
+      "values": [
+        "strict",
+        "moderate",
+        "flexible"
+      ]
+    },
+    "public.budget_source": {
+      "name": "budget_source",
+      "schema": "public",
+      "values": [
+        "separate",
+        "merged"
+      ]
+    },
+    "public.cooking_frequency": {
+      "name": "cooking_frequency",
+      "schema": "public",
+      "values": [
+        "mostly_home",
+        "mixed",
+        "mostly_dining_out"
+      ]
+    },
+    "public.cooking_skill": {
+      "name": "cooking_skill",
+      "schema": "public",
+      "values": [
+        "beginner",
+        "moderate",
+        "advanced"
+      ]
+    },
+    "public.dietary_restriction": {
+      "name": "dietary_restriction",
+      "schema": "public",
+      "values": [
+        "vegan",
+        "vegetarian",
+        "keto",
+        "paleo",
+        "mediterranean",
+        "low_carb",
+        "dash",
+        "halal",
+        "kosher"
+      ]
+    },
+    "public.event_type": {
+      "name": "event_type",
+      "schema": "public",
+      "values": [
+        "birthday",
+        "holiday",
+        "dinner_party",
+        "bbq",
+        "potluck",
+        "anniversary",
+        "celebration",
+        "other"
+      ]
+    },
+    "public.food_category": {
+      "name": "food_category",
+      "schema": "public",
+      "values": [
+        "groceries",
+        "dining_out",
+        "food_emergency"
+      ]
+    },
+    "public.fulfillment_method": {
+      "name": "fulfillment_method",
+      "schema": "public",
+      "values": [
+        "cook",
+        "catering",
+        "group_dining",
+        "potluck_coordination"
+      ]
+    },
+    "public.guest_category": {
+      "name": "guest_category",
+      "schema": "public",
+      "values": [
+        "family_member",
+        "party_guest"
+      ]
+    },
+    "public.health_condition": {
+      "name": "health_condition",
+      "schema": "public",
+      "values": [
+        "type1_diabetes",
+        "type2_diabetes",
+        "prediabetes",
+        "hypertension",
+        "high_cholesterol",
+        "heart_disease",
+        "ibs",
+        "gerd",
+        "celiac_disease",
+        "obesity",
+        "pcos",
+        "kidney_disease",
+        "gout"
+      ]
+    },
+    "public.health_goal": {
+      "name": "health_goal",
+      "schema": "public",
+      "values": [
+        "lose_weight",
+        "maintain_weight",
+        "gain_weight",
+        "build_muscle",
+        "control_blood_sugar",
+        "lower_cholesterol",
+        "reduce_sodium",
+        "general_wellness",
+        "healthy_family_eating"
+      ]
+    },
+    "public.item_category": {
+      "name": "item_category",
+      "schema": "public",
+      "values": [
+        "food",
+        "non_food",
+        "uncertain"
+      ]
+    },
+    "public.organic_preference": {
+      "name": "organic_preference",
+      "schema": "public",
+      "values": [
+        "standard_only",
+        "prefer_when_budget_allows",
+        "organic_only"
+      ]
+    },
+    "public.privacy_level": {
+      "name": "privacy_level",
+      "schema": "public",
+      "values": [
+        "private",
+        "admin_only",
+        "shared"
+      ]
+    },
+    "public.receipt_status": {
+      "name": "receipt_status",
+      "schema": "public",
+      "values": [
+        "processing",
+        "completed",
+        "failed",
+        "needs_review"
+      ]
+    },
+    "public.role": {
+      "name": "role",
+      "schema": "public",
+      "values": [
+        "admin",
+        "super_admin",
+        "viewer",
+        "creator"
+      ]
+    },
+    "public.sex": {
+      "name": "sex",
+      "schema": "public",
+      "values": [
+        "male",
+        "female",
+        "other"
+      ]
+    },
+    "public.transaction_category": {
+      "name": "transaction_category",
+      "schema": "public",
+      "values": [
+        "groceries",
+        "dining_out",
+        "food_emergency",
+        "non_food"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},

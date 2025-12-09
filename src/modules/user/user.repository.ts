@@ -32,11 +32,16 @@ export interface IUserRepository {
 }
 
 export class UserRepository implements IUserRepository {
-  private db;
+  private _db: any = null;
 
-  constructor() {
-    this.db = getDb();
+
+  private get db() {
+    if (!this._db) {
+      this._db = getDb();
+    }
+    return this._db;
   }
+
 
   async create(data: CreateUserDTO, hashedPassword: string): Promise<User> {
     const [user] = await this.db

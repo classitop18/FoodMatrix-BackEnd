@@ -11,7 +11,9 @@ const userService = new UserService(userRepository);
 const userController = new UserController(userService);
 
 // Routes
-router.post("/", userController.createUser);
+router.post("/register", userController.createUser);
+router.post("/login", userController.loginUser)
+router.post("/check", userController.checkIsPropertytExist);
 router.get("/", userController.getUsers);
 router.get("/:id", userController.getUser);
 router.patch("/:id", userController.updateUser);

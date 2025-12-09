@@ -1,6 +1,7 @@
 import { emailQueue } from "../email.queue";
 import {
   EmailJobType,
+  OtpVerificationEmailJobData,
   PasswordResetEmailJobData,
   VerificationEmailJobData,
   WelcomeEmailJobData,
@@ -32,26 +33,13 @@ export const addWelcomeEmailJob = async (data: WelcomeEmailJobData) => {
 };
 
 export const addOtpVerificationEmailJob = async (
-  to: string,
-  otp: string | number,
-  name?: string,
-  expiresMins = 10,
+  payload: OtpVerificationEmailJobData,
 ) => {
-  return emailQueue.add(
-    "send-otp-verification",
-    {
-      to,
-      otp,
-      name,
-      expiresMins,
-    },
-    {
-      priority: 2, // Medium priority
-      jobId: `otp-verification-${to}-${Date.now()}`,
-    },
-  );
+  return emailQueue.add(EmailJobType.OTP_VERIFICATION, payload, {
+    priority: 2,
+    jobId: `otp-verification-${payload?.to}-${Date.now()}`,
+  });
 };
-
 export const addMemberInvitationEmailJob = async (
   to: string,
   inviteeName: string,
