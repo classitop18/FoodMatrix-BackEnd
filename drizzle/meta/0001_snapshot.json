@@ -1,0 +1,815 @@
+{
+  "id": "f949f310-783a-4e13-bb44-3e34f5bf9e1a",
+  "prevId": "90a248fb-3996-4a09-adb4-26e673ffc67b",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.accounts": {
+      "name": "accounts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "account_number": {
+          "name": "account_number",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_name": {
+          "name": "account_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "account_type": {
+          "name": "account_type",
+          "type": "account_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "primary_admin_id": {
+          "name": "primary_admin_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "zip_code": {
+          "name": "zip_code",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "weekly_budget": {
+          "name": "weekly_budget",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "daily_budget": {
+          "name": "daily_budget",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "monthly_budget": {
+          "name": "monthly_budget",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "annual_budget": {
+          "name": "annual_budget",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "current_allocation": {
+          "name": "current_allocation",
+          "type": "budget_allocation",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'weekly'"
+        },
+        "groceries_percentage": {
+          "name": "groceries_percentage",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 70
+        },
+        "dining_percentage": {
+          "name": "dining_percentage",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 20
+        },
+        "emergency_percentage": {
+          "name": "emergency_percentage",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 10
+        },
+        "current_week_food_spending": {
+          "name": "current_week_food_spending",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "weekly_food_streak": {
+          "name": "weekly_food_streak",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "best_food_streak": {
+          "name": "best_food_streak",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "total_food_overrides": {
+          "name": "total_food_overrides",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "last_food_budget_reset": {
+          "name": "last_food_budget_reset",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "requires_admin_approval_for_overrides": {
+          "name": "requires_admin_approval_for_overrides",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "default_planning_period": {
+          "name": "default_planning_period",
+          "type": "budget_allocation",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'weekly'"
+        },
+        "auto_generate_grocery_lists": {
+          "name": "auto_generate_grocery_lists",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "accounts_primary_admin_id_users_id_fk": {
+          "name": "accounts_primary_admin_id_users_id_fk",
+          "tableFrom": "accounts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "primary_admin_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "accounts_account_number_unique": {
+          "name": "accounts_account_number_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "account_number"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.members": {
+      "name": "members",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'viewer'"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "age": {
+          "name": "age",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sex": {
+          "name": "sex",
+          "type": "sex",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "members_account_id_accounts_id_fk": {
+          "name": "members_account_id_accounts_id_fk",
+          "tableFrom": "members",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "members_user_id_users_id_fk": {
+          "name": "members_user_id_users_id_fk",
+          "tableFrom": "members",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sessions": {
+      "name": "sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refresh_token_hash": {
+          "name": "refresh_token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip": {
+          "name": "ip",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_valid": {
+          "name": "is_valid",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "last_used_at": {
+          "name": "last_used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sessions_user_id_users_id_fk": {
+          "name": "sessions_user_id_users_id_fk",
+          "tableFrom": "sessions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_verified": {
+          "name": "is_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "avatar": {
+          "name": "avatar",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_mfa_enabled": {
+          "name": "is_mfa_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "otp": {
+          "name": "otp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "otp_expires_at": {
+          "name": "otp_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address_line1": {
+          "name": "address_line1",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address_line2": {
+          "name": "address_line2",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country": {
+          "name": "country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zip_code": {
+          "name": "zip_code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "formatted_address": {
+          "name": "formatted_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "latitude": {
+          "name": "latitude",
+          "type": "numeric(10, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "longitude": {
+          "name": "longitude",
+          "type": "numeric(11, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "place_id": {
+          "name": "place_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_login_at": {
+          "name": "last_login_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        },
+        "users_username_unique": {
+          "name": "users_username_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "username"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.account_type": {
+      "name": "account_type",
+      "schema": "public",
+      "values": [
+        "individual",
+        "family",
+        "group"
+      ]
+    },
+    "public.activity_level": {
+      "name": "activity_level",
+      "schema": "public",
+      "values": [
+        "sedentary",
+        "moderate",
+        "active",
+        "very_active"
+      ]
+    },
+    "public.allergy": {
+      "name": "allergy",
+      "schema": "public",
+      "values": [
+        "nuts",
+        "dairy",
+        "gluten",
+        "shellfish",
+        "soy",
+        "eggs"
+      ]
+    },
+    "public.budget_allocation": {
+      "name": "budget_allocation",
+      "schema": "public",
+      "values": [
+        "daily",
+        "weekly",
+        "monthly",
+        "annual"
+      ]
+    },
+    "public.budget_flexibility": {
+      "name": "budget_flexibility",
+      "schema": "public",
+      "values": [
+        "strict",
+        "moderate",
+        "flexible"
+      ]
+    },
+    "public.budget_source": {
+      "name": "budget_source",
+      "schema": "public",
+      "values": [
+        "separate",
+        "merged"
+      ]
+    },
+    "public.cooking_frequency": {
+      "name": "cooking_frequency",
+      "schema": "public",
+      "values": [
+        "mostly_home",
+        "mixed",
+        "mostly_dining_out"
+      ]
+    },
+    "public.cooking_skill": {
+      "name": "cooking_skill",
+      "schema": "public",
+      "values": [
+        "beginner",
+        "moderate",
+        "advanced"
+      ]
+    },
+    "public.dietary_restriction": {
+      "name": "dietary_restriction",
+      "schema": "public",
+      "values": [
+        "vegan",
+        "vegetarian",
+        "keto",
+        "paleo",
+        "mediterranean",
+        "low_carb",
+        "dash",
+        "halal",
+        "kosher"
+      ]
+    },
+    "public.event_type": {
+      "name": "event_type",
+      "schema": "public",
+      "values": [
+        "birthday",
+        "holiday",
+        "dinner_party",
+        "bbq",
+        "potluck",
+        "anniversary",
+        "celebration",
+        "other"
+      ]
+    },
+    "public.food_category": {
+      "name": "food_category",
+      "schema": "public",
+      "values": [
+        "groceries",
+        "dining_out",
+        "food_emergency"
+      ]
+    },
+    "public.fulfillment_method": {
+      "name": "fulfillment_method",
+      "schema": "public",
+      "values": [
+        "cook",
+        "catering",
+        "group_dining",
+        "potluck_coordination"
+      ]
+    },
+    "public.guest_category": {
+      "name": "guest_category",
+      "schema": "public",
+      "values": [
+        "family_member",
+        "party_guest"
+      ]
+    },
+    "public.health_condition": {
+      "name": "health_condition",
+      "schema": "public",
+      "values": [
+        "type1_diabetes",
+        "type2_diabetes",
+        "prediabetes",
+        "hypertension",
+        "high_cholesterol",
+        "heart_disease",
+        "ibs",
+        "gerd",
+        "celiac_disease",
+        "obesity",
+        "pcos",
+        "kidney_disease",
+        "gout"
+      ]
+    },
+    "public.health_goal": {
+      "name": "health_goal",
+      "schema": "public",
+      "values": [
+        "lose_weight",
+        "maintain_weight",
+        "gain_weight",
+        "build_muscle",
+        "control_blood_sugar",
+        "lower_cholesterol",
+        "reduce_sodium",
+        "general_wellness",
+        "healthy_family_eating"
+      ]
+    },
+    "public.item_category": {
+      "name": "item_category",
+      "schema": "public",
+      "values": [
+        "food",
+        "non_food",
+        "uncertain"
+      ]
+    },
+    "public.organic_preference": {
+      "name": "organic_preference",
+      "schema": "public",
+      "values": [
+        "standard_only",
+        "prefer_when_budget_allows",
+        "organic_only"
+      ]
+    },
+    "public.privacy_level": {
+      "name": "privacy_level",
+      "schema": "public",
+      "values": [
+        "private",
+        "admin_only",
+        "shared"
+      ]
+    },
+    "public.receipt_status": {
+      "name": "receipt_status",
+      "schema": "public",
+      "values": [
+        "processing",
+        "completed",
+        "failed",
+        "needs_review"
+      ]
+    },
+    "public.role": {
+      "name": "role",
+      "schema": "public",
+      "values": [
+        "admin",
+        "super_admin",
+        "viewer",
+        "creator"
+      ]
+    },
+    "public.sex": {
+      "name": "sex",
+      "schema": "public",
+      "values": [
+        "male",
+        "female",
+        "other"
+      ]
+    },
+    "public.transaction_category": {
+      "name": "transaction_category",
+      "schema": "public",
+      "values": [
+        "groceries",
+        "dining_out",
+        "food_emergency",
+        "non_food"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

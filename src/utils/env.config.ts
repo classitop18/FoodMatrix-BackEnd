@@ -8,19 +8,45 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
+
   PORT: z.string().default("3000"),
+
   DATABASE_URL: z.string().url(),
+
   REDIS_HOST: z.string().default("127.0.0.1"),
   REDIS_PASSWORD: z.string().optional(),
   REDIS_PORT: z.string().default("6379"),
-  TOKEN_EXPIRATION_MINUTES: z.string().default("60"), // 24 hours
+
+  TOKEN_EXPIRATION_MINUTES: z.string().default("60"),
   TOKEN_SECRET: z.string().min(10),
-  REFRESH_TOKEN_EXPIRATION_MINUTES: z.string().default("10080"), // 7 days
+
+  REFRESH_TOKEN_EXPIRATION_MINUTES: z.string().default("10080"),
   REFRESH_TOKEN_SECRET: z.string().min(10),
+
   ACCESS_TOKEN_EXPIRY_MINUTES: z.string().default("60"),
   ACCESS_TOKEN_SECRET: z.string().min(10),
-  OTP_EXPIRATION_MINUTES: z.string().default("10"), // 10 minutes
+
+  OTP_EXPIRATION_MINUTES: z.string().default("10"),
+
+  // -----------------------------
+  // EMAIL CONFIGURATION
+  // -----------------------------
+  EMAIL_PROVIDER: z.enum(["smtp", "console"]).default("smtp"),
+
+  SMTP_HOST: z.string().default("smtp.gmail.com"),
+  SMTP_PORT: z.string().default("587"),
+  SMTP_SECURE: z.enum(["true", "false"]).default("false"),
+
+  SMTP_USER: z.string().email(),
+  SMTP_PASS: z.string().min(5),
+
+  EMAIL_FROM: z.string().default("FoodMatrix <no-reply@foodmatrix.example>"),
+
+  EMAIL_SECRET: z.string().min(10),
+  FRONTEND_BASE_URL:z.string(),
+  APP_URL: z.string().url(),
 });
+
 
 // Parse + validate
 const _env = envSchema.safeParse(process.env);

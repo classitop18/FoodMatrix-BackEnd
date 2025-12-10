@@ -9,12 +9,12 @@ import {
   UserWithoutPassword,
   VerifyEmailDTO,
   VerifyUserDTO,
-} from "./types/user.types";
+} from "./types/user.types.ts";
 import * as bcrypt from "bcrypt";
-import { IUserRepository } from "./user.repository";
-import { generateJwtToken, verifyJwtToken } from "../../utils/jwt.utils";
-import { CONFIG } from "../../utils/env.config";
-import { compareHash } from "../../utils/bcrypt.utils";
+import { IUserRepository } from "./user.repository.ts";
+import { generateJwtToken, verifyJwtToken } from "../../utils/jwt.utils.ts";
+import { CONFIG } from "../../utils/env.config.ts";
+import { compareHash } from "../../utils/bcrypt.utils.ts";
 
 export interface IUserService {
   createUser(data: CreateUserDTO): Promise<UserWithoutPassword>;
@@ -36,7 +36,7 @@ export interface IUserService {
   ): Promise<PaginatedResponse<UserWithoutPassword>>;
   enableMfa(id: string): Promise<void>;
   disableMfa(id: string): Promise<void>;
-  findUserByField(data: { field: string, value: string }):Promise<any>;
+  findUserByField(data: { field: string, value: string }): Promise<any>;
 }
 
 export class UserService implements IUserService {

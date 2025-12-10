@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import {
-    CheckPropertyExistSchema,
+    checkPropertyExistSchema,
     createUserSchema,
     paginationSchema,
     updatePasswordSchema,
@@ -9,23 +9,25 @@ import {
     userLoginSchema,
     verifyEmailSchema,
     verifyUserSchema,
-} from "./schema/user.schema";
-import { IUserService } from "./user.service";
-import { ApiResponse } from "../../types";
-import { sendSuccess } from "../../utils/response.utils";
+} from "./schema/user.schema.ts";
+import { IUserService } from "./user.service.ts";
+import { ApiResponse } from "../../types/index.ts";
+import { sendSuccess } from "../../utils/response.utils.ts";
 import {
     addOtpVerificationEmailJob,
     addVerificationEmailJob,
-} from "../../queues/jobs/email.jobs";
+} from "../../queues/jobs/email.jobs.ts";
 import {
     generateAuthenticationToken,
     generateJwtToken,
-} from "../../utils/jwt.utils";
-import { CONFIG } from "../../utils/env.config";
-import { exists } from "drizzle-orm";
+} from "../../utils/jwt.utils.ts";
+import { CONFIG } from "../../utils/env.config.ts";
+import { ISessionService } from "../session/session.service.ts";
+import { hashString } from "../../utils/bcrypt.utils.ts";
+
 
 export class UserController {
-    constructor(private userService: IUserService) { }
+    constructor(private userService: IUserService, private sessionService: ISessionService) { }
 
     createUser = async (
         req: Request,
@@ -33,8 +35,8 @@ export class UserController {
         next: NextFunction,
     ): Promise<ApiResponse | any> => {
         try {
-            const validated = createUserSchema.parse(req.body);
-            const user = await this.userService.createUser(validated);
+
+            const user = await this.userService.createUser(req.body);
 
             const token = await generateJwtToken(
                 { userId: user.id },
@@ -65,10 +67,11 @@ export class UserController {
         next: NextFunction,
     ): Promise<ApiResponse | any> => {
         try {
-            const validated = userLoginSchema.parse(req.body);
-            const { user } = await this.userService.loginUser(validated);
+            const { user } = await this.userService.loginUser(req.body);
+            const userAgent = req.headers["user-agent"];
+            const ip = req.ip;
 
-            //  Case:1 =>  check if user is verified
+            // Case 1: Check if user is verified
             if (!user.isVerified) {
                 const token = await generateJwtToken(
                     { userId: user.id },
@@ -91,8 +94,7 @@ export class UserController {
                 );
             }
 
-            // Case:2 => check if MFA is enabled
-
+            // Case 2: Check if MFA is enabled
             if (user.isMfaEnabled) {
                 const tempSessionId = generateJwtToken(
                     { userId: user.id, mfaPending: true },
@@ -113,37 +115,63 @@ export class UserController {
                     200,
                 );
             }
-            const authTokens = await generateAuthenticationToken(user);
-            if (!authTokens) {
-                return sendSuccess(
-                    res,
-                    null,
-                    "Failed to generate authentication tokens",
-                    500,
-                );
-            }
-            const { refreshToken, accessToken } = authTokens;
+
+            // Create session first
+            const tempRefreshToken = await generateJwtToken(
+                { userId: user.id, sessionId: "temp" }, // Temporary
+                Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES),
+                CONFIG.REFRESH_TOKEN_SECRET!,
+            ) || "";
+
+            // Hash refresh token for storage
+            const refreshTokenHash = await hashString(tempRefreshToken);
+
+            // Calculate session expiration
+            const expiresAt = new Date(
+                Date.now() + Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000
+            );
+
+            // Create session in database
+            const session = await this.sessionService.createSession({
+                userId: user.id,
+                refreshTokenHash,
+                userAgent: userAgent || null,
+                ip: ip || null,
+                isValid: true,
+                expiresAt,
+            });
+
+
+            const { accessToken, refreshToken } = generateAuthenticationToken({
+                userId: user.id,
+                email: user.email,
+                sessionId: session.id,
+            })
+
+            const newRefreshTokenHash = await hashString(refreshToken);
+
+            await this.sessionService.updateSession(session.id, {
+                refreshTokenHash: newRefreshTokenHash,
+            });
 
             res.cookie("refreshToken", refreshToken, {
-                httpOnly: true,
-                secure: CONFIG.NODE_ENV === "production",
-                sameSite: "strict",
+                httpOnly: true, // JavaScript cannot access
+                secure: CONFIG.NODE_ENV === "production", // HTTPS only in production
+                sameSite: "strict", // CSRF protection
                 maxAge:
-                    Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES || 7) *
-                    24 *
+                    Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES || 10080) *
                     60 *
-                    60 *
-                    1000,
+                    1000, // 7 days in milliseconds
             });
 
             const userResponse = {
                 ...user,
-                accessToken,
+                accessToken, // Client stores this
+                sessionId: session.id, // Optional: for reference only
             };
 
-            sendSuccess(res, userResponse, "User logged in successfully", 200);
+            return sendSuccess(res, { ...userResponse }, "User logged in successfully", 200);
         } catch (error) {
-
             next(error);
         }
     };
@@ -154,15 +182,14 @@ export class UserController {
     checkIsPropertytExist = async (req: Request, res: Response, next: NextFunction) => {
         try {
 
-            const validated = CheckPropertyExistSchema.parse(req?.body)
-            const user = await this.userService.findUserByField(validated);
+            const user = await this.userService.findUserByField(req.body);
 
             return sendSuccess(
                 res,
                 { exists: !!user },
                 user
-                    ? `User already exists with this ${validated.field}.`
-                    : `No user found with this ${validated.field}.`,
+                    ? `User already exists with this ${req.body.field}.`
+                    : `No user found with this ${req.body.field}.`,
                 200
             );
         } catch (error: any) {
@@ -266,13 +293,18 @@ export class UserController {
 
     verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const validated = verifyEmailSchema.parse(req.body);
-            const user = await this.userService.verifyUserEmailUsingToken(validated);
-            sendSuccess(res, user, "Email verified successfully");
+            const token = req.query?.token;
+            if (typeof token !== "string") {
+                throw new Error("Invalid or missing token");
+            }
+            const user = await this.userService.verifyUserEmailUsingToken({ token });
+            res.redirect(CONFIG.FRONTEND_BASE_URL + "/login")
         } catch (error) {
             next(error);
         }
     };
+
+
 
     enableMfa = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -301,4 +333,15 @@ export class UserController {
             next(error);
         }
     };
+
+    getActiveUser = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const id = (req as any).user?.id;
+            const user = await this.userService.getUserById(id);
+            return sendSuccess(res, { ...user }, "User Fetched Successfully.", 200);
+        } catch (error) {
+            next(error);
+        }
+    }
+
 }

@@ -1,11 +1,22 @@
 import { relations } from "drizzle-orm";
-import { accounts, members, users } from "./schema";
+import { accounts, members, sessions, users } from "./schema.ts";
+
+
 
 export const usersRelations = relations(users, ({ many, one }) => ({
   accounts: many(accounts),
+  session: many(sessions),
   member: one(members, {
     fields: [users.id],
     references: [members.userId],
+  }),
+}));
+
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
   }),
 }));
 

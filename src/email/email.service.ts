@@ -1,16 +1,17 @@
 import nodemailer, { Transporter } from "nodemailer";
 import Handlebars from "handlebars";
-
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
+import { CONFIG } from "../utils/env.config.ts";
 
 dotenv.config();
 
-// Fix for ES Modules (__dirname)
-const __filename = fileURLToPath(process.cwd());
+
+const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 
 // Paths
 const BASE_DIR = path.join(__dirname, "layouts");
@@ -120,7 +121,7 @@ export class EmailService {
   }
 
   async sendVerificationEmail(to: string, token: string, name?: string) {
-    const verifyUrl = `${process.env.APP_URL}/verify-email/${encodeURIComponent(token)}`;
+    const verifyUrl = `${CONFIG.APP_URL}/api/v1/auth/verify-email?token=${encodeURIComponent(token)}`;
 
     return this.sendMail(to, "Verify your email", "verification", {
       name: name ?? "there",

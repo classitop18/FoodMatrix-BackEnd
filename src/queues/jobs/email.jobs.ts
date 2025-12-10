@@ -1,11 +1,11 @@
-import { emailQueue } from "../email.queue";
+import { emailQueue } from "../email.queue.ts";
 import {
   EmailJobType,
   OtpVerificationEmailJobData,
   PasswordResetEmailJobData,
   VerificationEmailJobData,
   WelcomeEmailJobData,
-} from "../types/queue.types";
+} from "../types/queue.types.ts";
 
 export const addVerificationEmailJob = async (
   data: VerificationEmailJobData,

@@ -1,6 +1,6 @@
 import jwt, { JwtPayload, SignOptions } from "jsonwebtoken";
-import { logger } from "./logger.utils";
-import { CONFIG } from "./env.config";
+import { logger } from "./logger.utils.ts";
+import { CONFIG } from "./env.config.ts";
 
 export const generateJwtToken = (
   payload: object,
@@ -33,7 +33,7 @@ export const generateAuthenticationToken = (
 ): {
   accessToken: string;
   refreshToken: string;
-} | null => {
+}  => {
   try {
     const accessTokenSecret = CONFIG.ACCESS_TOKEN_SECRET;
     const accessTokenExpiry = CONFIG.ACCESS_TOKEN_EXPIRY_MINUTES || 60;
@@ -52,6 +52,6 @@ export const generateAuthenticationToken = (
     return { accessToken, refreshToken };
   } catch (error: any) {
     logger.error("Authentication Token Generation Error:", error.message);
-    return null;
+    throw error;
   }
 };

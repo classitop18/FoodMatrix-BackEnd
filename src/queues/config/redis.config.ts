@@ -1,6 +1,6 @@
 import IORedis, { RedisOptions } from "ioredis";
-import { CONFIG } from "../../utils/env.config";
-import { logger } from "../../utils/logger.utils";
+import { CONFIG } from "../../utils/env.config.ts";
+import { logger } from "../../utils/logger.utils.ts";
 
 const redisOptions: RedisOptions = {
   host: CONFIG.REDIS_HOST || "127.0.0.1",

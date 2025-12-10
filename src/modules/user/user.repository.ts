@@ -1,5 +1,5 @@
-import { users } from "../../database";
-import { getDb } from "../../database/db";
+import { users } from "../../database/schema.ts";
+import { getDb } from "../../database/db.ts";
 import {
   CreateUserDTO,
   PaginatedResponse,
@@ -8,7 +8,7 @@ import {
   User,
   UserFilters,
   UserWithoutPassword,
-} from "./types/user.types";
+} from "./types/user.types.ts";
 import { eq, and, count } from "drizzle-orm";
 
 export interface IUserRepository {

@@ -1,16 +1,21 @@
 {
   "compilerOptions": {
-    "module": "nodenext",
+    "module": "esnext",
     "target": "es2020",
     "rootDir": "./src",
     "outDir": "./dist",
     "esModuleInterop": true,
-    "moduleResolution": "nodenext",
+    
+    "moduleResolution": "bundler",
     "strict": true,
     "sourceMap": true,
     "declaration": true,
     "isolatedModules": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ]
 }

@@ -1,16 +1,16 @@
 import { Worker, Job } from "bullmq";
-import { connection } from "../config/redis.config";
-import { EmailService } from "../../email/email.service";
+import { connection } from "../config/redis.config.ts";
+import { emailService, EmailService } from "../../email/email.service.ts";
 import {
   EmailJobType,
   EmailResult,
   VerificationEmailJobData,
   PasswordResetEmailJobData,
   WelcomeEmailJobData,
-} from "../types/queue.types";
-import { logger } from "../../utils/logger.utils";
+} from "../types/queue.types.ts";
+import { logger } from "../../utils/logger.utils.ts";
 
-const emailService = new EmailService();
+
 
 const processEmailJob = async (job: Job): Promise<EmailResult> => {
   logger.info(`Processing email job: ${job.id} | Type: ${job.name}`);
@@ -42,35 +42,6 @@ const processEmailJob = async (job: Job): Promise<EmailResult> => {
         break;
       }
 
-      // case EmailJobType.WELCOME: {
-      //     const data = job.data as WelcomeEmailJobData;
-      //     result = await emailService.sendMail(
-      //         data.to,
-      //         "Welcome to FoodMatrix",
-      //         "welcome",
-      //         { name: data.name }
-      //     );
-      //     break;
-      // }
-
-      // case EmailJobType.OTP: {
-      //     const data = job.data as OtpEmailJobData;
-      //     result = await emailService.sendOtpEmail(data.to, data.otp, data.name);
-      //     break;
-      // }
-
-      // case EmailJobType.: {
-      //     const data = job.data as MemberInviteJobData;
-      //     result = await emailService.sendMemberInvitationEmail(
-      //         data.to,
-      //         data.inviteeName,
-      //         data.inviterName,
-      //         data.accountName,
-      //         data.acceptLink
-      //     );
-      //     break;
-      // }
-
       default:
         throw new Error(`Unknown job type: ${job.name}`);
     }
@@ -87,28 +58,15 @@ const processEmailJob = async (job: Job): Promise<EmailResult> => {
   }
 };
 
+
+
 export const emailWorker = new Worker("email-queue", processEmailJob, {
   connection,
   concurrency: Number(process.env.EMAIL_WORKER_CONCURRENCY || 5),
   limiter: { max: 100, duration: 60000 },
 });
 
-emailWorker.on("completed", (job) =>
-  logger.info(`Job ${job.id} completed successfully`),
-);
-emailWorker.on("failed", (job, error) =>
-  logger.error(`Job ${job?.id} failed: ${error.message}`),
-);
-emailWorker.on("progress", (job, progress) =>
-  logger.info(`Job ${job.id} progress: ${progress}%`),
-);
-emailWorker.on("active", (job) =>
-  logger.info(`Job ${job.id} started processing`),
-);
-emailWorker.on("stalled", (jobId) => logger.warn(`Job ${jobId} stalled`));
-emailWorker.on("error", (error) =>
-  logger.error(`Worker error: ${error.message}`),
-);
+
 
 export const closeWorkerGracefully = async () => {
   logger.warn("Shutting down email worker...");

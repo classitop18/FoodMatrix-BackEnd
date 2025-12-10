@@ -7,14 +7,15 @@ import {
   timestamp,
   numeric,
   integer,
+  uuid,
 } from "drizzle-orm/pg-core";
 import {
   accountTypeEnum,
   budgetAllocationEnum,
   rolesEnum,
   sexEnum,
-} from "./enums";
-import { pgEnum } from "drizzle-orm/pg-core";
+} from "./enums.ts";
+
 
 
 // ================== USERS TABLE ==================
@@ -60,6 +61,22 @@ export const users = pgTable("users", {
     .notNull()
     .default(sql`now()`),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+});
+
+
+// ================== SESSIONS TABLE ==================
+export const sessions = pgTable("sessions", {
+  id: uuid("id").default(sql`gen_random_uuid()`).primaryKey(),
+  userId: varchar("user_id", { length: 36 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  refreshTokenHash: text("refresh_token_hash").notNull(),
+  userAgent: text("user_agent"),
+  ip: text("ip"),
+  isValid: boolean("is_valid").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).default(sql`now()`),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }).default(sql`now()`),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
 });
 
 // ================== ACCOUNTS TABLE ==================

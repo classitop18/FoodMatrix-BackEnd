@@ -1,6 +1,6 @@
 import { Queue, JobScheduler } from "bullmq";
-import { connection } from "./config/redis.config";
-import { logger } from "../utils/logger.utils";
+import { connection } from "./config/redis.config.ts";
+import { logger } from "../utils/logger.utils.ts";
 
 // Initialize Queue Scheduler (handles delayed/repeated jobs)
 export const emailQueueScheduler = new JobScheduler("email-queue", {

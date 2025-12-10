@@ -108,19 +108,19 @@ export const paginationSchema = z.object({
     .transform(Number)
     .pipe(z.number().min(1))
     .optional()
-    .default(1),
+    .default("1"),
   limit: z
     .string()
     .transform(Number)
     .pipe(z.number().min(1).max(100))
     .optional()
-    .default(10),
+    .default("10"),
 });
 
 
 
 
-export const CheckPropertyExistSchema = z.object({
+export const checkPropertyExistSchema = z.object({
   field: z.string({
     message: "Field name is required",
   }),
