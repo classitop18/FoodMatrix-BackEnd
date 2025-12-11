@@ -12,24 +12,24 @@ import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { emailQueue } from "./queues/email.queue.ts";
 import { emailWorker } from "./queues/worker/email.worker.ts";
-
-
-
+import cookieParser from "cookie-parser"
 
 const app = express();
 const PORT = CONFIG.PORT || 3000;
 
-
 // Security middlewares
 app.use(helmet());
-app.use(cors({
-  origin: "http://localhost:3001", // frontend URL
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  credentials: true, // if you want to send cookies or auth headers
-}));
+app.use(
+  cors({
+    origin: "http://localhost:3001", // frontend URL
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    credentials: true, // if you want to send cookies or auth headers
+  }),
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser())
 
 // HTTP request logging with morgan integrated with Winston
 app.use(
@@ -54,25 +54,24 @@ const serverAdapter = new ExpressAdapter();
 serverAdapter.setBasePath("/admin/queues");
 
 createBullBoard({
-  queues: [
-    new BullMQAdapter(emailQueue),
-
-  ],
+  queues: [new BullMQAdapter(emailQueue)],
   serverAdapter,
 });
 
 app.use("/admin/queues", serverAdapter.getRouter());
 
-
-app.use("/api/v1", appRouter)
+app.use("/api/v1", appRouter);
 
 // Global error handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   logger.error(err.stack || err.message || err);
 
   return sendError(
-    res, err?.message || "Internal Server Error", null, err?.status || 500
-  )
+    res,
+    err?.message || "Internal Server Error",
+    null,
+    err?.status || 500,
+  );
 });
 
 // Start server
@@ -96,9 +95,6 @@ const server = app.listen(PORT, async () => {
     logger.error(`Worker error: ${error.message}`),
   );
 });
-
-
-
 
 // Graceful shutdown
 const shutdown = () => {

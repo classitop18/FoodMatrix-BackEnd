@@ -10,8 +10,6 @@ import {
 } from "../types/queue.types.ts";
 import { logger } from "../../utils/logger.utils.ts";
 
-
-
 const processEmailJob = async (job: Job): Promise<EmailResult> => {
   logger.info(`Processing email job: ${job.id} | Type: ${job.name}`);
 
@@ -58,15 +56,11 @@ const processEmailJob = async (job: Job): Promise<EmailResult> => {
   }
 };
 
-
-
 export const emailWorker = new Worker("email-queue", processEmailJob, {
   connection,
   concurrency: Number(process.env.EMAIL_WORKER_CONCURRENCY || 5),
   limiter: { max: 100, duration: 60000 },
 });
-
-
 
 export const closeWorkerGracefully = async () => {
   logger.warn("Shutting down email worker...");

@@ -5,7 +5,7 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "esModuleInterop": true,
-    
+
     "moduleResolution": "bundler",
     "strict": true,
     "sourceMap": true,
@@ -15,7 +15,5 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src/**/*"]
 }

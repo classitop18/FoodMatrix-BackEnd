@@ -8,10 +8,8 @@ import { CONFIG } from "../utils/env.config.ts";
 
 dotenv.config();
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 
 // Paths
 const BASE_DIR = path.join(__dirname, "layouts");
@@ -135,7 +133,7 @@ export class EmailService {
     name?: string,
     expiresMins = 60,
   ) {
-    const resetUrl = `${process.env.APP_URL}/reset-password?token=${encodeURIComponent(token)}`;
+    const resetUrl = `${process.env.APP_URL}/api/v1/auth/verify/${encodeURIComponent(token)}`;
 
     return this.sendMail(to, "Reset your password", "reset-password", {
       name: name ?? "there",

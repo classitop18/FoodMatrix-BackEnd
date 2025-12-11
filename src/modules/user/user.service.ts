@@ -2,6 +2,7 @@ import {
   CreateUserDTO,
   PaginatedResponse,
   PaginationParams,
+  ResetPasswordDTO,
   UpdatePasswordDTO,
   UpdateUserDTO,
   User,
@@ -14,7 +15,7 @@ import * as bcrypt from "bcrypt";
 import { IUserRepository } from "./user.repository.ts";
 import { generateJwtToken, verifyJwtToken } from "../../utils/jwt.utils.ts";
 import { CONFIG } from "../../utils/env.config.ts";
-import { compareHash } from "../../utils/bcrypt.utils.ts";
+import { compareHash, hashString } from "../../utils/bcrypt.utils.ts";
 
 export interface IUserService {
   createUser(data: CreateUserDTO): Promise<UserWithoutPassword>;
@@ -30,13 +31,14 @@ export interface IUserService {
   getVerificationOtp(email: string): Promise<number>;
   verifyUserEmailUsingOtp(data: VerifyUserDTO): Promise<UserWithoutPassword>;
   verifyUserEmailUsingToken(data: VerifyEmailDTO): Promise<UserWithoutPassword>;
+  resetPassword(id: string, data: ResetPasswordDTO): Promise<any>;
   getUsers(
     filters?: UserFilters,
     pagination?: PaginationParams,
   ): Promise<PaginatedResponse<UserWithoutPassword>>;
   enableMfa(id: string): Promise<void>;
   disableMfa(id: string): Promise<void>;
-  findUserByField(data: { field: string, value: string }): Promise<any>;
+  findUserByField(data: { field: string; value: string }): Promise<any>;
 }
 
 export class UserService implements IUserService {
@@ -51,13 +53,15 @@ export class UserService implements IUserService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  async findUserByField(data: { field: string, value: string }) {
+  async findUserByField(data: { field: string; value: string }) {
     const { field, value } = data;
     if (!field || !value) return null;
 
     switch (field) {
       case "email": {
-        return await this.userRepository.findByEmail(value.trim().toLowerCase());
+        return await this.userRepository.findByEmail(
+          value.trim().toLowerCase(),
+        );
       }
       case "username": {
         return await this.userRepository.findByUsername(value.trim());
@@ -88,7 +92,6 @@ export class UserService implements IUserService {
     const hashedPassword = await bcrypt.hash(data.password, 12);
     const user = await this.userRepository.create(data, hashedPassword);
     return this.removePasswordFromUser(user);
-
   }
 
   async loginUser(data: {
@@ -269,4 +272,18 @@ export class UserService implements IUserService {
     }
     await this.userRepository.disableMfa(id);
   }
+
+
+  async resetPassword(id: string, data: ResetPasswordDTO): Promise<any> {
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    const hashedPassword = await hashString(data.newPassword);
+    await this.userRepository.updatePassword(id, hashedPassword);
+
+  }
+
+
+
 }

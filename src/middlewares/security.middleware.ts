@@ -31,17 +31,17 @@
 // /**
 //  * Rate Limiting Middleware Factory
 //  * Limits the number of requests from a single IP or user
-//  * 
+//  *
 //  * @param options - Rate limit configuration
 //  * @param options.windowMs - Time window in milliseconds
 //  * @param options.maxRequests - Maximum number of requests per window
 //  * @param options.message - Custom error message
 //  * @param options.skipSuccessfulRequests - Don't count successful requests
 //  * @param options.keyGenerator - Custom key generator function
-//  * 
+//  *
 //  * @example
 //  * // Limit login attempts
-//  * router.post('/login', 
+//  * router.post('/login',
 //  *   rateLimit({ windowMs: 15 * 60 * 1000, maxRequests: 5 }),
 //  *   controller.login
 //  * );

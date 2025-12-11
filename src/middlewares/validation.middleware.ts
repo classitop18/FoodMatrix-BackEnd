@@ -11,98 +11,93 @@ type ValidationTarget = "body" | "query" | "params";
 /**
  * Validation Middleware Factory
  * Validates request data against a Zod schema
- * 
+ *
  * @param schema - Zod schema to validate against
  * @param target - Which part of the request to validate (body, query, params)
- * 
+ *
  * @example
  * const loginSchema = z.object({
  *   email: z.string().email(),
  *   password: z.string().min(8),
  * });
- * 
- * router.post('/login', 
+ *
+ * router.post('/login',
  *   validate(loginSchema, 'body'),
  *   controller.login
  * );
  */
 export const validate = (
-    schema: ZodSchema,
-    target: ValidationTarget = "body"
+  schema: ZodSchema,
+  target: ValidationTarget = "body",
 ) => {
-    return async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise<void> => {
-        try {
-            // Get the data to validate based on target
-            const dataToValidate = req[target];
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      // Get the data to validate based on target
+      const dataToValidate = req[target];
 
-            // Validate the data
-            const validatedData = await schema.parseAsync(dataToValidate);
+      // Validate the data
+      const validatedData = await schema.parseAsync(dataToValidate);
 
-            // Replace the original data with validated and sanitized data
-            req[target] = validatedData;
+      // Replace the original data with validated and sanitized data
+      req[target] = validatedData;
 
-            logger.debug("Request validation successful", {
-                target,
-                path: req.path,
-            });
+      logger.debug("Request validation successful", {
+        target,
+        path: req.path,
+      });
 
-            next();
-        } catch (error: any) {
-            if (error instanceof ZodError) {
-                // Format Zod errors into a user-friendly structure
-                const formattedErrors = error.errors.map((err) => ({
-                    field: err.path.join("."),
-                    message: err.message,
-                    code: err.code,
-                }));
+      next();
+    } catch (error: any) {
+      if (error instanceof ZodError) {
+        // Format Zod errors into a user-friendly structure
+        const formattedErrors = error.errors.map((err) => ({
+          field: err.path.join("."),
+          message: err.message,
+          code: err.code,
+        }));
 
-                logger.warn("Request validation failed", {
-                    target,
-                    path: req.path,
-                    ip: req.ip,
-                    errors: formattedErrors,
-                });
+        logger.warn("Request validation failed", {
+          target,
+          path: req.path,
+          ip: req.ip,
+          errors: formattedErrors,
+        });
 
-                 sendError(
-                    res,
-                    "Validation failed. Please check your input.",
-                    {
-                        errors: formattedErrors,
-                    },
-                    400
-                );
-            }
+        sendError(
+          res,
+          "Validation failed. Please check your input.",
+          {
+            errors: formattedErrors,
+          },
+          400,
+        );
+      }
 
-            // Handle unexpected errors
-            logger.error("Validation middleware error:", {
-                error: error.message,
-                stack: error.stack,
-                target,
-                path: req.path,
-            });
+      // Handle unexpected errors
+      logger.error("Validation middleware error:", {
+        error: error.message,
+        stack: error.stack,
+        target,
+        path: req.path,
+      });
 
-             sendError(
-                res,
-                "An error occurred during validation.",
-                null,
-                500
-            );
-        }
-    };
+      sendError(res, "An error occurred during validation.", null, 500);
+    }
+  };
 };
 
 // /**
 //  * Multi-target Validation Middleware
 //  * Validates multiple parts of the request at once
-//  * 
+//  *
 //  * @param schemas - Object containing schemas for different targets
-//  * 
+//  *
 //  * @example
-//  * router.get('/users/:userId/posts', 
+//  * router.get('/users/:userId/posts',
 //  *   validateMultiple({
 //  *     params: z.object({ userId: z.string().uuid() }),
 //  *     query: z.object({ page: z.string().optional() }),
@@ -187,15 +182,15 @@ export const validate = (
 // /**
 //  * Conditional Validation Middleware
 //  * Only validates if a condition is met
-//  * 
+//  *
 //  * @param schema - Zod schema to validate against
 //  * @param target - Which part of the request to validate
 //  * @param condition - Function that returns true if validation should occur
-//  * 
+//  *
 //  * @example
-//  * router.patch('/users/:userId', 
+//  * router.patch('/users/:userId',
 //  *   conditionalValidate(
-//  *     passwordSchema, 
+//  *     passwordSchema,
 //  *     'body',
 //  *     (req) => req.body.password !== undefined
 //  *   ),
@@ -226,12 +221,12 @@ export const validate = (
 //  * Partial Validation Middleware
 //  * Validates only the fields that are present in the request
 //  * Useful for PATCH endpoints where not all fields are required
-//  * 
+//  *
 //  * @param schema - Zod schema to validate against
 //  * @param target - Which part of the request to validate
-//  * 
+//  *
 //  * @example
-//  * router.patch('/users/:userId', 
+//  * router.patch('/users/:userId',
 //  *   partialValidate(userUpdateSchema, 'body'),
 //  *   controller.updateUser
 //  * );
@@ -303,7 +298,7 @@ export const validate = (
 // /**
 //  * File Upload Validation Middleware
 //  * Validates file uploads (requires multer or similar)
-//  * 
+//  *
 //  * @param options - File validation options
 //  */
 // export const validateFileUpload = (options: {

@@ -66,6 +66,7 @@ This document describes the comprehensive authentication and session management 
 ### 3. Role-Based Access Control (RBAC)
 
 #### Role Hierarchy
+
 ```
 viewer (1) < creator (2) < admin (3) < super_admin (4)
 ```
@@ -80,12 +81,14 @@ viewer (1) < creator (2) < admin (3) < super_admin (4)
 ### 4. Security Features
 
 #### Rate Limiting
+
 - **Login**: 5 attempts per 15 minutes (per IP/user)
 - **Token Refresh**: 20 attempts per 15 minutes
 - **Logout All**: 3 attempts per hour
 - **General**: 100 requests per 15 minutes (configurable)
 
 #### Input Security
+
 - XSS prevention
 - SQL injection prevention
 - Parameter pollution prevention
@@ -93,6 +96,7 @@ viewer (1) < creator (2) < admin (3) < super_admin (4)
 - Input sanitization
 
 #### Security Headers
+
 - X-Frame-Options: DENY
 - X-Content-Type-Options: nosniff
 - X-XSS-Protection: 1; mode=block
@@ -111,16 +115,16 @@ viewer (1) < creator (2) < admin (3) < super_admin (4)
 
 ### Authentication Routes (`/api/v1/auth`)
 
-| Method | Endpoint | Description | Access | Rate Limit |
-|--------|----------|-------------|--------|------------|
-| POST | `/login` | Login user | Public | 5/15min |
-| POST | `/refresh` | Refresh access token | Public | 20/15min |
-| POST | `/logout` | Logout current session | Private | - |
-| POST | `/logout-all` | Logout all sessions | Private | 3/hour |
-| GET | `/sessions` | Get active sessions | Private | - |
-| DELETE | `/sessions/:sessionId` | Revoke specific session | Private | - |
-| GET | `/verify` | Verify current session | Private | - |
-| GET | `/me` | Get current user | Private | - |
+| Method | Endpoint               | Description             | Access  | Rate Limit |
+| ------ | ---------------------- | ----------------------- | ------- | ---------- |
+| POST   | `/login`               | Login user              | Public  | 5/15min    |
+| POST   | `/refresh`             | Refresh access token    | Public  | 20/15min   |
+| POST   | `/logout`              | Logout current session  | Private | -          |
+| POST   | `/logout-all`          | Logout all sessions     | Private | 3/hour     |
+| GET    | `/sessions`            | Get active sessions     | Private | -          |
+| DELETE | `/sessions/:sessionId` | Revoke specific session | Private | -          |
+| GET    | `/verify`              | Verify current session  | Private | -          |
+| GET    | `/me`                  | Get current user        | Private | -          |
 
 ## Usage Examples
 
@@ -152,7 +156,7 @@ router.post(
   "/accounts/:accountId/settings",
   authenticate,
   requireRole("admin"),
-  controller.updateSettings
+  controller.updateSettings,
 );
 
 // Only primary admin can delete account
@@ -160,7 +164,7 @@ router.delete(
   "/accounts/:accountId",
   authenticate,
   requirePrimaryAdmin(),
-  controller.deleteAccount
+  controller.deleteAccount,
 );
 ```
 
@@ -173,11 +177,7 @@ import { loginSchema } from "../validators/auth.validators";
 
 const router = Router();
 
-router.post(
-  "/login",
-  validate(loginSchema, "body"),
-  controller.login
-);
+router.post("/login", validate(loginSchema, "body"), controller.login);
 ```
 
 ### 4. Rate Limiting
@@ -195,7 +195,7 @@ router.post(
     windowMs: 15 * 60 * 1000,
     maxRequests: 100,
   }),
-  controller.handler
+  controller.handler,
 );
 
 // User-based rate limiting (if authenticated)
@@ -205,7 +205,7 @@ router.post(
     windowMs: 15 * 60 * 1000,
     maxRequests: 5,
   }),
-  controller.handler
+  controller.handler,
 );
 ```
 
@@ -224,7 +224,7 @@ router.get(
     params: z.object({ userId: z.string().uuid() }),
     query: z.object({ page: z.string().optional() }),
   }),
-  controller.getUserPosts
+  controller.getUserPosts,
 );
 ```
 
@@ -255,7 +255,7 @@ localStorage.setItem("refreshToken", refreshToken);
 ```typescript
 const response = await fetch("/api/v1/protected-resource", {
   headers: {
-    "Authorization": `Bearer ${accessToken}`,
+    Authorization: `Bearer ${accessToken}`,
   },
 });
 ```
@@ -265,7 +265,7 @@ const response = await fetch("/api/v1/protected-resource", {
 ```typescript
 async function refreshAccessToken() {
   const refreshToken = localStorage.getItem("refreshToken");
-  
+
   const response = await fetch("/api/v1/auth/refresh", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -273,7 +273,8 @@ async function refreshAccessToken() {
   });
 
   if (response.ok) {
-    const { accessToken, refreshToken: newRefreshToken } = await response.json();
+    const { accessToken, refreshToken: newRefreshToken } =
+      await response.json();
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("refreshToken", newRefreshToken);
     return accessToken;
@@ -297,7 +298,7 @@ axios.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 ```
 
@@ -308,7 +309,7 @@ axios.interceptors.response.use(
 await fetch("/api/v1/auth/logout", {
   method: "POST",
   headers: {
-    "Authorization": `Bearer ${accessToken}`,
+    Authorization: `Bearer ${accessToken}`,
   },
 });
 
@@ -316,7 +317,7 @@ await fetch("/api/v1/auth/logout", {
 await fetch("/api/v1/auth/logout-all", {
   method: "POST",
   headers: {
-    "Authorization": `Bearer ${accessToken}`,
+    Authorization: `Bearer ${accessToken}`,
   },
 });
 
@@ -413,6 +414,7 @@ All authentication events are logged with appropriate levels:
 - **ERROR**: System errors, unexpected failures
 
 Example log entry:
+
 ```json
 {
   "level": "info",
@@ -454,11 +456,13 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 If you have existing user routes, migrate them to use the new middleware:
 
 ### Before
+
 ```typescript
 router.get("/users/:id", controller.getUser);
 ```
 
 ### After
+
 ```typescript
 import { authenticate, requireOwnership } from "../middlewares";
 
@@ -466,7 +470,7 @@ router.get(
   "/users/:userId",
   authenticate,
   requireOwnership("userId"),
-  controller.getUser
+  controller.getUser,
 );
 ```
 
@@ -506,6 +510,7 @@ router.get(
 ## Support
 
 For issues or questions, please refer to:
+
 - Project README
 - API Documentation
 - Security Guidelines

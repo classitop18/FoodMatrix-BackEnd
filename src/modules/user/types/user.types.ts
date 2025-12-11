@@ -38,6 +38,10 @@ export interface UpdatePasswordDTO {
   newPassword: string;
 }
 
+export interface ResetPasswordDTO{
+  newPassword:string
+}
+
 export interface VerifyUserDTO {
   email: string;
   otp: string;
@@ -70,9 +74,7 @@ export interface PaginatedResponse<T> {
   };
 }
 
-
-
-export interface CheckPropertyExist<T>{
-  field:string,
-  value:string
+export interface CheckPropertyExist<T> {
+  field: string;
+  value: string;
 }

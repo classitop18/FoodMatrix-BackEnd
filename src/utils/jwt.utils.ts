@@ -4,6 +4,7 @@ import { CONFIG } from "./env.config.ts";
 
 export const generateJwtToken = (
   payload: object,
+  // exipires in should be in second
   expiresIn: number,
   secret: string,
 ): string | null => {
@@ -33,7 +34,7 @@ export const generateAuthenticationToken = (
 ): {
   accessToken: string;
   refreshToken: string;
-}  => {
+} => {
   try {
     const accessTokenSecret = CONFIG.ACCESS_TOKEN_SECRET;
     const accessTokenExpiry = CONFIG.ACCESS_TOKEN_EXPIRY_MINUTES || 60;

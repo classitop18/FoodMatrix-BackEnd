@@ -35,6 +35,7 @@ Your production-grade authentication and session management system has been inst
 Your project uses Zod v4.1.13, which has a different API. You need to either:
 
 **Option A: Downgrade to Zod v3 (Recommended)**
+
 ```bash
 npm uninstall zod
 npm install zod@^3.22.4
@@ -75,6 +76,7 @@ REFRESH_TOKEN_EXPIRATION_MINUTES=10080
 ### 2. Test the Authentication Endpoints
 
 #### Register a User (if you have registration endpoint)
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/users/register \
   -H "Content-Type: application/json" \
@@ -87,6 +89,7 @@ curl -X POST http://localhost:3000/api/v1/users/register \
 ```
 
 #### Login
+
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -97,6 +100,7 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 ```
 
 #### Get Current User (use token from login response)
+
 ```bash
 curl http://localhost:3000/api/v1/auth/me \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN_HERE"
@@ -122,7 +126,7 @@ router.post(
   "/accounts/:accountId/settings",
   authenticate,
   requireRole("admin"),
-  controller.updateSettings
+  controller.updateSettings,
 );
 
 export default router;
@@ -175,12 +179,10 @@ import cron from "node-cron";
 
 // Run every day at midnight
 cron.schedule("0 0 * * *", async () => {
-  await db.delete(sessions)
+  await db
+    .delete(sessions)
     .where(
-      and(
-        eq(sessions.isValid, false),
-        lt(sessions.expiresAt, new Date())
-      )
+      and(eq(sessions.isValid, false), lt(sessions.expiresAt, new Date())),
     );
 });
 ```
@@ -188,6 +190,7 @@ cron.schedule("0 0 * * *", async () => {
 ### 3. Monitoring
 
 Set up monitoring for:
+
 - Failed login attempts
 - Token refresh failures
 - Rate limit hits

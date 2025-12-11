@@ -34,14 +34,12 @@ export interface IUserRepository {
 export class UserRepository implements IUserRepository {
   private _db: any = null;
 
-
   private get db() {
     if (!this._db) {
       this._db = getDb();
     }
     return this._db;
   }
-
 
   async create(data: CreateUserDTO, hashedPassword: string): Promise<User> {
     const [user] = await this.db

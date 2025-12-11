@@ -43,10 +43,12 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().default("FoodMatrix <no-reply@foodmatrix.example>"),
 
   EMAIL_SECRET: z.string().min(10),
-  FRONTEND_BASE_URL:z.string(),
+  FRONTEND_BASE_URL: z.string(),
   APP_URL: z.string().url(),
-});
+  PASSWORD_RESET_EXPIRATION_MINUTES: z.string(),
+  PASSWORD_RESET_SECRET: z.string()
 
+});
 
 // Parse + validate
 const _env = envSchema.safeParse(process.env);

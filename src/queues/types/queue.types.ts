@@ -31,6 +31,7 @@ export interface OtpVerificationEmailJobData {
 }
 
 export interface PasswordResetEmailJobData extends BaseEmailJobData {
+  to:string,
   resetToken: string;
   name?: string;
   expiresIn?: number;
