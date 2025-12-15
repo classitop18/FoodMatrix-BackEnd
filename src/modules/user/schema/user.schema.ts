@@ -99,7 +99,7 @@ export const resetPasswordSchema = z.object({
       /[^A-Za-z0-9]/,
       "Password must contain at least one special character",
     ),
-})
+});
 export const userFiltersSchema = z.object({
   isVerified: z
     .string()

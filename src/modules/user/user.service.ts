@@ -24,7 +24,7 @@ export interface IUserService {
     password: string;
   }): Promise<{ user: UserWithoutPassword }>;
   getUserById(id: string): Promise<UserWithoutPassword>;
-  getUserByEmail(email: string): Promise<User>;
+  getUserByEmail(email: string): Promise<User|null>;
   updateUser(id: string, data: UpdateUserDTO): Promise<UserWithoutPassword>;
   deleteUser(id: string): Promise<void>;
   changePassword(id: string, data: UpdatePasswordDTO): Promise<void>;
@@ -42,7 +42,7 @@ export interface IUserService {
 }
 
 export class UserService implements IUserService {
-  constructor(private userRepository: IUserRepository) { }
+  constructor(private userRepository: IUserRepository) {}
 
   private removePasswordFromUser(user: User): UserWithoutPassword {
     const { password, otp, ...userWithoutPassword } = user;
@@ -124,11 +124,8 @@ export class UserService implements IUserService {
     return this.removePasswordFromUser(user);
   }
 
-  async getUserByEmail(email: string): Promise<User> {
+  async getUserByEmail(email: string): Promise<User | null> {
     const user = await this.userRepository.findByEmail(email);
-    if (!user) {
-      throw new Error("User not found");
-    }
     return user;
   }
 
@@ -273,17 +270,14 @@ export class UserService implements IUserService {
     await this.userRepository.disableMfa(id);
   }
 
-
   async resetPassword(id: string, data: ResetPasswordDTO): Promise<any> {
     const user = await this.userRepository.findById(id);
     if (!user) {
       throw new Error("User not found");
     }
+
+    console.log("yha tk to aa gya hu", data)
     const hashedPassword = await hashString(data.newPassword);
     await this.userRepository.updatePassword(id, hashedPassword);
-
   }
-
-
-
 }

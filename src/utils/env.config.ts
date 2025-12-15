@@ -46,8 +46,7 @@ const envSchema = z.object({
   FRONTEND_BASE_URL: z.string(),
   APP_URL: z.string().url(),
   PASSWORD_RESET_EXPIRATION_MINUTES: z.string(),
-  PASSWORD_RESET_SECRET: z.string()
-
+  PASSWORD_RESET_SECRET: z.string(),
 });
 
 // Parse + validate

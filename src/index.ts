@@ -12,7 +12,7 @@ import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { emailQueue } from "./queues/email.queue.ts";
 import { emailWorker } from "./queues/worker/email.worker.ts";
-import cookieParser from "cookie-parser"
+import cookieParser from "cookie-parser";
 
 const app = express();
 const PORT = CONFIG.PORT || 3000;
@@ -29,7 +29,7 @@ app.use(
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser())
+app.use(cookieParser());
 
 // HTTP request logging with morgan integrated with Winston
 app.use(

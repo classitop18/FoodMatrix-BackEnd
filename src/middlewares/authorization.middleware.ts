@@ -256,7 +256,7 @@ export const requirePrimaryAdmin = (accountIdParam: string = "accountId") => {
  * Require Account Membership
  * Checks if user is a member of the account (any role)
  *
- * @param accountIdParam - Name of the route parameter containing accountId 
+ * @param accountIdParam - Name of the route parameter containing accountId
  */
 export const requireAccountMembership = (
   accountIdParam: string = "accountId",

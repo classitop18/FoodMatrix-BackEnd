@@ -38,8 +38,8 @@ export interface UpdatePasswordDTO {
   newPassword: string;
 }
 
-export interface ResetPasswordDTO{
-  newPassword:string
+export interface ResetPasswordDTO {
+  newPassword: string;
 }
 
 export interface VerifyUserDTO {

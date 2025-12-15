@@ -7,6 +7,7 @@ import {
   VerificationEmailJobData,
   PasswordResetEmailJobData,
   WelcomeEmailJobData,
+  OtpVerificationEmailJobData,
 } from "../types/queue.types.ts";
 import { logger } from "../../utils/logger.utils.ts";
 
@@ -37,6 +38,12 @@ const processEmailJob = async (job: Job): Promise<EmailResult> => {
           data.name,
           data.expiresIn,
         );
+        break;
+      }
+      case EmailJobType.OTP_VERIFICATION: {
+        const data = job.data as OtpVerificationEmailJobData;
+        const { to, otp, name, expiresMins } = data;
+        result = await emailService.sendOtpEmail(to, otp, name, expiresMins);
         break;
       }
 

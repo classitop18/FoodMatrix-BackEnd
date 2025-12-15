@@ -1,21 +1,20 @@
-import { Pool, neonConfig } from "@neondatabase/serverless";
-import { drizzle, NeonDatabase } from "drizzle-orm/neon-serverless";
-import ws from "ws";
-import { CONFIG } from "../utils/env.config.ts";
+
+import { Pool } from "pg";
+import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "./index.ts";
+import { CONFIG } from "../utils/env.config.ts";
 import { logger } from "../utils/logger.utils.ts";
 
-neonConfig.webSocketConstructor = ws;
-
-let db: NeonDatabase<typeof schema> | null = null;
+let db: NodePgDatabase<typeof schema> | null = null;
 
 export async function connectDatabase() {
   try {
     const pool = new Pool({
       connectionString: CONFIG.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }, // important for Neon
     });
 
-    db = drizzle({ client: pool, schema });
+    db = drizzle(pool, { schema });
 
     logger.info("🚀 Database connected successfully");
     return db;
@@ -25,9 +24,8 @@ export async function connectDatabase() {
   }
 }
 
-export function getDb(): NeonDatabase<typeof schema> {
+export function getDb(): NodePgDatabase<typeof schema> {
   if (!db) {
-    logger.error("❌ Database not initialized. Call connectDatabase() first.");
     throw new Error("Database not initialized. Call connectDatabase() first.");
   }
   return db;

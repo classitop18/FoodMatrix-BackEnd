@@ -26,11 +26,14 @@ import {
 import { CONFIG } from "../../utils/env.config.ts";
 import { ISessionService } from "../session/session.service.ts";
 import { hashString } from "../../utils/bcrypt.utils.ts";
+import { IUserOtpService } from "../user-otps/user-otp.service.ts";
+import { OTP_PURPOSES } from "../user-otps/constant/user-otp.constant.ts";
 
 export class UserController {
     constructor(
         private userService: IUserService,
         private sessionService: ISessionService,
+        private otpService: IUserOtpService
     ) { }
 
     createUser = async (
@@ -78,7 +81,7 @@ export class UserController {
             if (!user.isVerified) {
                 const token = await generateJwtToken(
                     { userId: user.id },
-                    Number(CONFIG.TOKEN_EXPIRATION_MINUTES || 60),
+                    Number(CONFIG.TOKEN_EXPIRATION_MINUTES || 60)*60,
                     CONFIG.TOKEN_SECRET!,
                 );
 
@@ -100,20 +103,40 @@ export class UserController {
             // Case 2: Check if MFA is enabled
             if (user.isMfaEnabled) {
                 const tempSessionId = generateJwtToken(
-                    { userId: user.id, mfaPending: true },
-                    10, // 10 minutes to complete MFA
+                    { userId: user.id, mfaPending: true, purpose: OTP_PURPOSES.LOGIN_MFA, },
+                    10 * 60,
                     CONFIG.TOKEN_SECRET!,
                 );
-                const otp = await this.userService.getVerificationOtp(user?.email);
+                const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+                const expiresAt = new Date(Date.now() + Number(CONFIG.OTP_EXPIRATION_MINUTES) * 60 * 1000);
+
+                await this.otpService.createOtp({
+                    userId: user.id,
+                    otp,
+                    purpose: OTP_PURPOSES.LOGIN_MFA,
+                    tempSessionToken: tempSessionId,
+                    expiresAt,
+                });
+
                 await addOtpVerificationEmailJob({
                     to: user.email,
                     otp,
                     name: user.firstName,
                     expiresMins: Number(CONFIG.OTP_EXPIRATION_MINUTES),
                 });
+
+                res.cookie("mfa_temp_session", tempSessionId, {
+                    httpOnly: true,
+                    secure: CONFIG.NODE_ENV === "production",
+                    sameSite: "strict",
+                    maxAge: 10 * 60 * 1000,
+                    path: "/",
+                });
+
                 return sendSuccess(
                     res,
-                    { mfaRequired: true, tempSessionId },
+                    { mfaRequired: true },
                     "MFA required. Please verify.",
                     200,
                 );
@@ -297,8 +320,102 @@ export class UserController {
         }
     };
 
+
+
+    verifyOtp = async (req: any, res: Response, next: NextFunction) => {
+        try {
+            const userAgent = req.headers["user-agent"];
+            const ip = req.ip;
+            const { otp } = req.body;
+            const { userId, purpose } = req.user;
+
+            // Verify OTP through service
+            const userOtp = await this.otpService.verifyOtp({
+                userId,
+                otp,
+                purpose,
+            });
+
+            if (!userOtp) {
+                return sendSuccess(res, null, "Inavlid or Expired otp.", 400);
+            }
+
+            const user = await this.userService.getUserById(userId);
+
+
+            // Create session first
+            const tempRefreshToken =
+                (await generateJwtToken(
+                    { userId: user.id, sessionId: "temp" }, // Temporary
+                    Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES),
+                    CONFIG.REFRESH_TOKEN_SECRET!,
+                )) || "";
+
+            // Hash refresh token for storage
+            const refreshTokenHash = await hashString(tempRefreshToken);
+
+            // Calculate session expiration
+            const expiresAt = new Date(
+                Date.now() +
+                Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
+            );
+
+            // Create session in database
+            const session = await this.sessionService.createSession({
+                userId: user.id,
+                refreshTokenHash,
+                userAgent: userAgent || null,
+                ip: ip || null,
+                isValid: true,
+                expiresAt,
+            });
+
+            const { accessToken, refreshToken } = generateAuthenticationToken({
+                userId: user.id,
+                email: user.email,
+                sessionId: session.id,
+            });
+
+            const newRefreshTokenHash = await hashString(refreshToken);
+
+            await this.sessionService.updateSession(session.id, {
+                refreshTokenHash: newRefreshTokenHash,
+            });
+
+            res.clearCookie("mfa_temp_session");
+
+            res.cookie("refreshToken", refreshToken, {
+                httpOnly: true, // JavaScript cannot access
+                secure: CONFIG.NODE_ENV === "production", // HTTPS only in production
+                sameSite: "strict", // CSRF protection
+                maxAge:
+                    Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES || 10080) * 60 * 1000, // 7 days in milliseconds
+            });
+
+            const userResponse = {
+                ...user,
+                accessToken, // Client stores this
+                sessionId: session.id, // Optional: for reference only
+            };
+
+            return sendSuccess(
+                res,
+                { ...userResponse },
+                "User logged in successfully",
+                200,
+            );
+
+
+
+        } catch (error) {
+            next(error);
+        }
+    };
+
+
     verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
         try {
+            console.log("aya mai yha pr")
             const token = req.query?.token;
             if (typeof token !== "string") {
                 throw new Error("Invalid or missing token");
@@ -369,18 +486,21 @@ export class UserController {
         }
     };
 
-
     forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { email } = req.body;
 
             const user = await this.userService.getUserByEmail(email);
             if (!user) {
-                return sendSuccess(res, null, "If this email exists, reset instructions have been sent.", 200);
+                return sendSuccess(
+                    res,
+                    null,
+                    "If this email exists, reset instructions have been sent.",
+                    200,
+                );
             }
             const userAgent = req.headers["user-agent"];
             const ip = req.ip;
-
 
             const expiresAt = new Date(
                 Date.now() +
@@ -394,7 +514,6 @@ export class UserController {
                     CONFIG.PASSWORD_RESET_SECRET!,
                 )) || "";
 
-
             // Hash refresh token for storage
             const refreshTokenHash = await hashString(tempRefreshToken);
             // Create session in database
@@ -407,17 +526,18 @@ export class UserController {
                 expiresAt,
             });
 
-
-
             // Generate reset token
             const token = await generateJwtToken(
                 { userId: user.id, sessionId: session?.id },
                 Number(CONFIG.PASSWORD_RESET_EXPIRATION_MINUTES || 30) * 60,
-                CONFIG.PASSWORD_RESET_SECRET!
+                CONFIG.PASSWORD_RESET_SECRET!,
             );
-            console.log({ generateToken: token }, "with secret", CONFIG.PASSWORD_RESET_SECRET)
+            console.log(
+                { generateToken: token },
+                "with secret",
+                CONFIG.PASSWORD_RESET_SECRET,
+            );
             // Add email job (you can modify template)
-
 
             await addPasswordResetEmailJob({
                 to: user.email,
@@ -425,7 +545,6 @@ export class UserController {
                 resetToken: token!,
                 expiresIn: Number(CONFIG.PASSWORD_RESET_EXPIRATION_MINUTES),
             });
-
 
             const newResetToken = await hashString(token!);
 
@@ -437,7 +556,7 @@ export class UserController {
                 res,
                 null,
                 "Password reset link has been sent to your email.",
-                200
+                200,
             );
         } catch (error) {
             next(error);
@@ -446,19 +565,19 @@ export class UserController {
 
     verifyToken = async (req: any, res: Response, next: NextFunction) => {
         try {
-            const token = generateJwtToken({
-                ...req.reset
-            },
+            const token = generateJwtToken(
+                {
+                    ...req.reset,
+                },
                 Number(CONFIG.PASSWORD_RESET_EXPIRATION_MINUTES) * 60,
-                CONFIG.PASSWORD_RESET_SECRET
-            )
+                CONFIG.PASSWORD_RESET_SECRET,
+            );
 
             res.cookie("reset_password_token", token, {
                 httpOnly: true, // JavaScript cannot access
                 secure: CONFIG.NODE_ENV === "production", // HTTPS only in production
                 sameSite: "strict", // CSRF protection
-                maxAge:
-                    Number(CONFIG.PASSWORD_RESET_EXPIRATION_MINUTES) * 60 * 1000, // 7 days in milliseconds
+                maxAge: Number(CONFIG.PASSWORD_RESET_EXPIRATION_MINUTES) * 60 * 1000, // 7 days in milliseconds
             });
 
             res.redirect(CONFIG.FRONTEND_BASE_URL + "/reset-password");
@@ -479,7 +598,7 @@ export class UserController {
                 });
             }
             // Update password
-            await this.userService.resetPassword(userId, newPassword);
+            await this.userService.resetPassword(userId, {newPassword});
             // Mark reset session as used (one-time token)
             await this.sessionService.updateSession(sessionId, {
                 isValid: false,
@@ -488,17 +607,8 @@ export class UserController {
             res.clearCookie("reset_password_token");
 
             sendSuccess(res, {}, "Password has been changed.", 200);
-
         } catch (error) {
             next(error);
         }
     };
-
-
-
-
-
-
-
-
 }

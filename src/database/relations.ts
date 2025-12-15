@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { accounts, members, sessions, users } from "./schema.ts";
+import { accounts, members, sessions, userOtps, users } from "./schema.ts";
 
 export const usersRelations = relations(users, ({ many, one }) => ({
   accounts: many(accounts),
@@ -8,7 +8,17 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     fields: [users.id],
     references: [members.userId],
   }),
+  otps: many(userOtps),
 }));
+
+
+export const userOtpsRelations = relations(userOtps, ({ one }) => ({
+  user: one(users, {
+    fields: [userOtps.userId],
+    references: [users.id],
+  }),
+}));
+
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, {
@@ -22,16 +32,20 @@ export const accountsRelations = relations(accounts, ({ many, one }) => ({
     fields: [accounts.primaryAdminId],
     references: [users.id],
   }),
+
   members: many(members),
 }));
 
-export const membersRelations = relations(members, ({ one, many }) => ({
-  account: one(accounts, {
-    fields: [members.accountId],
-    references: [accounts.id],
-  }),
+
+export const membersRelations = relations(members, ({ one }) => ({
   user: one(users, {
     fields: [members.userId],
     references: [users.id],
   }),
+
+  account: one(accounts, {
+    fields: [members.accountId],
+    references: [accounts.id],
+  }),
 }));
+

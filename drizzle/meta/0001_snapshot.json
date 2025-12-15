@@ -1,6 +1,6 @@
 {
-  "id": "f949f310-783a-4e13-bb44-3e34f5bf9e1a",
-  "prevId": "90a248fb-3996-4a09-adb4-26e673ffc67b",
+  "id": "1f2cce57-ec9b-47c2-8be8-f17c45e61fa9",
+  "prevId": "5ebf80f6-18c1-4217-9556-701d47942553",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -32,7 +32,8 @@
           "type": "account_type",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "'family'"
         },
         "primary_admin_id": {
           "name": "primary_admin_id",
@@ -40,9 +41,21 @@
           "primaryKey": false,
           "notNull": true
         },
-        "zip_code": {
-          "name": "zip_code",
-          "type": "varchar(10)",
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address_line1": {
+          "name": "address_line1",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address_line2": {
+          "name": "address_line2",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -54,6 +67,42 @@
         },
         "state": {
           "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country": {
+          "name": "country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zip_code": {
+          "name": "zip_code",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "formatted_address": {
+          "name": "formatted_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "latitude": {
+          "name": "latitude",
+          "type": "numeric(10, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "longitude": {
+          "name": "longitude",
+          "type": "numeric(11, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "place_id": {
+          "name": "place_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -182,8 +231,12 @@
           "name": "accounts_primary_admin_id_users_id_fk",
           "tableFrom": "accounts",
           "tableTo": "users",
-          "columnsFrom": ["primary_admin_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "primary_admin_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -193,7 +246,402 @@
         "accounts_account_number_unique": {
           "name": "accounts_account_number_unique",
           "nullsNotDistinct": false,
-          "columns": ["account_number"]
+          "columns": [
+            "account_number"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.health_profiles": {
+      "name": "health_profiles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "member_id": {
+          "name": "member_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "height": {
+          "name": "height",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "weight": {
+          "name": "weight",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "activity_level": {
+          "name": "activity_level",
+          "type": "activity_level",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "conditions": {
+          "name": "conditions",
+          "type": "health_condition[]",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::health_condition[]"
+        },
+        "allergies": {
+          "name": "allergies",
+          "type": "allergy[]",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::allergy[]"
+        },
+        "dietary_restrictions": {
+          "name": "dietary_restrictions",
+          "type": "dietary_restriction[]",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::dietary_restriction[]"
+        },
+        "organic_preference": {
+          "name": "organic_preference",
+          "type": "organic_preference",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'standard_only'"
+        },
+        "goals": {
+          "name": "goals",
+          "type": "health_goal[]",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::health_goal[]"
+        },
+        "target_weight": {
+          "name": "target_weight",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cooking_skill": {
+          "name": "cooking_skill",
+          "type": "cooking_skill",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cooking_frequency": {
+          "name": "cooking_frequency",
+          "type": "cooking_frequency",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_cuisines": {
+          "name": "preferred_cuisines",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::text[]"
+        },
+        "budget_flexibility": {
+          "name": "budget_flexibility",
+          "type": "budget_flexibility",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "excluded_foods": {
+          "name": "excluded_foods",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::text[]"
+        },
+        "included_foods": {
+          "name": "included_foods",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::text[]"
+        },
+        "custom_exclusions": {
+          "name": "custom_exclusions",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::text[]"
+        },
+        "custom_inclusions": {
+          "name": "custom_inclusions",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::text[]"
+        },
+        "preference_sets": {
+          "name": "preference_sets",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::text[]"
+        },
+        "auto_learn": {
+          "name": "auto_learn",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "auto_swap": {
+          "name": "auto_swap",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "has_deep_freezer": {
+          "name": "has_deep_freezer",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "shops_daily": {
+          "name": "shops_daily",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "privacy_level": {
+          "name": "privacy_level",
+          "type": "privacy_level",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'private'"
+        },
+        "health_score": {
+          "name": "health_score",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 50
+        },
+        "bmi": {
+          "name": "bmi",
+          "type": "numeric(4, 1)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "daily_sodium_limit_mg": {
+          "name": "daily_sodium_limit_mg",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 2300
+        },
+        "daily_carb_limit_g": {
+          "name": "daily_carb_limit_g",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "daily_calorie_target": {
+          "name": "daily_calorie_target",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "daily_fiber_target_g": {
+          "name": "daily_fiber_target_g",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 25
+        },
+        "last_health_assessment": {
+          "name": "last_health_assessment",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "condition_specific_metrics": {
+          "name": "condition_specific_metrics",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::jsonb"
+        },
+        "wearable_connected": {
+          "name": "wearable_connected",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "wearable_type": {
+          "name": "wearable_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "health_profiles_member_id_members_id_fk": {
+          "name": "health_profiles_member_id_members_id_fk",
+          "tableFrom": "health_profiles",
+          "tableTo": "members",
+          "columnsFrom": [
+            "member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.invitations": {
+      "name": "invitations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "invited_by": {
+          "name": "invited_by",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "accepted_at": {
+          "name": "accepted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rejected_at": {
+          "name": "rejected_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "invitations_account_id_accounts_id_fk": {
+          "name": "invitations_account_id_accounts_id_fk",
+          "tableFrom": "invitations",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "invitations_invited_by_users_id_fk": {
+          "name": "invitations_invited_by_users_id_fk",
+          "tableFrom": "invitations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "invited_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "invitations_token_unique": {
+          "name": "invitations_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token"
+          ]
         }
       },
       "policies": {},
@@ -264,8 +712,12 @@
           "name": "members_account_id_accounts_id_fk",
           "tableFrom": "members",
           "tableTo": "accounts",
-          "columnsFrom": ["account_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -273,8 +725,12 @@
           "name": "members_user_id_users_id_fk",
           "tableFrom": "members",
           "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -354,8 +810,96 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user_otps": {
+      "name": "user_otps",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "otp": {
+          "name": "otp",
+          "type": "varchar(6)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "purpose": {
+          "name": "purpose",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "temp_session_token": {
+          "name": "temp_session_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "used": {
+          "name": "used",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "used_at": {
+          "name": "used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_otps_user_id_users_id_fk": {
+          "name": "user_otps_user_id_users_id_fk",
+          "tableFrom": "user_otps",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -533,12 +1077,16 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": ["email"]
+          "columns": [
+            "email"
+          ]
         },
         "users_username_unique": {
           "name": "users_username_unique",
           "nullsNotDistinct": false,
-          "columns": ["username"]
+          "columns": [
+            "username"
+          ]
         }
       },
       "policies": {},
@@ -550,42 +1098,78 @@
     "public.account_type": {
       "name": "account_type",
       "schema": "public",
-      "values": ["individual", "family", "group"]
+      "values": [
+        "individual",
+        "family",
+        "group"
+      ]
     },
     "public.activity_level": {
       "name": "activity_level",
       "schema": "public",
-      "values": ["sedentary", "moderate", "active", "very_active"]
+      "values": [
+        "sedentary",
+        "moderate",
+        "active",
+        "very_active"
+      ]
     },
     "public.allergy": {
       "name": "allergy",
       "schema": "public",
-      "values": ["nuts", "dairy", "gluten", "shellfish", "soy", "eggs"]
+      "values": [
+        "nuts",
+        "dairy",
+        "gluten",
+        "shellfish",
+        "soy",
+        "eggs"
+      ]
     },
     "public.budget_allocation": {
       "name": "budget_allocation",
       "schema": "public",
-      "values": ["daily", "weekly", "monthly", "annual"]
+      "values": [
+        "daily",
+        "weekly",
+        "monthly",
+        "annual"
+      ]
     },
     "public.budget_flexibility": {
       "name": "budget_flexibility",
       "schema": "public",
-      "values": ["strict", "moderate", "flexible"]
+      "values": [
+        "strict",
+        "moderate",
+        "flexible"
+      ]
     },
     "public.budget_source": {
       "name": "budget_source",
       "schema": "public",
-      "values": ["separate", "merged"]
+      "values": [
+        "separate",
+        "merged"
+      ]
     },
     "public.cooking_frequency": {
       "name": "cooking_frequency",
       "schema": "public",
-      "values": ["mostly_home", "mixed", "mostly_dining_out"]
+      "values": [
+        "mostly_home",
+        "mixed",
+        "mostly_dining_out"
+      ]
     },
     "public.cooking_skill": {
       "name": "cooking_skill",
       "schema": "public",
-      "values": ["beginner", "moderate", "advanced"]
+      "values": [
+        "beginner",
+        "moderate",
+        "advanced"
+      ]
     },
     "public.dietary_restriction": {
       "name": "dietary_restriction",
@@ -619,17 +1203,29 @@
     "public.food_category": {
       "name": "food_category",
       "schema": "public",
-      "values": ["groceries", "dining_out", "food_emergency"]
+      "values": [
+        "groceries",
+        "dining_out",
+        "food_emergency"
+      ]
     },
     "public.fulfillment_method": {
       "name": "fulfillment_method",
       "schema": "public",
-      "values": ["cook", "catering", "group_dining", "potluck_coordination"]
+      "values": [
+        "cook",
+        "catering",
+        "group_dining",
+        "potluck_coordination"
+      ]
     },
     "public.guest_category": {
       "name": "guest_category",
       "schema": "public",
-      "values": ["family_member", "party_guest"]
+      "values": [
+        "family_member",
+        "party_guest"
+      ]
     },
     "public.health_condition": {
       "name": "health_condition",
@@ -668,37 +1264,68 @@
     "public.item_category": {
       "name": "item_category",
       "schema": "public",
-      "values": ["food", "non_food", "uncertain"]
+      "values": [
+        "food",
+        "non_food",
+        "uncertain"
+      ]
     },
     "public.organic_preference": {
       "name": "organic_preference",
       "schema": "public",
-      "values": ["standard_only", "prefer_when_budget_allows", "organic_only"]
+      "values": [
+        "standard_only",
+        "prefer_when_budget_allows",
+        "organic_only"
+      ]
     },
     "public.privacy_level": {
       "name": "privacy_level",
       "schema": "public",
-      "values": ["private", "admin_only", "shared"]
+      "values": [
+        "private",
+        "admin_only",
+        "shared"
+      ]
     },
     "public.receipt_status": {
       "name": "receipt_status",
       "schema": "public",
-      "values": ["processing", "completed", "failed", "needs_review"]
+      "values": [
+        "processing",
+        "completed",
+        "failed",
+        "needs_review"
+      ]
     },
     "public.role": {
       "name": "role",
       "schema": "public",
-      "values": ["admin", "super_admin", "viewer", "creator"]
+      "values": [
+        "admin",
+        "super_admin",
+        "viewer",
+        "creator"
+      ]
     },
     "public.sex": {
       "name": "sex",
       "schema": "public",
-      "values": ["male", "female", "other"]
+      "values": [
+        "male",
+        "female",
+        "other"
+      ]
     },
     "public.transaction_category": {
       "name": "transaction_category",
       "schema": "public",
-      "values": ["groceries", "dining_out", "food_emergency", "non_food"]
+      "values": [
+        "groceries",
+        "dining_out",
+        "food_emergency",
+        "non_food"
+      ]
     }
   },
   "schemas": {},
