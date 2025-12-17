@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
-import { CONFIG } from "../utils/env.config.ts";
+import { CONFIG } from "../utils/env.config.js";
 
 dotenv.config();
 

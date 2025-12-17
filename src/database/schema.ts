@@ -26,7 +26,7 @@ import {
   privacyLevelEnum,
   rolesEnum,
   sexEnum,
-} from "./enums.ts";
+} from "./enums.js";
 
 // ================== USERS TABLE ==================
 export const users = pgTable("users", {
@@ -94,7 +94,6 @@ export const sessions = pgTable("sessions", {
   expiresAt: timestamp("expires_at", { withTimezone: true }),
 });
 
-
 export const userOtps = pgTable("user_otps", {
   id: uuid("id")
     .default(sql`gen_random_uuid()`)
@@ -112,14 +111,14 @@ export const userOtps = pgTable("user_otps", {
   tempSessionToken: text("temp_session_token"),
   // JIT temp token for MFA flow (optional but recommended)
 
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .default(sql`now()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).default(
+    sql`now()`,
+  ),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 
   used: boolean("used").default(false),
   usedAt: timestamp("used_at", { withTimezone: true }),
 });
-
 
 // ================== ACCOUNTS TABLE ==================
 export const accounts = pgTable("accounts", {
@@ -223,11 +222,14 @@ export const members = pgTable("members", {
     .default(sql`now()`),
 });
 
-
 // Health profiles
 export const healthProfiles = pgTable("health_profiles", {
-  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
-  memberId: varchar("member_id", { length: 36 }).notNull().references(() => members.id),
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  memberId: varchar("member_id", { length: 36 })
+    .notNull()
+    .references(() => members.id),
 
   // Demographics & Physical Info
   height: integer("height"), // in inches
@@ -235,29 +237,50 @@ export const healthProfiles = pgTable("health_profiles", {
   activityLevel: activityLevelEnum("activity_level"),
 
   // Medical Conditions & Health Issues
-  conditions: healthConditionEnum("conditions").array().default(sql`'{}'::health_condition[]`),
-  allergies: allergyEnum("allergies").array().default(sql`'{}'::allergy[]`),
+  conditions: healthConditionEnum("conditions")
+    .array()
+    .default(sql`'{}'::health_condition[]`),
+  allergies: allergyEnum("allergies")
+    .array()
+    .default(sql`'{}'::allergy[]`),
 
   // Dietary Restrictions & Preferences
-  dietaryRestrictions: dietaryRestrictionEnum("dietary_restrictions").array().default(sql`'{}'::dietary_restriction[]`),
-  organicPreference: organicPreferenceEnum("organic_preference").default('standard_only'),
+  dietaryRestrictions: dietaryRestrictionEnum("dietary_restrictions")
+    .array()
+    .default(sql`'{}'::dietary_restriction[]`),
+  organicPreference:
+    organicPreferenceEnum("organic_preference").default("standard_only"),
 
   // Health & Nutrition Goals
-  goals: healthGoalEnum("goals").array().default(sql`'{}'::health_goal[]`),
+  goals: healthGoalEnum("goals")
+    .array()
+    .default(sql`'{}'::health_goal[]`),
   targetWeight: integer("target_weight"), // in pounds
 
   // Food Behavior & Lifestyle
   cookingSkill: cookingSkillEnum("cooking_skill"),
   cookingFrequency: cookingFrequencyEnum("cooking_frequency"),
-  preferredCuisines: text("preferred_cuisines").array().default(sql`'{}'::text[]`), // free text array
+  preferredCuisines: text("preferred_cuisines")
+    .array()
+    .default(sql`'{}'::text[]`), // free text array
   budgetFlexibility: budgetFlexibilityEnum("budget_flexibility"),
 
   // Food Preferences (Exclude/Include)
-  excludedFoods: text("excluded_foods").array().default(sql`'{}'::text[]`), // Foods to avoid from predefined lists
-  includedFoods: text("included_foods").array().default(sql`'{}'::text[]`), // Foods to include more often
-  customExclusions: text("custom_exclusions").array().default(sql`'{}'::text[]`), // User-defined exclusions
-  customInclusions: text("custom_inclusions").array().default(sql`'{}'::text[]`), // User-defined inclusions
-  preferenceSets: text("preference_sets").array().default(sql`'{}'::text[]`), // Preset combinations like 'no_dairy', 'halal_only', 'low_fodmap', 'nut_free'
+  excludedFoods: text("excluded_foods")
+    .array()
+    .default(sql`'{}'::text[]`), // Foods to avoid from predefined lists
+  includedFoods: text("included_foods")
+    .array()
+    .default(sql`'{}'::text[]`), // Foods to include more often
+  customExclusions: text("custom_exclusions")
+    .array()
+    .default(sql`'{}'::text[]`), // User-defined exclusions
+  customInclusions: text("custom_inclusions")
+    .array()
+    .default(sql`'{}'::text[]`), // User-defined inclusions
+  preferenceSets: text("preference_sets")
+    .array()
+    .default(sql`'{}'::text[]`), // Preset combinations like 'no_dairy', 'halal_only', 'low_fodmap', 'nut_free'
   autoLearn: boolean("auto_learn").default(true), // Learn from meal feedback
   autoSwap: boolean("auto_swap").default(true), // Auto-swap excluded ingredients
 
@@ -266,7 +289,7 @@ export const healthProfiles = pgTable("health_profiles", {
   shopsDaily: boolean("shops_daily").default(false),
 
   // Health Optimization & Scoring
-  privacyLevel: privacyLevelEnum("privacy_level").default('private').notNull(),
+  privacyLevel: privacyLevelEnum("privacy_level").default("private").notNull(),
   healthScore: integer("health_score").default(50),
   bmi: decimal("bmi", { precision: 4, scale: 1 }),
   dailySodiumLimitMg: integer("daily_sodium_limit_mg").default(2300), // Default 2300mg, 1500mg for hypertension
@@ -274,25 +297,34 @@ export const healthProfiles = pgTable("health_profiles", {
   dailyCalorieTarget: integer("daily_calorie_target"),
   dailyFiberTargetG: integer("daily_fiber_target_g").default(25),
   lastHealthAssessment: timestamp("last_health_assessment"),
-  conditionSpecificMetrics: jsonb("condition_specific_metrics").default(sql`'{}'::jsonb`),
+  conditionSpecificMetrics: jsonb("condition_specific_metrics").default(
+    sql`'{}'::jsonb`,
+  ),
   wearableConnected: boolean("wearable_connected").default(false),
   wearableType: text("wearable_type"), // 'fitbit', 'apple_health', 'google_fit'
-  updatedAt: timestamp("updated_at").default(sql`now()`).notNull(),
+  updatedAt: timestamp("updated_at")
+    .default(sql`now()`)
+    .notNull(),
 });
 
-
-
-
 export const invitations = pgTable("invitations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  accountId: varchar("account_id").notNull().references(() => accounts.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id")
+    .notNull()
+    .references(() => accounts.id),
   email: text("email").notNull(),
   role: text("role"), // 'admin' or 'member' - nullable until admin assigns role
-  invitedBy: varchar("invited_by").notNull().references(() => users.id),
+  invitedBy: varchar("invited_by")
+    .notNull()
+    .references(() => users.id),
   token: text("token").notNull().unique(),
-  status: text("status").default('pending').notNull(), // 'pending', 'accepted', 'rejected'
+  status: text("status").default("pending").notNull(), // 'pending', 'accepted', 'rejected'
   expiresAt: timestamp("expires_at").notNull(),
   acceptedAt: timestamp("accepted_at"), // When user clicked accept on invite
   rejectedAt: timestamp("rejected_at"), // When admin rejected the request
-  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
 });

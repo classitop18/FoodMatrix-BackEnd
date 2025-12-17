@@ -25,7 +25,7 @@ export const createUserSchema = z.object({
 });
 
 export const updateUserSchema = z.object({
-  email: z.string().email("Invalid email format").optional(),
+
   username: z
     .string()
     .min(3, "Username must be at least 3 characters")
@@ -46,16 +46,15 @@ export const updateUserSchema = z.object({
   addressLine2: z.string().max(255).optional(),
   city: z.string().max(100).optional(),
   state: z.string().max(100).optional(),
+  isMfaEnabled:z.boolean().optional(),
   country: z.string().max(100).optional(),
   zipCode: z.string().max(20).optional(),
   formattedAddress: z.string().max(500).optional(),
   latitude: z
     .string()
-    .regex(/^-?([0-8]?[0-9]|90)(\.[0-9]{1,8})?$/)
     .optional(),
   longitude: z
     .string()
-    .regex(/^-?((1[0-7][0-9])|([0-9]?[0-9]))(\.[0-9]{1,8})?$/)
     .optional(),
   placeId: z.string().optional(),
 });

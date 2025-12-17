@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodSchema, ZodError } from "zod";
-import { logger } from "../utils/logger.utils.ts";
-import { sendError } from "../utils/response.utils.ts";
+import { logger } from "../utils/logger.utils.js";
+import { sendError } from "../utils/response.utils.js";
 
 /**
  * Request validation targets

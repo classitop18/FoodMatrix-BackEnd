@@ -47,6 +47,7 @@ const envSchema = z.object({
   APP_URL: z.string().url(),
   PASSWORD_RESET_EXPIRATION_MINUTES: z.string(),
   PASSWORD_RESET_SECRET: z.string(),
+  GOOGLE_PLACES_API_KEY:z.string(),
 });
 
 // Parse + validate

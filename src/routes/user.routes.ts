@@ -1,37 +1,32 @@
+import { authenticate, authenticateForChangePassword, authenticateMFA, verifyResetToken } from "@/middlewares/auth.middleware.js";
+import { validate } from "@/middlewares/validation.middleware.js";
+import { SessionRepository } from "@/modules/session/session.repository.js";
+import { SessionService } from "@/modules/session/session.service.js";
+import { UserOtpRepository } from "@/modules/user-otps/user-otp.repository.js";
+import { UserOtpService } from "@/modules/user-otps/user-otp.service.js";
+import { checkPropertyExistSchema, createUserSchema, userLoginSchema } from "@/modules/user/schema/user.schema.js";
+import { UserController } from "@/modules/user/user.controller.js";
+import { UserRepository } from "@/modules/user/user.repository.js";
+import { UserService } from "@/modules/user/user.service.js";
+import { changePasswordSchema, verifyEmailSchema } from "@/validators/auth.validators.js";
 import { Router } from "express";
-import { UserRepository } from "../modules/user/user.repository.ts";
-import { UserService } from "../modules/user/user.service.ts";
-import { UserController } from "../modules/user/user.controller.ts";
-import { validate } from "../middlewares/validation.middleware.ts";
-import {
-  checkPropertyExistSchema,
-  createUserSchema,
-  userLoginSchema,
-  verifyEmailSchema,
-} from "../modules/user/schema/user.schema.ts";
-import { SessionService } from "../modules/session/session.service.ts";
-import { SessionRepository } from "../modules/session/session.repository.ts";
-import {
-  authenticate,
-  authenticateForChangePassword,
-  authenticateMFA,
-  verifyResetToken,
-} from "../middlewares/auth.middleware.ts";
-import { resetPasswordSchema } from "../validators/auth.validators.ts";
-import { UserOtpRepository } from "../modules/user-otps/user-otp.repository.ts";
-import { UserOtpService } from "../modules/user-otps/user-otp.service.ts";
+
 
 const router = Router();
 
 // Initialize dependencies
 const userRepository = new UserRepository();
 const sessionRepository = new SessionRepository();
-const otpRepository = new UserOtpRepository()
+const otpRepository = new UserOtpRepository();
 
-const otpService = new UserOtpService(otpRepository)
+const otpService = new UserOtpService(otpRepository);
 const userService = new UserService(userRepository);
 const sessionService = new SessionService(sessionRepository);
-const userController = new UserController(userService, sessionService, otpService);
+const userController = new UserController(
+  userService,
+  sessionService,
+  otpService,
+);
 
 // Routes
 router.post(
@@ -54,6 +49,12 @@ router.post(
   validate(checkPropertyExistSchema, "body"),
   userController.checkIsPropertytExist,
 );
+
+router.post(
+  "/exist",
+ [ authenticate , validate(checkPropertyExistSchema, "body")],
+  userController.checkIsPropertytExist,
+);
 router.get("/me", [authenticate], userController.getActiveUser);
 router.post("/logout", [authenticate], userController.logout);
 router.post("/forgot-password", userController.forgotPassword);
@@ -68,13 +69,13 @@ router.put(
   userController.resetPassword,
 );
 
-router.post("/verify-mfa", [authenticateMFA], userController.verifyOtp)
+router.post("/verify-mfa", [authenticateMFA], userController.verifyOtp);
 
 // router.get("/", userController.getUsers);
 // router.get("/:id", userController.getUser);
-// router.patch("/:id", userController.updateUser);
+router.patch("/",[authenticate], userController.updateUser);
 // router.delete("/:id", userController.deleteUser);
-// router.post("/:id/change-password", userController.changePassword);
+router.put("/change-password",[authenticate, validate(changePasswordSchema, "body")], userController.changePassword);
 // router.post("/send-otp", userController.sendVerificationOtp);
 // ;
 // router.post("/:id/enable-mfa", userController.enableMfa);

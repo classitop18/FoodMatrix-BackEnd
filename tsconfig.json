@@ -1,18 +1,36 @@
 {
   "compilerOptions": {
-    "module": "esnext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "target": "es2020",
+
     "rootDir": "./src",
     "outDir": "./dist",
-    "esModuleInterop": true,
 
-    "moduleResolution": "bundler",
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["*"],
+
+      "@common/*": ["common/*"],
+      "@database/*": ["database/*"],
+      "@email/*": ["email/*"],
+      "@middlewares/*": ["middlewares/*"],
+      "@modules/*": ["modules/*"],
+      "@queues/*": ["queues/*"],
+      "@routes/*": ["routes/*"],
+      "@types/*": ["types/*"],
+      "@utils/*": ["utils/*"],
+      "@validators/*": ["validators/*"]
+    },
+
+    "esModuleInterop": true,
     "strict": true,
     "sourceMap": true,
     "declaration": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "allowImportingTsExtensions": true,
+
+    "allowImportingTsExtensions": false,
     "noEmit": true
   },
   "include": ["src/**/*"]

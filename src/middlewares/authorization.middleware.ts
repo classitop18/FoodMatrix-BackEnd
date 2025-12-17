@@ -1,9 +1,9 @@
 import { Response, NextFunction } from "express";
-import { AuthenticatedRequest } from "./auth.middleware.ts";
-import { logger } from "../utils/logger.utils.ts";
-import { sendError } from "../utils/response.utils.ts";
-import { getDb } from "../database/db.ts";
-import { members, accounts } from "../database/schema.ts";
+import { AuthenticatedRequest } from "./auth.middleware.js";
+import { logger } from "../utils/logger.utils.js";
+import { sendError } from "../utils/response.utils.js";
+import { getDb } from "../database/db.js";
+import { members, accounts } from "../database/schema.js";
 import { eq, and } from "drizzle-orm";
 
 /**

@@ -2,7 +2,7 @@ import {
   ISessionRepository,
   Session,
   SessionInsert,
-} from "./session.repository";
+} from "./session.repository.js";
 
 export interface ISessionService {
   createSession(data: SessionInsert): Promise<Session>;

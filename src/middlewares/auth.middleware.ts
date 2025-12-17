@@ -1,13 +1,71 @@
 import { Request, Response, NextFunction } from "express";
-import { verifyJwtToken } from "../utils/jwt.utils.ts";
-import { CONFIG } from "../utils/env.config.ts";
-import { SessionService } from "../modules/session/session.service.ts";
-import { UserRepository } from "../modules/user/user.repository.ts";
-import { logger } from "../utils/logger.utils.ts";
-import { sendError } from "../utils/response.utils.ts";
-import { SessionRepository } from "../modules/session/session.repository.ts";
-import { compareHash } from "../utils/bcrypt.utils.ts";
-import { OTP_PURPOSES } from "../modules/user-otps/constant/user-otp.constant.ts";
+import { verifyJwtToken } from "../utils/jwt.utils.js";
+import { CONFIG } from "../utils/env.config.js";
+import { SessionService } from "../modules/session/session.service.js";
+import { UserRepository } from "../modules/user/user.repository.js";
+import { logger } from "../utils/logger.utils.js";
+import { sendError } from "../utils/response.utils.js";
+import { SessionRepository } from "../modules/session/session.repository.js";
+import { compareHash } from "../utils/bcrypt.utils.js";
+import { OTP_PURPOSES } from "../modules/user-otps/constant/user-otp.constant.js";
+
+const sendHtmlError = (
+  res: Response,
+  title: string,
+  message: string,
+  status = 400,
+) => {
+  return res.status(status).send(`
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <title>${title}</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            background: #f9fafb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+          }
+          .card {
+            background: white;
+            padding: 32px;
+            max-width: 420px;
+            text-align: center;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+          }
+          h1 {
+            color: #dc2626;
+            margin-bottom: 12px;
+          }
+          p {
+            color: #374151;
+            margin-bottom: 20px;
+          }
+          a {
+            display: inline-block;
+            text-decoration: none;
+            color: white;
+            background: #18326aff;
+            padding: 10px 18px;
+            border-radius: 6px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>${title}</h1>
+          <p>${message}</p>
+          <a href="http://localhost:3001">Go to Home</a>
+        </div>
+      </body>
+    </html>
+  `);
+};
 
 // Extend Express Request to include user data
 export interface AuthenticatedRequest extends Request {
@@ -206,11 +264,12 @@ export const verifyResetToken = async (
       token,
       CONFIG.PASSWORD_RESET_SECRET,
     );
-
-    console.log(decoded, "decodeddecodeddecoded");
-
     if (!decoded?.userId || !decoded?.sessionId) {
-      return sendError(res, "Invalid or expired reset token.", null, 400);
+      return sendHtmlError(
+        res,
+        "Invalid Reset Session",
+        "This reset session does not exist or has been revoked.",
+      );
     }
 
     const { userId, sessionId } = decoded;
@@ -236,7 +295,11 @@ export const verifyResetToken = async (
     const match = await compareHash(token, session.refreshTokenHash);
 
     if (!match) {
-      return sendError(res, "Invalid or already-used reset token.", null, 400);
+      return sendHtmlError(
+        res,
+        "Invalid Reset Session",
+        "This reset session does not exist or has been revoked.",
+      );
     }
 
     // Attach reset details to request
@@ -260,61 +323,69 @@ export const authenticateForChangePassword = async (
   next: NextFunction,
 ) => {
   try {
-    console.log(req?.cookies, "kkkkkkkkkkkkkkkkkkkkkk");
-    const { reset_password_token } = req?.cookies;
+    const { reset_password_token } = req.cookies;
 
     if (!reset_password_token) {
-      return sendError(res, "Reset token missing.", null, 400);
+      return sendHtmlError(
+        res,
+        "Invalid Reset Link",
+        "Your password reset link is missing or malformed.",
+      );
     }
 
-    // Decode JWT
     const decoded: any = await verifyJwtToken(
       reset_password_token,
       CONFIG.PASSWORD_RESET_SECRET,
     );
 
-    console.log({ decoded }, "decodeddecodeddecodeddecodeddecoded");
-    console.log(decoded.userId, decoded.sessionId);
     if (!decoded?.userId || !decoded?.sessionId) {
-      return sendError(res, "Invalid or expired token.", null, 400);
+      return sendHtmlError(
+        res,
+        "Invalid Reset Link",
+        "This password reset link is not valid.",
+      );
     }
 
     const { userId, sessionId } = decoded;
 
-    console.log("yha nhi aa oa rha u");
-
     const sessionService = new SessionService(new SessionRepository());
-
-    // Fetch password-reset session
     const session = await sessionService.getSessionById(sessionId);
 
-    console.log(session, "sessionsessionsession");
-
     if (!session || session.userId !== userId) {
-      return sendError(res, "Reset token session not found.", null, 400);
+      return sendHtmlError(
+        res,
+        "Invalid Reset Session",
+        "This reset session does not exist or has been revoked.",
+      );
     }
 
-    // Expired session?
     if (
       !session.isValid ||
       (session.expiresAt && new Date(session.expiresAt) < new Date())
     ) {
-      return sendError(res, "Reset token has expired.", null, 400);
+      return sendHtmlError(
+        res,
+        "Reset Link Expired",
+        "Your password reset link has expired. Please request a new one.",
+      );
     }
 
-    // Attach reset details to request
-    req.reset = {
-      userId,
-      sessionId,
-      session,
-    };
+    req.reset = { userId, sessionId, session };
     next();
   } catch (error: any) {
-    console.log(error, "sdsdsd");
     if (error.name === "TokenExpiredError") {
-      return sendError(res, "Reset token expired.", null, 400);
+      return sendHtmlError(
+        res,
+        "Reset Link Expired",
+        "Your password reset link has expired. Please request a new one.",
+      );
     }
-    return sendError(res, "Invalid reset token.", null, 400);
+
+    return sendHtmlError(
+      res,
+      "Invalid Reset Link",
+      "This password reset link is invalid or has already been used.",
+    );
   }
 };
 
@@ -324,7 +395,6 @@ export const authenticateMFA = async (
   next: NextFunction,
 ) => {
   try {
-
     const { mfa_temp_session } = req?.cookies;
 
     if (!mfa_temp_session) {
@@ -336,19 +406,16 @@ export const authenticateMFA = async (
       CONFIG.TOKEN_SECRET,
     );
 
-
     if (!decoded?.userId || decoded?.purpose !== OTP_PURPOSES.LOGIN_MFA) {
       return sendError(res, "Invalid or expired token.", null, 400);
     }
 
     const { userId, purpose } = decoded;
 
-
-
     // Attach reset details to request
     req.user = {
       userId,
-      purpose
+      purpose,
     };
     next();
   } catch (error: any) {

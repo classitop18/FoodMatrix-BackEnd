@@ -1,6 +1,6 @@
 import jwt, { JwtPayload, SignOptions } from "jsonwebtoken";
-import { logger } from "./logger.utils.ts";
-import { CONFIG } from "./env.config.ts";
+import { logger } from "./logger.utils.js";
+import { CONFIG } from "./env.config.js";
 
 export const generateJwtToken = (
   payload: object,

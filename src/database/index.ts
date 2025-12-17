@@ -1,3 +1,3 @@
-export * from "./enums.ts";
-export * from "./schema.ts";
-export * from "./relations.ts";
+export * from "./enums.js";
+export * from "./schema.js";
+export * from "./relations.js";

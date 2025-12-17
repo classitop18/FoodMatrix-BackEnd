@@ -1,5 +1,6 @@
+import { users } from "@/database/schema.js";
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { users } from "../../../database";
+
 
 export type User = InferSelectModel<typeof users>;
 export type NewUser = InferInsertModel<typeof users>;

@@ -1,6 +1,6 @@
 import { eq, InferSelectModel } from "drizzle-orm";
-import { sessions } from "../../database/schema.ts";
-import { getDb } from "../../database/db.ts";
+import { sessions } from "../../database/schema.js";
+import { getDb } from "../../database/db.js";
 
 // ================== TYPES ==================
 export type Session = InferSelectModel<typeof sessions>;

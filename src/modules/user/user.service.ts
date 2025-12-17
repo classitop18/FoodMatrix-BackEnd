@@ -10,12 +10,13 @@ import {
   UserWithoutPassword,
   VerifyEmailDTO,
   VerifyUserDTO,
-} from "./types/user.types.ts";
+} from "./types/user.types.js";
 import * as bcrypt from "bcrypt";
-import { IUserRepository } from "./user.repository.ts";
-import { generateJwtToken, verifyJwtToken } from "../../utils/jwt.utils.ts";
-import { CONFIG } from "../../utils/env.config.ts";
-import { compareHash, hashString } from "../../utils/bcrypt.utils.ts";
+import { IUserRepository } from "./user.repository.js";
+import { compareHash, hashString } from "@/utils/bcrypt.utils.js";
+import { CONFIG } from "@/utils/env.config.js";
+import { verifyJwtToken } from "@/utils/jwt.utils.js";
+
 
 export interface IUserService {
   createUser(data: CreateUserDTO): Promise<UserWithoutPassword>;
@@ -24,7 +25,7 @@ export interface IUserService {
     password: string;
   }): Promise<{ user: UserWithoutPassword }>;
   getUserById(id: string): Promise<UserWithoutPassword>;
-  getUserByEmail(email: string): Promise<User|null>;
+  getUserByEmail(email: string): Promise<User | null>;
   updateUser(id: string, data: UpdateUserDTO): Promise<UserWithoutPassword>;
   deleteUser(id: string): Promise<void>;
   changePassword(id: string, data: UpdatePasswordDTO): Promise<void>;
@@ -38,11 +39,11 @@ export interface IUserService {
   ): Promise<PaginatedResponse<UserWithoutPassword>>;
   enableMfa(id: string): Promise<void>;
   disableMfa(id: string): Promise<void>;
-  findUserByField(data: { field: string; value: string }): Promise<any>;
+  findUserByField(data: { field: string; value: string }, id?: string): Promise<any>;
 }
 
 export class UserService implements IUserService {
-  constructor(private userRepository: IUserRepository) {}
+  constructor(private userRepository: IUserRepository) { }
 
   private removePasswordFromUser(user: User): UserWithoutPassword {
     const { password, otp, ...userWithoutPassword } = user;
@@ -52,27 +53,44 @@ export class UserService implements IUserService {
   private generateOtp(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
-
-  async findUserByField(data: { field: string; value: string }) {
+  async findUserByField(
+    data: { field: "email" | "username"; value: string },
+    id?: string,
+  ) {
     const { field, value } = data;
     if (!field || !value) return null;
 
-    switch (field) {
-      case "email": {
-        return await this.userRepository.findByEmail(
-          value.trim().toLowerCase(),
-        );
-      }
-      case "username": {
-        return await this.userRepository.findByUsername(value.trim());
-      }
+    const normalizedValue =
+      field === "email" ? value.trim().toLowerCase() : value.trim();
 
-      default: {
+    let user = null;
+
+    switch (field) {
+      case "email":
+        user = await this.userRepository.findByEmail(normalizedValue);
+        break;
+
+      case "username":
+        user = await this.userRepository.findByUsername(normalizedValue);
+        break;
+
+      default:
         console.warn(`Unsupported field: ${field}`);
-        return null; // prevent undefined return
-      }
+        return null;
     }
+
+
+    if (user && !id) {
+      return user;
+    }
+
+    if (user && id && user.id !== id) {
+      return user;
+    }
+    return null;
   }
+
+
 
   async createUser(data: CreateUserDTO): Promise<UserWithoutPassword> {
     const existingEmail = await this.userRepository.findByEmail(data.email);
@@ -142,6 +160,7 @@ export class UserService implements IUserService {
 
     if (data.username) {
       const existing = await this.userRepository.findByUsername(data.username);
+      console.log(existing, id, "teriui")
       if (existing && existing.id !== id) {
         throw new Error("Username already exists");
       }
@@ -276,7 +295,7 @@ export class UserService implements IUserService {
       throw new Error("User not found");
     }
 
-    console.log("yha tk to aa gya hu", data)
+    console.log("yha tk to aa gya hu", data);
     const hashedPassword = await hashString(data.newPassword);
     await this.userRepository.updatePassword(id, hashedPassword);
   }
