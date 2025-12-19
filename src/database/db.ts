@@ -1,6 +1,6 @@
 import { Pool } from "pg";
 import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
-import * as schema from "./index.js";
+import * as schema from "./schemas/index.js";
 import { CONFIG } from "../utils/env.config.js";
 import { logger } from "../utils/logger.utils.js";
 

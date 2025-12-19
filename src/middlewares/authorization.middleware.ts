@@ -3,7 +3,7 @@ import { AuthenticatedRequest } from "./auth.middleware.js";
 import { logger } from "../utils/logger.utils.js";
 import { sendError } from "../utils/response.utils.js";
 import { getDb } from "../database/db.js";
-import { members, accounts } from "../database/schema.js";
+import { members, accounts } from "../database/schemas/schema.js";
 import { eq, and } from "drizzle-orm";
 
 /**

@@ -6,7 +6,7 @@ import { healthProfileSchema } from "../../health-profile/dto/health-profile.dto
 
 export const createAccountSchema = z
   .object({
-    type: accountTypeEnum,
+    accountType: accountTypeEnum,
 
     accountName: z
       .string()
@@ -24,12 +24,23 @@ export const createAccountSchema = z
     emergencyPercentage: z.number().int().min(0).max(100),
 
     healthProfile: healthProfileSchema.optional(),
+    formattedAddress: z.string().optional(),
+    longitude: z.number().optional(),
+    latitude: z.number().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    country: z.string().optional(),
+    zipCode: z.string().optional(),
+    addressLine1: z.string().optional(),
+    addressLine2: z.string().optional(),
+    placeId: z.string().optional(),
+    
   })
   .refine(
     (data) =>
       data.groceriesPercentage +
-        data.diningPercentage +
-        data.emergencyPercentage ===
+      data.diningPercentage +
+      data.emergencyPercentage ===
       100,
     {
       message: "Budget percentages must total 100%",
@@ -45,6 +56,28 @@ export const updateAccountSchema = z.object({
   accountName: z.string().min(2).optional(),
   description: z.string().optional(),
   status: z.enum(["active", "inactive"]).optional(),
+  dailyBudget: z.coerce.number().positive().optional(),
+  weeklyBudget: z.coerce.number().positive().optional(),
+  monthlyBudget: z.coerce.number().positive().optional(),
+  annualBudget: z.coerce.number().positive().optional(),
+  currentAllocation: z.enum(["daily", "weekly", "monthly", "annual"]).optional(),
+  groceriesPercentage: z.number().int().min(0).max(100).optional(),
+  diningPercentage: z.number().int().min(0).max(100).optional(),
+  emergencyPercentage: z.number().int().min(0).max(100).optional(),
+  formattedAddress: z.string().optional(),
+  location: z.object({
+    type: z.string(),
+    coordinates: z.array(z.number()),
+  }).optional(),
+  longitude: z.number().optional(),
+  latitude: z.number().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
+  zipCode: z.string().optional(),
+  addressLine1: z.string().optional(),
+  addressLine2: z.string().optional(),
+  placeId: z.string().optional(),
 });
 
 export type UpdateAccountDto = z.infer<typeof updateAccountSchema>;

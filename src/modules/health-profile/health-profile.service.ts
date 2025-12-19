@@ -1,4 +1,4 @@
-import { members } from "@/database/schema.js";
+import { members } from "@/database/schemas/schema.js";
 import { CreateHealthProfileDto, HealthAssessmentDto, HealthProfileResponseDto, QueryHealthProfileDto, UpdateHealthProfileDto } from "./dto/health-profile.dto.js";
 import { IHealthCalculator, IHealthProfileRepository, IHealthProfileService } from "./types/health-profile.types.js";
 

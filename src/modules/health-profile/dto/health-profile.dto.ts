@@ -1,4 +1,4 @@
-import { activityLevelEnum, allergyEnum, budgetFlexibilityEnum, cookingFrequencyEnum, cookingSkillEnum, dietaryRestrictionEnum, healthConditionEnum, healthGoalEnum, organicPreferenceEnum, privacyLevelEnum } from "@/database/enums.js";
+import { activityLevelEnum, allergyEnum, budgetFlexibilityEnum, cookingFrequencyEnum, cookingSkillEnum, dietaryRestrictionEnum, healthConditionEnum, healthGoalEnum, organicPreferenceEnum, privacyLevelEnum } from "@/database/schemas/enums.js";
 import z from "zod";
 export const healthProfileSchema = z.object({
   height: z.number().int().optional(),

@@ -52,10 +52,11 @@ router.post(
 
 router.post(
   "/exist",
- [ authenticate , validate(checkPropertyExistSchema, "body")],
+  [authenticate, validate(checkPropertyExistSchema, "body")],
   userController.checkIsPropertytExist,
 );
 router.get("/me", [authenticate], userController.getActiveUser);
+router.post("/refresh-token", userController.refreshToken);
 router.post("/logout", [authenticate], userController.logout);
 router.post("/forgot-password", userController.forgotPassword);
 router.get(
@@ -73,9 +74,9 @@ router.post("/verify-mfa", [authenticateMFA], userController.verifyOtp);
 
 // router.get("/", userController.getUsers);
 // router.get("/:id", userController.getUser);
-router.patch("/",[authenticate], userController.updateUser);
+router.patch("/", [authenticate], userController.updateUser);
 // router.delete("/:id", userController.deleteUser);
-router.put("/change-password",[authenticate, validate(changePasswordSchema, "body")], userController.changePassword);
+router.put("/change-password", [authenticate, validate(changePasswordSchema, "body")], userController.changePassword);
 // router.post("/send-otp", userController.sendVerificationOtp);
 // ;
 // router.post("/:id/enable-mfa", userController.enableMfa);

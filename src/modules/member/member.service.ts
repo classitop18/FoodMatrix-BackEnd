@@ -78,7 +78,7 @@ export interface IMemberService {
 export class MemberService implements IMemberService {
   constructor(
     private readonly memberRepo: IMemberRepository = new MemberRepository(),
-  ) {}
+  ) { }
 
   async createMember(
     data: CreateMemberDto,
@@ -106,6 +106,7 @@ export class MemberService implements IMemberService {
     if (!data.userId && !data.name) {
       throw new InvalidMemberDataError("Name is required for internal members");
     }
+
 
     const member = await this.memberRepo.create(data);
     const fullMember = await this.memberRepo.findById(member.id, true);
@@ -481,21 +482,21 @@ export class MemberService implements IMemberService {
       createdAt: member.createdAt,
       user: member.user
         ? {
-            id: member.user.id,
-            email: member.user.email,
-            username: member.user.username,
-            firstName: member.user.firstName,
-            lastName: member.user.lastName,
-            avatar: member.user.avatar,
-          }
+          id: member.user.id,
+          email: member.user.email,
+          username: member.user.username,
+          firstName: member.user.firstName,
+          lastName: member.user.lastName,
+          avatar: member.user.avatar,
+        }
         : undefined,
       account: member.account
         ? {
-            id: member.account.id,
-            accountNumber: member.account.accountNumber,
-            accountName: member.account.accountName,
-            accountType: member.account.accountType,
-          }
+          id: member.account.id,
+          accountNumber: member.account.accountNumber,
+          accountName: member.account.accountName,
+          accountType: member.account.accountType,
+        }
         : undefined,
     };
   }

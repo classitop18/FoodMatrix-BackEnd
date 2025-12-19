@@ -2,7 +2,7 @@
 import { eq, and, sql, isNotNull } from "drizzle-orm";
 import { IHealthProfileRepository } from "./types/health-profile.types.js";
 import { CreateHealthProfileDto, HealthProfileResponseDto, QueryHealthProfileDto, UpdateHealthProfileDto } from "./dto/health-profile.dto.js";
-import { healthProfiles, members } from "@/database/schema.js";
+import { healthProfiles, members } from "@/database/schemas/schema.js";
 import { getDb } from "@/database/db.js";
 
 

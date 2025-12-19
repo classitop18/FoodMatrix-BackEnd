@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const accountTypeEnum = z.enum(["individual", "family"]);
+export const accountTypeEnum = z.enum(["individual","group", "family"]);
 
 export const activityLevelEnum = z.enum([
   "sedentary",

@@ -1,5 +1,5 @@
 
-import { members } from "@/database/schema.js";
+import { members } from "@/database/schemas/schema.js";
 import { InferSelectModel } from "drizzle-orm";
 
 

@@ -45,6 +45,18 @@ export class AccountService {
         groceriesPercentage: data.groceriesPercentage,
         diningPercentage: data.diningPercentage,
         emergencyPercentage: data.emergencyPercentage,
+
+        // Address fields
+        addressLine1: data.addressLine1,
+        addressLine2: data.addressLine2,
+        city: data.city,
+        state: data.state,
+        country: data.country,
+        zipCode: data.zipCode,
+        formattedAddress: data.formattedAddress,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        placeId: data.placeId,
       },
 
       member: {

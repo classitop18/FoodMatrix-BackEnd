@@ -18,7 +18,7 @@ import {
   MemberWithRelations,
   PaginatedResult,
 } from "./types/member.types.js";
-import { accounts, members, users } from "../../database/schema.js";
+import { accounts, members, users } from "../../database/schemas/schema.js";
 import { getDb } from "../../database/db.js";
 
 export interface IMemberRepository {
@@ -74,9 +74,15 @@ export class MemberRepository implements IMemberRepository {
   }
 
   async create(data: CreateMemberDto): Promise<Member> {
-    const [member] = await this.db.insert(members).values(data).returning();
-    return member;
+    const result = await this.db.insert(members).values(data).returning();
+
+    if (!result.length) {
+      throw new Error("Insert failed: no row returned");
+    }
+
+    return result[0];
   }
+
 
   async findById(
     id: string,

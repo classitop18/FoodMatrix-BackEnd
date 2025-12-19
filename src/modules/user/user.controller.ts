@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { IUserService } from "./user.service.js";
 import { IUserOtpService } from "../user-otps/user-otp.service.js";
 import { ApiResponse } from "@/types/index.js";
-import { generateAuthenticationToken, generateJwtToken } from "@/utils/jwt.utils.js";
+import { generateAuthenticationToken, generateJwtToken, verifyJwtToken } from "@/utils/jwt.utils.js";
 import { CONFIG } from "@/utils/env.config.js";
 import { addOtpVerificationEmailJob, addVerificationEmailJob } from "@/queues/jobs/email.jobs.js";
 import { sendSuccess } from "@/utils/response.utils.js";
@@ -588,6 +588,111 @@ export class UserController {
       res.clearCookie("reset_password_token");
 
       sendSuccess(res, {}, "Password has been changed.", 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  refreshToken = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const refreshToken = req.cookies?.refreshToken;
+
+      if (!refreshToken) {
+        return res.status(401).json({
+          success: false,
+          message: "Refresh token not found",
+          errorCode: "REFRESH_TOKEN_MISSING",
+        });
+      }
+
+      // Verify refresh token
+      const decoded = await verifyJwtToken(
+        refreshToken,
+        CONFIG.REFRESH_TOKEN_SECRET!
+      );
+
+      if (!decoded || !decoded.userId || !decoded.sessionId) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid refresh token",
+          errorCode: "INVALID_REFRESH_TOKEN",
+        });
+      }
+
+      // Get session from database
+      const session = await this.sessionService.getSessionById(decoded.sessionId);
+
+      if (!session || !session.isValid) {
+        return res.status(401).json({
+          success: false,
+          message: "Session expired or invalid",
+          errorCode: "SESSION_INVALID",
+        });
+      }
+
+      // Verify refresh token hash matches
+      const { compareHash } = await import("@/utils/bcrypt.utils.js");
+      const isValidToken = await compareHash(refreshToken, session.refreshTokenHash);
+
+      if (!isValidToken) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid refresh token",
+          errorCode: "INVALID_REFRESH_TOKEN",
+        });
+      }
+
+      // Check if session is expired
+      if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+        // Mark session as invalid
+        await this.sessionService.updateSession(session.id, {
+          isValid: false,
+        });
+
+        return res.status(401).json({
+          success: false,
+          message: "Session expired",
+          errorCode: "SESSION_EXPIRED",
+        });
+      }
+
+      // Get user
+      const user = await this.userService.getUserById(decoded.userId);
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "User not found",
+          errorCode: "USER_NOT_FOUND",
+        });
+      }
+
+      // Generate new access token (keep same refresh token)
+      const { accessToken } = generateAuthenticationToken({
+        userId: user.id,
+        email: user.email,
+        sessionId: session.id,
+      });
+
+      // Update session last used time
+      await this.sessionService.updateSession(session.id, {
+        lastUsedAt: new Date(),
+      });
+
+      return sendSuccess(
+        res,
+        {
+          accessToken,
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+          },
+        },
+        "Token refreshed successfully",
+        200
+      );
     } catch (error) {
       next(error);
     }

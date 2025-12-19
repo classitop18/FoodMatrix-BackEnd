@@ -10,6 +10,7 @@ import {
   uuid,
   jsonb,
   decimal,
+  index,
 } from "drizzle-orm/pg-core";
 import {
   accountTypeEnum,

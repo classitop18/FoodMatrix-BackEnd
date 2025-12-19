@@ -1,5 +1,5 @@
 import { eq, InferSelectModel } from "drizzle-orm";
-import { sessions } from "../../database/schema.js";
+import { sessions } from "../../database/schemas/schema.js";
 import { getDb } from "../../database/db.js";
 
 // ================== TYPES ==================

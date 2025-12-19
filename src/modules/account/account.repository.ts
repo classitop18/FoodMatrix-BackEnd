@@ -1,5 +1,5 @@
 import { and, eq, InferSelectModel } from "drizzle-orm";
-import { accounts, members } from "../../database/schema.js";
+import { accounts, members } from "../../database/schemas/schema.js";
 import { getDb } from "../../database/db.js";
 
 // ================== TYPES ==================
@@ -104,8 +104,32 @@ export class AccountRepository implements IAccountRepository {
     return updated ?? null;
   }
 
-  // Delete account
+  // Delete account with cascade
   async deleteAccount(id: string): Promise<void> {
+    // Import health profiles table
+    const { healthProfiles } = await import("../../database/schemas/schema.js");
+
+    // Step 1: Get all members of this account
+    const accountMembers = await this.db
+      .select()
+      .from(members)
+      .where(eq(members.accountId, id));
+
+    // Step 2: Delete all health profiles for these members
+    if (accountMembers.length > 0) {
+      const memberIds = accountMembers.map((m: any) => m.id);
+
+      for (const memberId of memberIds) {
+        await this.db
+          .delete(healthProfiles)
+          .where(eq(healthProfiles.memberId, memberId));
+      }
+    }
+
+    // Step 3: Delete all members of this account
+    await this.db.delete(members).where(eq(members.accountId, id));
+
+    // Step 4: Finally delete the account
     await this.db.delete(accounts).where(eq(accounts.id, id));
   }
 

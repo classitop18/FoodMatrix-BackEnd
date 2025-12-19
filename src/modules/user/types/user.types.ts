@@ -1,4 +1,4 @@
-import { users } from "@/database/schema.js";
+import { users } from "@/database/schemas/schema.js";
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 

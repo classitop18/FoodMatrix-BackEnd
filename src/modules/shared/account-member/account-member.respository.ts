@@ -1,6 +1,6 @@
 // src/modules/account-member/repositories/account-member.repository.ts
 
-import { accounts, members, healthProfiles } from "../../../database/schema.js";
+import { accounts, members, healthProfiles } from "../../../database/schemas/schema.js";
 import { sql } from "drizzle-orm";
 import { getDb } from "../../../database/db.js";
 import { CreateAccountMemberPayload } from "./dto/account-member.dto.js";

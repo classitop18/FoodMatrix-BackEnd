@@ -2,7 +2,7 @@
 import { eq, and, count } from "drizzle-orm";
 import { CreateUserDTO, PaginatedResponse, PaginationParams, UpdateUserDTO, User, UserFilters, UserWithoutPassword } from "./types/user.types.js";
 import { getDb } from "@/database/db.js";
-import { users } from "@/database/schema.js";
+import { users } from "@/database/schemas/schema.js";
 
 export interface IUserRepository {
   create(data: CreateUserDTO, hashedPassword: string): Promise<User>;

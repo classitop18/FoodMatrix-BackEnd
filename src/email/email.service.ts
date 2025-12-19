@@ -11,7 +11,7 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Paths
+// Paths - In dist, __dirname is already 'dist/email/', so we just need 'layouts'
 const BASE_DIR = path.join(__dirname, "layouts");
 const LAYOUT_FILE = path.join(BASE_DIR, "main.hbs");
 
@@ -55,6 +55,9 @@ export class EmailService {
 
   private renderTemplate(templateName: string, context: TemplateContext) {
     const templatePath = path.join(BASE_DIR, `${templateName}.hbs`);
+
+    console.log({ templatePath })
+
     if (!fs.existsSync(templatePath)) {
       throw new Error(`Email template not found: ${templateName}`);
     }

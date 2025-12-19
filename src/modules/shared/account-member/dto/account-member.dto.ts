@@ -1,4 +1,4 @@
-import { accountTypeEnum, activityLevelEnum, allergyEnum, budgetFlexibilityEnum, cookingFrequencyEnum, cookingSkillEnum, dietaryRestrictionEnum, healthConditionEnum, healthGoalEnum, organicPreferenceEnum, privacyLevelEnum, rolesEnum, sexEnum } from "@/database/enums.js";
+import { accountTypeEnum, activityLevelEnum, allergyEnum, budgetFlexibilityEnum, cookingFrequencyEnum, cookingSkillEnum, dietaryRestrictionEnum, healthConditionEnum, healthGoalEnum, organicPreferenceEnum, privacyLevelEnum, rolesEnum, sexEnum } from "@/database/schemas/enums.js";
 import z from "zod";
 
 

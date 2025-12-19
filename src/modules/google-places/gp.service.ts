@@ -14,7 +14,7 @@ export interface IPlacesService {
 export class PlacesService implements IPlacesService {
     constructor(private placesRepository: IPlacesRepository) { }
 
-    async autocomplete(input: string, types: string = 'address'): Promise<IPlaceAutocomplete[]> {
+    async autocomplete(input: string, types: string = 'address'): Promise<any[]> {
         try {
             const results = await this.placesRepository.autocomplete(input, types);
             return results;
@@ -23,7 +23,7 @@ export class PlacesService implements IPlacesService {
         }
     }
 
-    async getPlaceDetails(placeId: string): Promise<IPlaceDetails> {
+    async getPlaceDetails(placeId: string): Promise<any> {
         try {
             const details = await this.placesRepository.getPlaceDetails(placeId);
             return details;
@@ -41,7 +41,7 @@ export class PlacesService implements IPlacesService {
         }
     }
 
-    async reverseGeocode(latitude: number, longitude: number): Promise<IAddressDetails> {
+    async reverseGeocode(latitude: number, longitude: number): Promise<any> {
         try {
             const details = await this.placesRepository.reverseGeocode(latitude, longitude);
             return details;
