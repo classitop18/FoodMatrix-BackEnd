@@ -9,9 +9,10 @@ import {
   integer,
   uuid,
   jsonb,
-  decimal,
-  index,
+  decimal
 } from "drizzle-orm/pg-core";
+
+
 import {
   accountTypeEnum,
   activityLevelEnum,
@@ -312,19 +313,31 @@ export const invitations = pgTable("invitations", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
+
   accountId: varchar("account_id")
     .notNull()
     .references(() => accounts.id),
+
   email: text("email").notNull(),
-  role: text("role"), // 'admin' or 'member' - nullable until admin assigns role
+
+  role: text("role"), // assigned ONLY when admin approves
   invitedBy: varchar("invited_by")
     .notNull()
     .references(() => users.id),
+
   token: text("token").notNull().unique(),
-  status: text("status").default("pending").notNull(), // 'pending', 'accepted', 'rejected'
+
+  status: text("status")
+    .notNull()
+    .default("pending"),
+  // pending | user_accepted | approved | rejected | expired
+
   expiresAt: timestamp("expires_at").notNull(),
-  acceptedAt: timestamp("accepted_at"), // When user clicked accept on invite
-  rejectedAt: timestamp("rejected_at"), // When admin rejected the request
+
+  acceptedAt: timestamp("accepted_at"), // user accepted
+  approvedAt: timestamp("approved_at"), // admin approved
+  rejectedAt: timestamp("rejected_at"),
+
   createdAt: timestamp("created_at")
     .default(sql`now()`)
     .notNull(),

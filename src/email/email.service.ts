@@ -177,6 +177,73 @@ export class EmailService {
       },
     );
   }
+
+  // ============ INVITATION MODULE EMAILS ============
+
+  async sendInvitationEmail(data: {
+    to: string;
+    invitationLink: string;
+    expiresAt: Date;
+  }) {
+    const expiryDate = new Date(data.expiresAt).toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    return this.sendMail(
+      data.to,
+      "You're invited to join FoodMatrix",
+      "invitation",
+      {
+        invitationLink: data.invitationLink,
+        expiryDate,
+      },
+    );
+  }
+
+  async sendInvitationAcceptedNotification(data: {
+    accountId: string;
+    userEmail: string;
+  }) {
+    // TODO: Get admin email from accountId
+    // For now, log it
+    console.log(
+      `User ${data.userEmail} accepted invitation for account ${data.accountId}`
+    );
+  }
+
+  async sendInvitationApprovedEmail(data: {
+    to: string;
+    accountName: string;
+    role: string;
+  }) {
+    return this.sendMail(
+      data.to,
+      "Your invitation has been approved!",
+      "invitation-approved",
+      {
+        accountName: data.accountName,
+        role: data.role,
+      },
+    );
+  }
+
+  async sendInvitationRejectedEmail(data: {
+    to: string;
+    accountName: string;
+    reason?: string;
+  }) {
+    return this.sendMail(
+      data.to,
+      "Invitation Update",
+      "invitation-rejected",
+      {
+        accountName: data.accountName,
+        reason: data.reason || "No reason provided",
+      },
+    );
+  }
 }
 
 export const emailService = new EmailService();

@@ -1,38 +1,24 @@
-<h1 style="font-size:24px; font-weight:700; color:#222; margin-bottom:16px;">
-  Verify Your Email
-</h1>
+<h2 style="font-size: 24px; font-weight: 800; color: #1F2937; margin-bottom: 20px;">Verify your email</h2>
 
-<p style="font-size:15px; color:#444; line-height:1.6; margin-bottom:12px;">
-  Hi
-  {{name}},
+<p style="font-size: 16px; color: #4B5563;">Hi {{name}},</p>
+
+<p style="font-size: 16px; color: #4B5563;">
+  Thanks for joining <strong>FoodMatrix</strong>! We're thrilled to have you. Please verify your email address to unlock
+  all features and start planning your perfect meals.
 </p>
 
-<p style="font-size:15px; color:#444; line-height:1.6; margin-bottom:24px;">
-  Thanks for joining
-  <strong>FoodMatrix</strong>! Please verify your email address to activate your
-  account.
-</p>
+<div style="text-align: center;">
+  <a href="{{verifyUrl}}" class="button">Verify Email Address</a>
+</div>
 
-{{verifyUrl}}
+<div style="background-color: #F8F7FF; border-radius: 12px; padding: 20px; margin-top: 30px;">
+  <p style="margin: 0; font-size: 14px; color: #6B7280; line-height: 1.5;">
+    If the button above doesn't work, copy and paste this link into your browser:<br>
+    <a href="{{verifyUrl}}" style="color: #7661d3; word-break: break-all;">{{verifyUrl}}</a>
+  </p>
+</div>
 
-<!-- Form for POST method -->
-<a
-  href="{{verifyUrl}}"
-  style="
-    display:inline-block;
-    background:#2ecc71;
-    padding:14px 28px;
-    color:#ffffff;
-    text-decoration:none;
-    border-radius:8px;
-    font-size:16px;
-    font-weight:600;
-    margin:16px 0;
-  "
->
-  Verify My Email
-</a>
-
-<p style="font-size:14px; color:#666; line-height:1.6; margin-top:24px;">
-  If you did not create an account, you can safely ignore this email.
+<p style="font-size: 15px; color: #4B5563; border-top: 1px solid #F3F4F6; padding-top: 30px; margin-top: 30px;">
+  Happy cooking,<br>
+  <span class="highlight">The FoodMatrix Onboarding Team</span>
 </p>

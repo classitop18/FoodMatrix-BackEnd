@@ -6,13 +6,10 @@ import { HealthProfileRepository } from "@/modules/health-profile/health-profile
 import { HealthProfileService } from "@/modules/health-profile/health-profile.service.js";
 import { Router } from "express";
 
-
-
 const healthCalculator = new HealthCalculatorService();
 const healthProfileRepo = new HealthProfileRepository();
-const healProfileService = new HealthProfileService(healthProfileRepo, healthCalculator)
-const healthProfileController = new HealthProfileController(healProfileService)
-
+const healthProfileService = new HealthProfileService(healthProfileRepo, healthCalculator);
+const healthProfileController = new HealthProfileController(healthProfileService);
 
 const router = Router();
 
@@ -20,41 +17,40 @@ const router = Router();
 router.use(authenticate);
 
 // Health Profile CRUD
-// router.post(
-//     "/",
-//     validateRequest({ body: createHealthProfileSchema }),
-//     HealthProfileController.createHealthProfile
-// );
+/**
+ * @route   POST /api/health-profile
+ * @desc    Create a new health profile
+ * @access  Private
+ */
+router.post("/", healthProfileController.createHealthProfile);
 
+/**
+ * @route   GET /api/health-profile/:id
+ * @desc    Get health profile by ID
+ * @access  Private
+ */
 router.get("/:id", healthProfileController.getHealthProfile);
 
-// router.get("/:id", controller.getHealthProfile);
+/**
+ * @route   PUT /api/health-profile/:id
+ * @desc    Update health profile
+ * @access  Private
+ */
+router.put("/:id", healthProfileController.updateHealthProfile);
 
-// router.get("/member/:memberId", controller.getHealthProfileByMember);
+/**
+ * @route   DELETE /api/health-profile/:id
+ * @desc    Delete health profile
+ * @access  Private
+ */
+router.delete("/:id", healthProfileController.deleteHealthProfile);
 
-// router.patch(
-//     "/:id",
-//     validateRequest({ body: updateHealthProfileSchema }),
-//     controller.updateHealthProfile
-// );
-
-// router.delete("/:id", controller.deleteHealthProfile);
-
-// // Health Calculations
-// router.post("/calculate-bmi", controller.calculateBMI);
-
-// // Health Assessment
-// router.post(
-//     "/member/:memberId/assessment",
-//     validateRequest({ body: healthAssessmentSchema }),
-//     controller.performHealthAssessment
-// );
-
-// // Wearable Integration
-// router.post("/member/:memberId/sync-wearable", controller.syncWearableData);
-
-// return router;
-
-
+// Health Calculations
+/**
+ * @route   POST /api/health-profile/calculate-bmi
+ * @desc    Calculate BMI
+ * @access  Private
+ */
+router.post("/calculate-bmi", healthProfileController.calculateBMI);
 
 export default router;

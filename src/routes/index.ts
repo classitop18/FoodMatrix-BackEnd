@@ -4,7 +4,8 @@ import userRoutes from "./user.routes.js";
 import accountRoutes from "./account.routes.js";
 import memberRoutes from "./member.routes.js";
 import googlePlacesRoutes from "./google-places.routes.js";
-import healthProfileRoutes from "./health-profile.routes.js"
+import healthProfileRoutes from "./health-profile.routes.js";
+import invitationRoutes from "./invitation.routes.js"
 
 const appRouter = Router();
 
@@ -13,6 +14,7 @@ appRouter.use("/auth", userRoutes);
 appRouter.use("/account", accountRoutes);
 appRouter.use("/member", memberRoutes);
 appRouter.use("/places", googlePlacesRoutes)
-appRouter.use("/health-profile", healthProfileRoutes)
+appRouter.use("/health-profile", healthProfileRoutes);
+appRouter.use("/invitations", invitationRoutes)
 
 export default appRouter;

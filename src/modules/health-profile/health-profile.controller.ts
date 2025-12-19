@@ -24,7 +24,7 @@ export class HealthProfileController {
             const userId = req.user!.id;
             const profile = await this.service.createHealthProfile(validatedData, userId);
 
-
+            sendSuccess(res, profile, "Health profile created successfully", 201);
         } catch (error) {
             next(error);
         }
@@ -115,6 +115,7 @@ export class HealthProfileController {
 
             const profile = await this.service.updateHealthProfile(id, validatedData, userId);
 
+            sendSuccess(res, profile, "Health profile updated successfully", 200);
         } catch (error) {
             next(error);
         }
@@ -136,6 +137,7 @@ export class HealthProfileController {
 
             await this.service.deleteHealthProfile(id, userId);
 
+            sendSuccess(res, null, "Health profile deleted successfully", 200);
         } catch (error) {
             next(error);
         }
