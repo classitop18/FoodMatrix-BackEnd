@@ -1,7 +1,6 @@
 import { users } from "@/database/schemas/schema.js";
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
-
 export type User = InferSelectModel<typeof users>;
 export type NewUser = InferInsertModel<typeof users>;
 export interface UserWithoutPassword extends Omit<User, "password" | "otp"> {}

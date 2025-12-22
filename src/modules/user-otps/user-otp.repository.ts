@@ -1,10 +1,7 @@
-
-
 import { eq, and, gt, desc } from "drizzle-orm";
 import { UserOtp, UserOtpInsert } from "./types/user-otp.types.js";
 import { getDb } from "@/database/db.js";
 import { userOtps } from "@/database/schemas/schema.js";
-
 
 export interface IUserOtpRepository {
   createOtp(data: UserOtpInsert): Promise<UserOtp>;

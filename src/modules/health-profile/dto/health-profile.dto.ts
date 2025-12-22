@@ -1,4 +1,15 @@
-import { activityLevelEnum, allergyEnum, budgetFlexibilityEnum, cookingFrequencyEnum, cookingSkillEnum, dietaryRestrictionEnum, healthConditionEnum, healthGoalEnum, organicPreferenceEnum, privacyLevelEnum } from "@/database/schemas/enums.js";
+import {
+  activityLevelEnum,
+  allergyEnum,
+  budgetFlexibilityEnum,
+  cookingFrequencyEnum,
+  cookingSkillEnum,
+  dietaryRestrictionEnum,
+  healthConditionEnum,
+  healthGoalEnum,
+  organicPreferenceEnum,
+  privacyLevelEnum,
+} from "@/database/schemas/enums.js";
 import z from "zod";
 export const healthProfileSchema = z.object({
   height: z.number().int().optional(),
@@ -28,9 +39,6 @@ export const healthProfileSchema = z.object({
   healthScore: z.number().optional(),
 });
 
-
-
-
 export const createHealthProfileSchema = z.object({
   memberId: z.string().uuid(),
 
@@ -44,7 +52,9 @@ export const createHealthProfileSchema = z.object({
   allergies: z.array(z.enum(allergyEnum.enumValues)).optional(),
 
   // Dietary Restrictions & Preferences
-  dietaryRestrictions: z.array(z.enum(dietaryRestrictionEnum.enumValues)).optional(),
+  dietaryRestrictions: z
+    .array(z.enum(dietaryRestrictionEnum.enumValues))
+    .optional(),
   organicPreference: z.enum(organicPreferenceEnum.enumValues).optional(),
 
   // Health & Nutrition Goals
@@ -84,7 +94,9 @@ export const createHealthProfileSchema = z.object({
 export type CreateHealthProfileDto = z.infer<typeof createHealthProfileSchema>;
 
 // src/modules/health-profiles/dto/update-health-profile.dto.ts
-export const updateHealthProfileSchema = createHealthProfileSchema.partial().omit({ memberId: true });
+export const updateHealthProfileSchema = createHealthProfileSchema
+  .partial()
+  .omit({ memberId: true });
 export type UpdateHealthProfileDto = z.infer<typeof updateHealthProfileSchema>;
 
 // src/modules/health-profiles/dto/health-profile-response.dto.ts

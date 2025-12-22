@@ -1,14 +1,15 @@
 import { HealthProfileResponseDto } from "./dto/health-profile.dto.js";
 import { IHealthCalculator } from "./types/health-profile.types.js";
 
-
 export class HealthCalculatorService implements IHealthCalculator {
   calculateBMI(weight: number, height: number): number {
     // BMI = weight (lbs) / [height (in)]² × 703
     return (weight / (height * height)) * 703;
   }
 
-  calculateBMICategory(bmi: number): "underweight" | "normal" | "overweight" | "obese" {
+  calculateBMICategory(
+    bmi: number,
+  ): "underweight" | "normal" | "overweight" | "obese" {
     if (bmi < 18.5) return "underweight";
     if (bmi < 25) return "normal";
     if (bmi < 30) return "overweight";
@@ -20,7 +21,7 @@ export class HealthCalculatorService implements IHealthCalculator {
     height: number,
     age: number,
     sex: string,
-    activityLevel: string
+    activityLevel: string,
   ): number {
     // Mifflin-St Jeor Equation
     // Men: (10 × weight in kg) + (6.25 × height in cm) - (5 × age) + 5
@@ -103,14 +104,20 @@ export class HealthCalculatorService implements IHealthCalculator {
     }
 
     // Cooking habits (+10 points)
-    if (profile.cookingFrequency === "daily" || profile.cookingFrequency === "multiple_times_daily") {
+    if (
+      profile.cookingFrequency === "daily" ||
+      profile.cookingFrequency === "multiple_times_daily"
+    ) {
       score += 10;
     } else if (profile.cookingFrequency === "weekly") {
       score += 5;
     }
 
     // Organic preference (+5 points)
-    if (profile.organicPreference === "organic_only" || profile.organicPreference === "organic_preferred") {
+    if (
+      profile.organicPreference === "organic_only" ||
+      profile.organicPreference === "organic_preferred"
+    ) {
       score += 5;
     }
 
@@ -127,25 +134,35 @@ export class HealthCalculatorService implements IHealthCalculator {
       const category = this.calculateBMICategory(bmi);
 
       if (category === "obese") {
-        risks.push("High risk of cardiovascular disease, diabetes, and hypertension");
+        risks.push(
+          "High risk of cardiovascular disease, diabetes, and hypertension",
+        );
         risks.push("Increased risk of certain cancers");
       } else if (category === "overweight") {
-        risks.push("Moderate risk of cardiovascular disease and type 2 diabetes");
+        risks.push(
+          "Moderate risk of cardiovascular disease and type 2 diabetes",
+        );
       } else if (category === "underweight") {
-        risks.push("Risk of nutritional deficiencies and weakened immune system");
+        risks.push(
+          "Risk of nutritional deficiencies and weakened immune system",
+        );
       }
     }
 
     // Condition-specific risks
     if (profile.conditions?.includes("diabetes")) {
       if (!profile.dailyCarbLimitG) {
-        risks.push("Carbohydrate intake not being monitored - important for diabetes management");
+        risks.push(
+          "Carbohydrate intake not being monitored - important for diabetes management",
+        );
       }
     }
 
     if (profile.conditions?.includes("hypertension")) {
       if (profile.dailySodiumLimitMg > 2000) {
-        risks.push("Sodium intake limit may be too high for hypertension management");
+        risks.push(
+          "Sodium intake limit may be too high for hypertension management",
+        );
       }
     }
 
@@ -157,16 +174,22 @@ export class HealthCalculatorService implements IHealthCalculator {
 
     // Allergy risks
     if (profile.allergies?.length > 0 && !profile.autoSwap) {
-      risks.push("Auto-swap disabled - manual monitoring required for allergens");
+      risks.push(
+        "Auto-swap disabled - manual monitoring required for allergens",
+      );
     }
 
     // Lifestyle risks
     if (profile.activityLevel === "sedentary") {
-      risks.push("Sedentary lifestyle increases risk of various chronic diseases");
+      risks.push(
+        "Sedentary lifestyle increases risk of various chronic diseases",
+      );
     }
 
     if (!profile.cookingFrequency || profile.cookingFrequency === "rarely") {
-      risks.push("Infrequent home cooking may lead to less control over nutrition");
+      risks.push(
+        "Infrequent home cooking may lead to less control over nutrition",
+      );
     }
 
     return risks;
@@ -182,38 +205,59 @@ export class HealthCalculatorService implements IHealthCalculator {
 
       if (category === "obese" || category === "overweight") {
         recommendations.push("Focus on portion control and balanced meals");
-        recommendations.push("Increase physical activity to at least 150 minutes per week");
-        recommendations.push("Consider meal planning to maintain consistent healthy eating");
+        recommendations.push(
+          "Increase physical activity to at least 150 minutes per week",
+        );
+        recommendations.push(
+          "Consider meal planning to maintain consistent healthy eating",
+        );
       } else if (category === "underweight") {
-        recommendations.push("Increase calorie intake with nutrient-dense foods");
+        recommendations.push(
+          "Increase calorie intake with nutrient-dense foods",
+        );
         recommendations.push("Include protein-rich foods in every meal");
         recommendations.push("Consider consulting with a nutritionist");
       } else {
-        recommendations.push("Maintain current healthy weight through balanced diet");
+        recommendations.push(
+          "Maintain current healthy weight through balanced diet",
+        );
       }
     }
 
     // Activity level recommendations
-    if (profile.activityLevel === "sedentary" || profile.activityLevel === "light") {
-      recommendations.push("Gradually increase physical activity to at least 30 minutes daily");
-      recommendations.push("Try incorporating more active cooking methods like standing meal prep");
+    if (
+      profile.activityLevel === "sedentary" ||
+      profile.activityLevel === "light"
+    ) {
+      recommendations.push(
+        "Gradually increase physical activity to at least 30 minutes daily",
+      );
+      recommendations.push(
+        "Try incorporating more active cooking methods like standing meal prep",
+      );
     }
 
     // Condition-specific recommendations
     if (profile.conditions?.includes("diabetes")) {
       recommendations.push("Monitor carbohydrate intake at each meal");
       recommendations.push("Choose low-glycemic index foods");
-      recommendations.push("Include fiber-rich foods to help stabilize blood sugar");
+      recommendations.push(
+        "Include fiber-rich foods to help stabilize blood sugar",
+      );
     }
 
     if (profile.conditions?.includes("hypertension")) {
       recommendations.push("Limit sodium intake to under 2000mg per day");
-      recommendations.push("Increase potassium-rich foods (bananas, sweet potatoes)");
+      recommendations.push(
+        "Increase potassium-rich foods (bananas, sweet potatoes)",
+      );
       recommendations.push("Avoid processed and packaged foods");
     }
 
     if (profile.conditions?.includes("heart_disease")) {
-      recommendations.push("Choose heart-healthy fats (olive oil, avocados, nuts)");
+      recommendations.push(
+        "Choose heart-healthy fats (olive oil, avocados, nuts)",
+      );
       recommendations.push("Increase omega-3 rich fish consumption");
       recommendations.push("Limit saturated and trans fats");
     }
@@ -221,41 +265,58 @@ export class HealthCalculatorService implements IHealthCalculator {
     // Goal-based recommendations
     if (profile.goals?.includes("lose_weight")) {
       recommendations.push("Create a consistent meal schedule");
-      recommendations.push("Plan meals in advance to avoid impulsive food choices");
+      recommendations.push(
+        "Plan meals in advance to avoid impulsive food choices",
+      );
       recommendations.push("Focus on whole, unprocessed foods");
     }
 
     if (profile.goals?.includes("build_muscle")) {
-      recommendations.push("Ensure adequate protein intake (0.8-1g per lb of body weight)");
+      recommendations.push(
+        "Ensure adequate protein intake (0.8-1g per lb of body weight)",
+      );
       recommendations.push("Time protein intake around physical activity");
       recommendations.push("Include strength training 3-4 times per week");
     }
 
     if (profile.goals?.includes("improve_energy")) {
       recommendations.push("Maintain regular meal times");
-      recommendations.push("Include complex carbohydrates for sustained energy");
+      recommendations.push(
+        "Include complex carbohydrates for sustained energy",
+      );
       recommendations.push("Stay hydrated throughout the day");
     }
 
     // Cooking and lifestyle recommendations
-    if (profile.cookingSkill === "beginner" || profile.cookingSkill === "novice") {
+    if (
+      profile.cookingSkill === "beginner" ||
+      profile.cookingSkill === "novice"
+    ) {
       recommendations.push("Start with simple, 3-5 ingredient recipes");
       recommendations.push("Use meal prep to build cooking confidence");
     }
 
     if (!profile.hasDeepFreezer) {
-      recommendations.push("Plan for more frequent shopping trips or focus on fresh ingredients");
+      recommendations.push(
+        "Plan for more frequent shopping trips or focus on fresh ingredients",
+      );
     }
 
     if (profile.budgetFlexibility === "strict") {
       recommendations.push("Focus on seasonal produce for better prices");
       recommendations.push("Buy in bulk for commonly used items");
-      recommendations.push("Consider frozen vegetables as cost-effective alternatives");
+      recommendations.push(
+        "Consider frozen vegetables as cost-effective alternatives",
+      );
     }
 
     // General recommendations
-    recommendations.push("Track your meals and notice how different foods affect you");
-    recommendations.push("Stay consistent with healthy habits rather than seeking perfection");
+    recommendations.push(
+      "Track your meals and notice how different foods affect you",
+    );
+    recommendations.push(
+      "Stay consistent with healthy habits rather than seeking perfection",
+    );
 
     return recommendations.slice(0, 8); // Return top 8 recommendations
   }

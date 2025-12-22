@@ -1,9 +1,19 @@
-import { accountTypeEnum, activityLevelEnum, allergyEnum, budgetFlexibilityEnum, cookingFrequencyEnum, cookingSkillEnum, dietaryRestrictionEnum, healthConditionEnum, healthGoalEnum, organicPreferenceEnum, privacyLevelEnum, rolesEnum, sexEnum } from "@/database/schemas/enums.js";
+import {
+  accountTypeEnum,
+  activityLevelEnum,
+  allergyEnum,
+  budgetFlexibilityEnum,
+  cookingFrequencyEnum,
+  cookingSkillEnum,
+  dietaryRestrictionEnum,
+  healthConditionEnum,
+  healthGoalEnum,
+  organicPreferenceEnum,
+  privacyLevelEnum,
+  rolesEnum,
+  sexEnum,
+} from "@/database/schemas/enums.js";
 import z from "zod";
-
-
-
-
 
 // Account Schema
 const accountSchema = z.object({
@@ -58,7 +68,9 @@ const healthProfileSchema = z.object({
   allergies: z.array(z.enum(allergyEnum.enumValues)).optional(),
 
   // Dietary Restrictions & Preferences
-  dietaryRestrictions: z.array(z.enum(dietaryRestrictionEnum.enumValues)).optional(),
+  dietaryRestrictions: z
+    .array(z.enum(dietaryRestrictionEnum.enumValues))
+    .optional(),
   organicPreference: z.enum(organicPreferenceEnum.enumValues).optional(),
 
   // Health & Nutrition Goals
@@ -104,7 +116,9 @@ export const createAccountMemberSchema = z.object({
   healthProfile: healthProfileSchema.optional(),
 });
 
-export type CreateAccountMemberPayload = z.infer<typeof createAccountMemberSchema>;
+export type CreateAccountMemberPayload = z.infer<
+  typeof createAccountMemberSchema
+>;
 
 // Response DTO
 export interface CreateAccountMemberResponse {

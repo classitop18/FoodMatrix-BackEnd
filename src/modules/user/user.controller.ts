@@ -2,13 +2,25 @@ import { Request, Response, NextFunction } from "express";
 import { IUserService } from "./user.service.js";
 import { IUserOtpService } from "../user-otps/user-otp.service.js";
 import { ApiResponse } from "@/types/index.js";
-import { generateAuthenticationToken, generateJwtToken, verifyJwtToken } from "@/utils/jwt.utils.js";
+import {
+  generateAuthenticationToken,
+  generateJwtToken,
+  verifyJwtToken,
+} from "@/utils/jwt.utils.js";
 import { CONFIG } from "@/utils/env.config.js";
-import { addOtpVerificationEmailJob, addVerificationEmailJob } from "@/queues/jobs/email.jobs.js";
+import {
+  addOtpVerificationEmailJob,
+  addVerificationEmailJob,
+} from "@/queues/jobs/email.jobs.js";
 import { sendSuccess } from "@/utils/response.utils.js";
 import { OTP_PURPOSES } from "../user-otps/constant/user-otp.constant.js";
 import { hashString } from "@/utils/bcrypt.utils.js";
-import { paginationSchema, updatePasswordSchema, updateUserSchema, userFiltersSchema } from "./schema/user.schema.js";
+import {
+  paginationSchema,
+  updatePasswordSchema,
+  updateUserSchema,
+  userFiltersSchema,
+} from "./schema/user.schema.js";
 import { ISessionService } from "../session/session.service.js";
 
 export class UserController {
@@ -16,7 +28,7 @@ export class UserController {
     private userService: IUserService,
     private sessionService: ISessionService,
     private otpService: IUserOtpService,
-  ) { }
+  ) {}
 
   createUser = async (
     req: Request,
@@ -144,7 +156,7 @@ export class UserController {
       // Calculate session expiration
       const expiresAt = new Date(
         Date.now() +
-        Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
+          Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
       );
 
       // Create session in database
@@ -200,7 +212,6 @@ export class UserController {
     next: NextFunction,
   ) => {
     try {
-
       const id = req?.user?.id;
       const user = await this.userService.findUserByField(req.body, id);
 
@@ -283,8 +294,7 @@ export class UserController {
 
       await this.userService.changePassword(id, req?.body);
 
-      sendSuccess(res, {}, "Password changed successfully", 200)
-
+      sendSuccess(res, {}, "Password changed successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -342,7 +352,7 @@ export class UserController {
       // Calculate session expiration
       const expiresAt = new Date(
         Date.now() +
-        Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
+          Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
       );
 
       // Create session in database
@@ -485,7 +495,7 @@ export class UserController {
 
       const expiresAt = new Date(
         Date.now() +
-        Number(CONFIG.PASSWORD_RESET_EXPIRATION_MINUTES) * 60 * 1000,
+          Number(CONFIG.PASSWORD_RESET_EXPIRATION_MINUTES) * 60 * 1000,
       );
       // Create session first
       const tempRefreshToken =
@@ -608,7 +618,7 @@ export class UserController {
       // Verify refresh token
       const decoded = await verifyJwtToken(
         refreshToken,
-        CONFIG.REFRESH_TOKEN_SECRET!
+        CONFIG.REFRESH_TOKEN_SECRET!,
       );
 
       if (!decoded || !decoded.userId || !decoded.sessionId) {
@@ -620,7 +630,9 @@ export class UserController {
       }
 
       // Get session from database
-      const session = await this.sessionService.getSessionById(decoded.sessionId);
+      const session = await this.sessionService.getSessionById(
+        decoded.sessionId,
+      );
 
       if (!session || !session.isValid) {
         return res.status(401).json({
@@ -632,7 +644,10 @@ export class UserController {
 
       // Verify refresh token hash matches
       const { compareHash } = await import("@/utils/bcrypt.utils.js");
-      const isValidToken = await compareHash(refreshToken, session.refreshTokenHash);
+      const isValidToken = await compareHash(
+        refreshToken,
+        session.refreshTokenHash,
+      );
 
       if (!isValidToken) {
         return res.status(401).json({
@@ -691,7 +706,7 @@ export class UserController {
           },
         },
         "Token refreshed successfully",
-        200
+        200,
       );
     } catch (error) {
       next(error);

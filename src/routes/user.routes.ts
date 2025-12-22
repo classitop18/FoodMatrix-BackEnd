@@ -1,16 +1,27 @@
-import { authenticate, authenticateForChangePassword, authenticateMFA, verifyResetToken } from "@/middlewares/auth.middleware.js";
+import {
+  authenticate,
+  authenticateForChangePassword,
+  authenticateMFA,
+  verifyResetToken,
+} from "@/middlewares/auth.middleware.js";
 import { validate } from "@/middlewares/validation.middleware.js";
 import { SessionRepository } from "@/modules/session/session.repository.js";
 import { SessionService } from "@/modules/session/session.service.js";
 import { UserOtpRepository } from "@/modules/user-otps/user-otp.repository.js";
 import { UserOtpService } from "@/modules/user-otps/user-otp.service.js";
-import { checkPropertyExistSchema, createUserSchema, userLoginSchema } from "@/modules/user/schema/user.schema.js";
+import {
+  checkPropertyExistSchema,
+  createUserSchema,
+  userLoginSchema,
+} from "@/modules/user/schema/user.schema.js";
 import { UserController } from "@/modules/user/user.controller.js";
 import { UserRepository } from "@/modules/user/user.repository.js";
 import { UserService } from "@/modules/user/user.service.js";
-import { changePasswordSchema, verifyEmailSchema } from "@/validators/auth.validators.js";
+import {
+  changePasswordSchema,
+  verifyEmailSchema,
+} from "@/validators/auth.validators.js";
 import { Router } from "express";
-
 
 const router = Router();
 
@@ -76,7 +87,11 @@ router.post("/verify-mfa", [authenticateMFA], userController.verifyOtp);
 // router.get("/:id", userController.getUser);
 router.patch("/", [authenticate], userController.updateUser);
 // router.delete("/:id", userController.deleteUser);
-router.put("/change-password", [authenticate, validate(changePasswordSchema, "body")], userController.changePassword);
+router.put(
+  "/change-password",
+  [authenticate, validate(changePasswordSchema, "body")],
+  userController.changePassword,
+);
 // router.post("/send-otp", userController.sendVerificationOtp);
 // ;
 // router.post("/:id/enable-mfa", userController.enableMfa);

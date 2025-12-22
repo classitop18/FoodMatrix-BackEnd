@@ -2,11 +2,16 @@ import { Request, Response, NextFunction } from "express";
 
 import { ZodError } from "zod";
 import { IMemberService, MemberService } from "./member.service.js";
-import { bulkDeleteMembersSchema, bulkUpdateRoleSchema, createMemberSchema, transferOwnershipSchema, updateMemberSchema } from "./dto/member.dto.js";
+import {
+  bulkDeleteMembersSchema,
+  bulkUpdateRoleSchema,
+  createMemberSchema,
+  transferOwnershipSchema,
+  updateMemberSchema,
+} from "./dto/member.dto.js";
 import { sendSuccess } from "@/utils/response.utils.js";
 import { MemberError } from "./types/member.types.js";
 import { AuthenticatedRequest } from "@/middlewares/auth.middleware.js";
-
 
 export class MemberController {
   constructor(
@@ -16,7 +21,11 @@ export class MemberController {
    * POST /api/members
    * Create a new member
    */
-  createMember = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  createMember = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const requesterId = req.user?.id; // Assuming auth middleware sets req.user
       if (!requesterId) {

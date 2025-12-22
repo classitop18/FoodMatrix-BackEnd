@@ -56,7 +56,7 @@ export class EmailService {
   private renderTemplate(templateName: string, context: TemplateContext) {
     const templatePath = path.join(BASE_DIR, `${templateName}.hbs`);
 
-    console.log({ templatePath })
+    console.log({ templatePath });
 
     if (!fs.existsSync(templatePath)) {
       throw new Error(`Email template not found: ${templateName}`);
@@ -209,7 +209,7 @@ export class EmailService {
     // TODO: Get admin email from accountId
     // For now, log it
     console.log(
-      `User ${data.userEmail} accepted invitation for account ${data.accountId}`
+      `User ${data.userEmail} accepted invitation for account ${data.accountId}`,
     );
   }
 
@@ -234,15 +234,10 @@ export class EmailService {
     accountName: string;
     reason?: string;
   }) {
-    return this.sendMail(
-      data.to,
-      "Invitation Update",
-      "invitation-rejected",
-      {
-        accountName: data.accountName,
-        reason: data.reason || "No reason provided",
-      },
-    );
+    return this.sendMail(data.to, "Invitation Update", "invitation-rejected", {
+      accountName: data.accountName,
+      reason: data.reason || "No reason provided",
+    });
   }
 }
 

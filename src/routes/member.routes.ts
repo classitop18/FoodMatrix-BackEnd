@@ -2,7 +2,6 @@ import { authenticate } from "@/middlewares/auth.middleware.js";
 import { MemberController } from "@/modules/member/member.controller.js";
 import { Router } from "express";
 
-
 const router = Router();
 const memberController = new MemberController();
 

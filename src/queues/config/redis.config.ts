@@ -2,7 +2,6 @@ import { CONFIG } from "@/utils/env.config.js";
 import { logger } from "@/utils/logger.utils.js";
 import IORedis, { RedisOptions } from "ioredis";
 
-
 const redisOptions: RedisOptions = {
   host: CONFIG.REDIS_HOST || "127.0.0.1",
   port: Number(CONFIG.REDIS_PORT || 6379),

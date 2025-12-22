@@ -5,11 +5,15 @@ import { AuthenticatedRequest } from "@/middlewares/auth.middleware.js";
 import { CreateAccountMemberResponse } from "../shared/account-member/dto/account-member.dto.js";
 
 export class AccountController {
-  constructor(private readonly accountService: AccountService) { }
+  constructor(private readonly accountService: AccountService) {}
 
   /* ---------------- CREATE ACCOUNT ---------------- */
 
-  createAccount = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  createAccount = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const userId = (req as any).user.id;
       const body = req.body;
@@ -18,20 +22,16 @@ export class AccountController {
 
       const primaryAdminId = req.user!.id;
 
-      const result = await this.accountService.createAccount(
-        {
-          ...body,
-          primaryAdminId
-        }
-      );
+      const result = await this.accountService.createAccount({
+        ...body,
+        primaryAdminId,
+      });
 
       const response: CreateAccountMemberResponse = {
         accountId: result.accountId,
         memberId: result.memberId,
         healthProfileId: result.healthProfileId,
       };
-
-
 
       res.status(201).json({
         success: true,

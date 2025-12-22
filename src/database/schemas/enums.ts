@@ -1,7 +1,5 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
-
-
 // Enums
 export const accountTypeEnum = pgEnum("account_type", [
   "individual",
@@ -13,7 +11,7 @@ export const rolesEnum = pgEnum("role", [
   "super_admin",
   "viewer",
   "creator",
-  "member"
+  "member",
 ]);
 export const sexEnum = pgEnum("sex", ["male", "female", "other"]);
 export const transactionCategoryEnum = pgEnum("transaction_category", [

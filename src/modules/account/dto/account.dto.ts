@@ -34,13 +34,12 @@ export const createAccountSchema = z
     addressLine1: z.string().optional(),
     addressLine2: z.string().optional(),
     placeId: z.string().optional(),
-    
   })
   .refine(
     (data) =>
       data.groceriesPercentage +
-      data.diningPercentage +
-      data.emergencyPercentage ===
+        data.diningPercentage +
+        data.emergencyPercentage ===
       100,
     {
       message: "Budget percentages must total 100%",
@@ -60,15 +59,19 @@ export const updateAccountSchema = z.object({
   weeklyBudget: z.coerce.number().positive().optional(),
   monthlyBudget: z.coerce.number().positive().optional(),
   annualBudget: z.coerce.number().positive().optional(),
-  currentAllocation: z.enum(["daily", "weekly", "monthly", "annual"]).optional(),
+  currentAllocation: z
+    .enum(["daily", "weekly", "monthly", "annual"])
+    .optional(),
   groceriesPercentage: z.number().int().min(0).max(100).optional(),
   diningPercentage: z.number().int().min(0).max(100).optional(),
   emergencyPercentage: z.number().int().min(0).max(100).optional(),
   formattedAddress: z.string().optional(),
-  location: z.object({
-    type: z.string(),
-    coordinates: z.array(z.number()),
-  }).optional(),
+  location: z
+    .object({
+      type: z.string(),
+      coordinates: z.array(z.number()),
+    })
+    .optional(),
   longitude: z.number().optional(),
   latitude: z.number().optional(),
   city: z.string().optional(),

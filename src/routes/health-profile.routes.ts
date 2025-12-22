@@ -8,8 +8,13 @@ import { Router } from "express";
 
 const healthCalculator = new HealthCalculatorService();
 const healthProfileRepo = new HealthProfileRepository();
-const healthProfileService = new HealthProfileService(healthProfileRepo, healthCalculator);
-const healthProfileController = new HealthProfileController(healthProfileService);
+const healthProfileService = new HealthProfileService(
+  healthProfileRepo,
+  healthCalculator,
+);
+const healthProfileController = new HealthProfileController(
+  healthProfileService,
+);
 
 const router = Router();
 

@@ -9,9 +9,8 @@ import {
   integer,
   uuid,
   jsonb,
-  decimal
+  decimal,
 } from "drizzle-orm/pg-core";
-
 
 import {
   accountTypeEnum,
@@ -327,9 +326,7 @@ export const invitations = pgTable("invitations", {
 
   token: text("token").notNull().unique(),
 
-  status: text("status")
-    .notNull()
-    .default("pending"),
+  status: text("status").notNull().default("pending"),
   // pending | user_accepted | approved | rejected | expired
 
   expiresAt: timestamp("expires_at").notNull(),

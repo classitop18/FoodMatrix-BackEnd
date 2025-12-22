@@ -17,7 +17,6 @@ import { compareHash, hashString } from "@/utils/bcrypt.utils.js";
 import { CONFIG } from "@/utils/env.config.js";
 import { verifyJwtToken } from "@/utils/jwt.utils.js";
 
-
 export interface IUserService {
   createUser(data: CreateUserDTO): Promise<UserWithoutPassword>;
   loginUser(data: {
@@ -39,11 +38,14 @@ export interface IUserService {
   ): Promise<PaginatedResponse<UserWithoutPassword>>;
   enableMfa(id: string): Promise<void>;
   disableMfa(id: string): Promise<void>;
-  findUserByField(data: { field: string; value: string }, id?: string): Promise<any>;
+  findUserByField(
+    data: { field: string; value: string },
+    id?: string,
+  ): Promise<any>;
 }
 
 export class UserService implements IUserService {
-  constructor(private userRepository: IUserRepository) { }
+  constructor(private userRepository: IUserRepository) {}
 
   private removePasswordFromUser(user: User): UserWithoutPassword {
     const { password, otp, ...userWithoutPassword } = user;
@@ -79,7 +81,6 @@ export class UserService implements IUserService {
         return null;
     }
 
-
     if (user && !id) {
       return user;
     }
@@ -89,8 +90,6 @@ export class UserService implements IUserService {
     }
     return null;
   }
-
-
 
   async createUser(data: CreateUserDTO): Promise<UserWithoutPassword> {
     const existingEmail = await this.userRepository.findByEmail(data.email);
@@ -160,7 +159,7 @@ export class UserService implements IUserService {
 
     if (data.username) {
       const existing = await this.userRepository.findByUsername(data.username);
-      console.log(existing, id, "teriui")
+      console.log(existing, id, "teriui");
       if (existing && existing.id !== id) {
         throw new Error("Username already exists");
       }

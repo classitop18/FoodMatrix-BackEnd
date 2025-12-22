@@ -1,15 +1,16 @@
 // src/modules/health-profiles/repositories/health-profile.repository.ts
 import { eq, and, sql, isNotNull } from "drizzle-orm";
 import { IHealthProfileRepository } from "./types/health-profile.types.js";
-import { CreateHealthProfileDto, HealthProfileResponseDto, QueryHealthProfileDto, UpdateHealthProfileDto } from "./dto/health-profile.dto.js";
+import {
+  CreateHealthProfileDto,
+  HealthProfileResponseDto,
+  QueryHealthProfileDto,
+  UpdateHealthProfileDto,
+} from "./dto/health-profile.dto.js";
 import { healthProfiles, members } from "@/database/schemas/schema.js";
 import { getDb } from "@/database/db.js";
 
-
-
-
 export class HealthProfileRepository implements IHealthProfileRepository {
-
   private _db: any = null;
 
   private get db() {
@@ -27,13 +28,11 @@ export class HealthProfileRepository implements IHealthProfileRepository {
       });
 
       if (!member) {
-
       }
 
       // Check if health profile already exists for this member
       const existing = await this.findByMemberId(data.memberId);
       if (existing) {
-
       }
 
       const [profile] = await this.db
@@ -54,9 +53,7 @@ export class HealthProfileRepository implements IHealthProfileRepository {
         .returning();
 
       return this.mapToDto(profile);
-    } catch (error) {
-
-    }
+    } catch (error) {}
   }
 
   async findById(id: string): Promise<HealthProfileResponseDto | null> {
@@ -67,7 +64,9 @@ export class HealthProfileRepository implements IHealthProfileRepository {
     return profile ? this.mapToDto(profile) : null;
   }
 
-  async findByMemberId(memberId: string): Promise<HealthProfileResponseDto | null> {
+  async findByMemberId(
+    memberId: string,
+  ): Promise<HealthProfileResponseDto | null> {
     const profile = await this.db.query.healthProfiles.findFirst({
       where: eq(healthProfiles.memberId, memberId),
     });
@@ -81,7 +80,14 @@ export class HealthProfileRepository implements IHealthProfileRepository {
     page: number;
     limit: number;
   }> {
-    const { page = 1, limit = 10, memberId, privacyLevel, hasConditions, hasAllergies } = query;
+    const {
+      page = 1,
+      limit = 10,
+      memberId,
+      privacyLevel,
+      hasConditions,
+      hasAllergies,
+    } = query;
     const offset = (page - 1) * limit;
 
     // Build where conditions
@@ -99,7 +105,7 @@ export class HealthProfileRepository implements IHealthProfileRepository {
       conditions.push(
         hasConditions
           ? sql`array_length(${healthProfiles.conditions}, 1) > 0`
-          : sql`array_length(${healthProfiles.conditions}, 1) IS NULL OR array_length(${healthProfiles.conditions}, 1) = 0`
+          : sql`array_length(${healthProfiles.conditions}, 1) IS NULL OR array_length(${healthProfiles.conditions}, 1) = 0`,
       );
     }
 
@@ -107,7 +113,7 @@ export class HealthProfileRepository implements IHealthProfileRepository {
       conditions.push(
         hasAllergies
           ? sql`array_length(${healthProfiles.allergies}, 1) > 0`
-          : sql`array_length(${healthProfiles.allergies}, 1) IS NULL OR array_length(${healthProfiles.allergies}, 1) = 0`
+          : sql`array_length(${healthProfiles.allergies}, 1) IS NULL OR array_length(${healthProfiles.allergies}, 1) = 0`,
       );
     }
 
@@ -135,10 +141,12 @@ export class HealthProfileRepository implements IHealthProfileRepository {
     };
   }
 
-  async update(id: string, data: UpdateHealthProfileDto): Promise<HealthProfileResponseDto> {
+  async update(
+    id: string,
+    data: UpdateHealthProfileDto,
+  ): Promise<HealthProfileResponseDto> {
     const existing = await this.findById(id);
     if (!existing) {
-
     }
 
     const [updated] = await this._db
@@ -156,7 +164,6 @@ export class HealthProfileRepository implements IHealthProfileRepository {
   async delete(id: string): Promise<void> {
     const existing = await this.findById(id);
     if (!existing) {
-
     }
     await this.db.delete(healthProfiles).where(eq(healthProfiles.id, id));
   }

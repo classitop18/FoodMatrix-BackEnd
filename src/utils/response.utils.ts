@@ -1,7 +1,6 @@
 import { ErrorResponse, SuccessResponse } from "@/types/index.js";
 import { Response } from "express";
 
-
 // Success
 export const sendSuccess = <T>(
   res: Response,

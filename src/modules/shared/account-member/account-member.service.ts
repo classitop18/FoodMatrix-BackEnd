@@ -2,7 +2,6 @@ import { IHealthCalculator } from "@/modules/health-profile/types/health-profile
 import { CreateAccountMemberPayload } from "./dto/account-member.dto.js";
 import { IAccountMemberRepository } from "./account-member.respository.js";
 
-
 export interface IAccountMemberService {
   createAccount(
     payload: CreateAccountMemberPayload,
@@ -17,8 +16,8 @@ export interface IAccountMemberService {
 export class AccountMemberService implements IAccountMemberService {
   constructor(
     private readonly accountMemberRepo: IAccountMemberRepository,
-    private readonly healthCalculator: IHealthCalculator
-  ) { }
+    private readonly healthCalculator: IHealthCalculator,
+  ) {}
 
   async createAccount(
     payload: CreateAccountMemberPayload,
@@ -36,7 +35,9 @@ export class AccountMemberService implements IAccountMemberService {
 
       // Calculate initial health score based on the profile data
       // We'll use a simplified version since we don't have the full profile yet
-      const healthScore = this.calculateInitialHealthScore(payload.healthProfile);
+      const healthScore = this.calculateInitialHealthScore(
+        payload.healthProfile,
+      );
       payload.healthProfile.healthScore = healthScore;
     }
 
@@ -102,14 +103,20 @@ export class AccountMemberService implements IAccountMemberService {
     }
 
     // Cooking habits (+10 points)
-    if (healthProfile.cookingFrequency === "daily" || healthProfile.cookingFrequency === "multiple_times_daily") {
+    if (
+      healthProfile.cookingFrequency === "daily" ||
+      healthProfile.cookingFrequency === "multiple_times_daily"
+    ) {
       score += 10;
     } else if (healthProfile.cookingFrequency === "weekly") {
       score += 5;
     }
 
     // Organic preference (+5 points)
-    if (healthProfile.organicPreference === "organic_only" || healthProfile.organicPreference === "organic_preferred") {
+    if (
+      healthProfile.organicPreference === "organic_only" ||
+      healthProfile.organicPreference === "organic_preferred"
+    ) {
       score += 5;
     }
 

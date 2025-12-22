@@ -1,6 +1,13 @@
-
 import { eq, and, count } from "drizzle-orm";
-import { CreateUserDTO, PaginatedResponse, PaginationParams, UpdateUserDTO, User, UserFilters, UserWithoutPassword } from "./types/user.types.js";
+import {
+  CreateUserDTO,
+  PaginatedResponse,
+  PaginationParams,
+  UpdateUserDTO,
+  User,
+  UserFilters,
+  UserWithoutPassword,
+} from "./types/user.types.js";
 import { getDb } from "@/database/db.js";
 import { users } from "@/database/schemas/schema.js";
 

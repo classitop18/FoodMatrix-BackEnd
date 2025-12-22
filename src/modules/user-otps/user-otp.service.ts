@@ -8,7 +8,7 @@ export interface IUserOtpService {
 }
 
 export class UserOtpService implements IUserOtpService {
-  constructor(private otpRepo: IUserOtpRepository) { }
+  constructor(private otpRepo: IUserOtpRepository) {}
 
   async createOtp(data: CreateOtpDTO): Promise<UserOtp> {
     return this.otpRepo.createOtp({

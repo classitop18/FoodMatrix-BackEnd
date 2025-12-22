@@ -1,144 +1,150 @@
-<!DOCTYPE html>
 <html lang="en">
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FoodMatrix</title>
-  <!--[if mso]>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FoodMatrix</title>
+    <!--[if mso]>
     <style type="text/css">
         body, table, td { font-family: Arial, sans-serif !important; }
     </style>
     <![endif]-->
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap');
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap");
 
-    body {
-      margin: 0;
-      padding: 0;
-      width: 100% !important;
-      -webkit-text-size-adjust: 100%;
-      -ms-text-size-adjust: 100%;
-      background-color: #F8F7FF;
-      font-family: 'Outfit', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    }
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100% !important;
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+        background-color: #f8f7ff;
+        font-family: "Outfit", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
 
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      background-color: #ffffff;
-      border-radius: 24px;
-      overflow: hidden;
-      margin-top: 40px;
-      margin-bottom: 40px;
-      box-shadow: 0 20px 40px rgba(118, 97, 211, 0.08);
-    }
-
-    .header {
-      background: linear-gradient(135deg, #7661d3 0%, #3d326d 100%);
-      padding: 40px 20px;
-      text-align: center;
-    }
-
-    .logo-text {
-      color: #ffffff;
-      font-size: 28px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      margin: 0;
-    }
-
-    .logo-accent {
-      color: #7dab4f;
-    }
-
-    .content {
-      padding: 40px;
-      color: #313131;
-      line-height: 1.6;
-    }
-
-    .button {
-      display: inline-block;
-      padding: 16px 32px;
-      background: linear-gradient(135deg, #7661d3 0%, #3d326d 100%);
-      color: #ffffff !important;
-      text-decoration: none;
-      border-radius: 14px;
-      font-weight: 700;
-      font-size: 16px;
-      margin: 24px 0;
-      box-shadow: 0 10px 20px rgba(118, 97, 211, 0.2);
-      text-align: center;
-    }
-
-    .footer {
-      padding: 30px;
-      text-align: center;
-      background-color: #F3F0FD;
-      color: #6B7280;
-      font-size: 13px;
-    }
-
-    .social-link {
-      color: #7661d3;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    h1,
-    h2,
-    h3 {
-      color: #1F2937;
-      margin-top: 0;
-    }
-
-    .highlight {
-      color: #7661d3;
-      font-weight: 600;
-    }
-
-    @media only screen and (max-width: 600px) {
       .container {
-        margin-top: 0;
-        margin-bottom: 0;
-        border-radius: 0;
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 24px;
+        overflow: hidden;
+        margin-top: 40px;
+        margin-bottom: 40px;
+        box-shadow: 0 20px 40px rgba(118, 97, 211, 0.08);
+      }
+
+      .header {
+        background: linear-gradient(135deg, #7661d3 0%, #3d326d 100%);
+        padding: 40px 20px;
+        text-align: center;
+      }
+
+      .logo-text {
+        color: #ffffff;
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        margin: 0;
+      }
+
+      .logo-accent {
+        color: #7dab4f;
       }
 
       .content {
-        padding: 30px 20px;
+        padding: 40px;
+        color: #313131;
+        line-height: 1.6;
       }
-    }
-  </style>
-</head>
 
-<body>
-  <div class="container">
-    <!-- Header -->
-    <div class="header">
-      <h1 class="logo-text">Food<span class="logo-accent">Matrix</span></h1>
-    </div>
+      .button {
+        display: inline-block;
+        padding: 16px 32px;
+        background: linear-gradient(135deg, #7661d3 0%, #3d326d 100%);
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 14px;
+        font-weight: 700;
+        font-size: 16px;
+        margin: 24px 0;
+        box-shadow: 0 10px 20px rgba(118, 97, 211, 0.2);
+        text-align: center;
+      }
 
-    <!-- Main Content Area -->
-    <div class="content">
-      {{{body}}}
-    </div>
+      .footer {
+        padding: 30px;
+        text-align: center;
+        background-color: #f3f0fd;
+        color: #6b7280;
+        font-size: 13px;
+      }
 
-    <!-- Footer -->
-    <div class="footer">
-      <p style="margin-bottom: 10px;">
-        © {{year}} FoodMatrix. Smart Budget Intelligence Platform.
-      </p>
-      <p>
-        Was this email unexpected? <a href="#" style="color: #7661d3;">Let us know</a>.
-      </p>
-      <div style="margin-top: 20px; border-top: 1px solid #E5E7EB; padding-top: 20px;">
-        <a href="{{appUrl}}" class="social-link">Dashboard</a> •
-        <a href="#" class="social-link">Support</a> •
-        <a href="#" class="social-link">Privacy Policy</a>
+      .social-link {
+        color: #7661d3;
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: #1f2937;
+        margin-top: 0;
+      }
+
+      .highlight {
+        color: #7661d3;
+        font-weight: 600;
+      }
+
+      @media only screen and (max-width: 600px) {
+        .container {
+          margin-top: 0;
+          margin-bottom: 0;
+          border-radius: 0;
+        }
+
+        .content {
+          padding: 30px 20px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <h1 class="logo-text">Food<span class="logo-accent">Matrix</span></h1>
+      </div>
+
+      <!-- Main Content Area -->
+      <div class="content">
+        {{{body}}}
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p style="margin-bottom: 10px;">
+          ©
+          {{year}}
+          FoodMatrix. Smart Budget Intelligence Platform.
+        </p>
+        <p>
+          Was this email unexpected?
+          <a href="#" style="color: #7661d3;">Let us know</a>.
+        </p>
+        <div
+          style="margin-top: 20px; border-top: 1px solid #E5E7EB; padding-top: 20px;"
+        >
+          <a href="{{appUrl}}" class="social-link">Dashboard</a>
+          •
+          <a href="#" class="social-link">Support</a>
+          •
+          <a href="#" class="social-link">Privacy Policy</a>
+        </div>
       </div>
     </div>
-  </div>
-</body>
+  </body>
 
 </html>

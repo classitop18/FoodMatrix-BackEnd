@@ -3,9 +3,12 @@ import { validate } from "@/middlewares/validation.middleware.js";
 import { AccountController } from "@/modules/account/account.controller.js";
 import { AccountRepository } from "@/modules/account/account.repository.js";
 import { AccountService } from "@/modules/account/account.service.js";
-import { accountIdParamSchema, createAccountSchema, updateAccountSchema } from "@/modules/account/dto/account.dto.js";
+import {
+  accountIdParamSchema,
+  createAccountSchema,
+  updateAccountSchema,
+} from "@/modules/account/dto/account.dto.js";
 import { Router } from "express";
-
 
 const router = Router();
 

@@ -1,7 +1,5 @@
-
 import { members } from "@/database/schemas/schema.js";
 import { InferSelectModel } from "drizzle-orm";
-
 
 export type Member = InferSelectModel<typeof members>;
 

@@ -1,4 +1,3 @@
-
 import { HealthCalculatorService } from "../health-profile/health-calculate.service.js";
 import {
   AccountMemberRepository,
@@ -17,7 +16,10 @@ export class AccountService {
   private readonly accountMemberService: IAccountMemberService;
 
   constructor(private readonly accountRepo = new AccountRepository()) {
-    this.accountMemberService = new AccountMemberService(new AccountMemberRepository(), new HealthCalculatorService());
+    this.accountMemberService = new AccountMemberService(
+      new AccountMemberRepository(),
+      new HealthCalculatorService(),
+    );
   }
 
   private async mapAccountCreationToPayload(
@@ -66,35 +68,35 @@ export class AccountService {
 
       healthProfile: data.healthProfile
         ? {
-          height: data.healthProfile.height || undefined,
-          weight: data.healthProfile.weight || undefined,
-          activityLevel: data.healthProfile.activityLevel,
+            height: data.healthProfile.height || undefined,
+            weight: data.healthProfile.weight || undefined,
+            activityLevel: data.healthProfile.activityLevel,
 
-          conditions: data.healthProfile.conditions,
-          allergies: data.healthProfile.allergies,
+            conditions: data.healthProfile.conditions,
+            allergies: data.healthProfile.allergies,
 
-          dietaryRestrictions: data.healthProfile.dietaryRestrictions,
-          organicPreference: data.healthProfile.organicPreference,
+            dietaryRestrictions: data.healthProfile.dietaryRestrictions,
+            organicPreference: data.healthProfile.organicPreference,
 
-          goals: data.healthProfile.goals,
+            goals: data.healthProfile.goals,
 
-          cookingSkill: data.healthProfile.cookingSkill,
-          cookingFrequency: data.healthProfile.cookingFrequency,
-          preferredCuisines: data.healthProfile.preferredCuisines,
+            cookingSkill: data.healthProfile.cookingSkill,
+            cookingFrequency: data.healthProfile.cookingFrequency,
+            preferredCuisines: data.healthProfile.preferredCuisines,
 
-          budgetFlexibility: data.healthProfile.budgetFlexibility,
+            budgetFlexibility: data.healthProfile.budgetFlexibility,
 
-          excludedFoods: data.healthProfile.excludedFoods,
-          includedFoods: data.healthProfile.includedFoods,
-          customExclusions: data.healthProfile.customExclusions,
-          customInclusions: data.healthProfile.customInclusions,
-          preferenceSets: data.healthProfile.preferenceSets,
+            excludedFoods: data.healthProfile.excludedFoods,
+            includedFoods: data.healthProfile.includedFoods,
+            customExclusions: data.healthProfile.customExclusions,
+            customInclusions: data.healthProfile.customInclusions,
+            preferenceSets: data.healthProfile.preferenceSets,
 
-          privacyLevel: data.healthProfile.isPrivate ? "private" : "shared",
+            privacyLevel: data.healthProfile.isPrivate ? "private" : "shared",
 
-          dailyCalorieTarget: data.healthProfile.dailyCalorieTarget,
-          dailySodiumLimitMg: data.healthProfile.dailySodiumLimitMg,
-        }
+            dailyCalorieTarget: data.healthProfile.dailyCalorieTarget,
+            dailySodiumLimitMg: data.healthProfile.dailySodiumLimitMg,
+          }
         : undefined,
     };
   }

@@ -1,10 +1,14 @@
 import { logger } from "@/utils/logger.utils.js";
 import { Worker, Job } from "bullmq";
-import { EmailJobType, EmailResult, OtpVerificationEmailJobData, PasswordResetEmailJobData, VerificationEmailJobData } from "../types/queue.types.js";
+import {
+  EmailJobType,
+  EmailResult,
+  OtpVerificationEmailJobData,
+  PasswordResetEmailJobData,
+  VerificationEmailJobData,
+} from "../types/queue.types.js";
 import { emailService } from "@/email/email.service.js";
 import { connection } from "../config/redis.config.js";
-
-
 
 const processEmailJob = async (job: Job): Promise<EmailResult> => {
   logger.info(`Processing email job: ${job.id} | Type: ${job.name}`);

@@ -1,6 +1,10 @@
 // src/modules/account-member/repositories/account-member.repository.ts
 
-import { accounts, members, healthProfiles } from "../../../database/schemas/schema.js";
+import {
+  accounts,
+  members,
+  healthProfiles,
+} from "../../../database/schemas/schema.js";
 import { sql } from "drizzle-orm";
 import { getDb } from "../../../database/db.js";
 import { CreateAccountMemberPayload } from "./dto/account-member.dto.js";
@@ -96,8 +100,10 @@ export class AccountMemberRepository implements IAccountMemberRepository {
             allergies: payload.healthProfile.allergies ?? [],
 
             // Dietary Restrictions & Preferences
-            dietaryRestrictions: payload.healthProfile.dietaryRestrictions ?? [],
-            organicPreference: payload.healthProfile.organicPreference ?? "standard_only",
+            dietaryRestrictions:
+              payload.healthProfile.dietaryRestrictions ?? [],
+            organicPreference:
+              payload.healthProfile.organicPreference ?? "standard_only",
 
             // Health & Nutrition Goals
             goals: payload.healthProfile.goals ?? [],
@@ -127,10 +133,12 @@ export class AccountMemberRepository implements IAccountMemberRepository {
             healthScore: payload.healthProfile.healthScore ?? 50, // ✅ Now included
             bmi: payload.healthProfile.bmi, // ✅ Now included
             dailyCalorieTarget: payload.healthProfile.dailyCalorieTarget,
-            dailySodiumLimitMg: payload.healthProfile.dailySodiumLimitMg ?? 2300,
+            dailySodiumLimitMg:
+              payload.healthProfile.dailySodiumLimitMg ?? 2300,
             dailyCarbLimitG: payload.healthProfile.dailyCarbLimitG,
             dailyFiberTargetG: payload.healthProfile.dailyFiberTargetG ?? 25,
-            conditionSpecificMetrics: payload.healthProfile.conditionSpecificMetrics ?? {},
+            conditionSpecificMetrics:
+              payload.healthProfile.conditionSpecificMetrics ?? {},
             wearableConnected: payload.healthProfile.wearableConnected ?? false,
             wearableType: payload.healthProfile.wearableType,
           })

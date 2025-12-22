@@ -83,7 +83,6 @@ export class MemberRepository implements IMemberRepository {
     return result[0];
   }
 
-
   async findById(
     id: string,
     withRelations = false,
