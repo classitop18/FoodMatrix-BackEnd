@@ -11,7 +11,8 @@
     "format": "prettier --write .",
     "db:generate": "npm run build && drizzle-kit generate",
     "db:push": "npm run build && drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx src/seed/run-seed-cli.ts"
   },
   "keywords": [],
   "author": "",
@@ -39,6 +40,7 @@
     "@bull-board/api": "^6.15.0",
     "@bull-board/express": "^6.15.0",
     "@neondatabase/serverless": "^1.0.2",
+    "@types/node-cron": "^3.0.11",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.65.1",
@@ -54,6 +56,7 @@
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
+    "node-cron": "^4.2.1",
     "nodemailer": "^7.0.11",
     "openai": "^6.10.0",
     "pg": "^8.16.3",

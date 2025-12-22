@@ -5,6 +5,13 @@ import { authenticate } from "../middlewares/auth.middleware.js";
 const router = Router();
 const controller = new InvitationController();
 
+/**
+ * @route   GET /api/invitations/validate-token/:token
+ * @desc    Validate invitation token and check user existence (Public)
+ * @access  Public
+ */
+router.get("/validate-token/:token", controller.validateToken);
+
 // ============ AUTHENTICATED USER ROUTES ============
 router.use(authenticate); // All routes below require authentication
 

@@ -6,6 +6,9 @@ import memberRoutes from "./member.routes.js";
 import googlePlacesRoutes from "./google-places.routes.js";
 import healthProfileRoutes from "./health-profile.routes.js";
 import invitationRoutes from "./invitation.routes.js";
+import pantryRoutes from "./pantry.routes.js";
+import ingredientRoutes from "./ingredient.routes.js";
+
 
 const appRouter = Router();
 
@@ -16,5 +19,7 @@ appRouter.use("/member", memberRoutes);
 appRouter.use("/places", googlePlacesRoutes);
 appRouter.use("/health-profile", healthProfileRoutes);
 appRouter.use("/invitations", invitationRoutes);
+appRouter.use("/pantry", pantryRoutes);
+appRouter.use("/ingredients", ingredientRoutes);
 
 export default appRouter;

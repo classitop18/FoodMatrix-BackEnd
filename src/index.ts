@@ -13,6 +13,7 @@ import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { emailQueue } from "./queues/email.queue.js";
 import { emailWorker } from "./queues/worker/email.worker.js";
 import cookieParser from "cookie-parser";
+import { initializePantryCron } from "./cron/pantry-alert.cron.js";
 
 const app = express();
 const PORT = CONFIG.PORT || 3000;
@@ -78,6 +79,10 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 const server = app.listen(PORT, async () => {
   await connectDatabase();
   logger.info(`Server is running on port ${PORT}`);
+
+  // Initialize pantry alert cron job
+  initializePantryCron();
+
   emailWorker.on("completed", (job) =>
     logger.info(`Job ${job.id} completed successfully`),
   );

@@ -1,4 +1,4 @@
-import { and, eq, InferSelectModel } from "drizzle-orm";
+import { and, eq, InferSelectModel, sql } from "drizzle-orm";
 import { accounts, members } from "../../database/schemas/schema.js";
 import { getDb } from "../../database/db.js";
 
@@ -136,19 +136,10 @@ export class AccountRepository implements IAccountRepository {
   // ================== MEMBERSHIP HELPERS ==================
 
   // Get all accounts where user is a member
-  async getAccountsByUserId(userId: string): Promise<
-    {
-      id: string;
-      accountName: string | null;
-      description: string | null;
-      accountNumber: string;
-    }[]
-  > {
+  async getAccountsByUserId(userId: string): Promise<any[]> {
     if (!userId) {
       throw new Error("userId is required");
     }
-
-    console.log("Fetching accounts for user:", userId);
 
     return await this.db
       .select({
@@ -156,9 +147,13 @@ export class AccountRepository implements IAccountRepository {
         accountName: accounts.accountName,
         description: accounts.description,
         accountNumber: accounts.accountNumber,
+        primaryAdminId: accounts.primaryAdminId,
+        role: members.role,
+        isOwner: sql`CASE WHEN ${accounts.primaryAdminId} = ${userId} THEN true ELSE false END`,
       })
       .from(accounts)
-      .where(eq(accounts.primaryAdminId, userId));
+      .innerJoin(members, eq(accounts.id, members.accountId))
+      .where(eq(members.userId, userId));
   }
 
   // Check if user belongs to account

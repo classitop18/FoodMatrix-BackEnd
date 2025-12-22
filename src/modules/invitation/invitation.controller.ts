@@ -1,4 +1,4 @@
-import type { Response } from "express";
+import type { NextFunction, Response } from "express";
 import { InvitationService } from "./invitation.service.js";
 import { AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
 import { sendSuccess, sendError } from "../../utils/response.utils.js";
@@ -20,7 +20,7 @@ export class InvitationController {
   }
 
   // ============ SEND INVITATION ============
-  sendInvitation = async (req: AuthenticatedRequest, res: Response) => {
+  sendInvitation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const validatedData = createInvitationSchema.parse(req.body);
       const userId = req.user!.id;
@@ -32,17 +32,12 @@ export class InvitationController {
 
       return sendSuccess(res, invitation, "Invitation sent successfully", 201);
     } catch (error: any) {
-      return sendError(
-        res,
-        error.message || "Failed to send invitation",
-        error,
-        error.statusCode || 500,
-      );
+      next(error)
     }
   };
 
   // ============ ACCEPT INVITATION (USER) ============
-  acceptInvitation = async (req: AuthenticatedRequest, res: Response) => {
+  acceptInvitation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const validatedData = acceptInvitationSchema.parse(req.body);
       const userEmail = req.user!.email;
@@ -58,17 +53,12 @@ export class InvitationController {
         "Invitation accepted successfully. Waiting for admin approval.",
       );
     } catch (error: any) {
-      return sendError(
-        res,
-        error.message || "Failed to accept invitation",
-        error,
-        error.statusCode || 500,
-      );
+      next(error)
     }
   };
 
   // ============ APPROVE INVITATION (ADMIN) ============
-  approveInvitation = async (req: AuthenticatedRequest, res: Response) => {
+  approveInvitation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const validatedData = approveInvitationSchema.parse(req.body);
       const adminId = req.user!.id;
@@ -80,17 +70,12 @@ export class InvitationController {
 
       return sendSuccess(res, invitation, "Invitation approved successfully");
     } catch (error: any) {
-      return sendError(
-        res,
-        error.message || "Failed to approve invitation",
-        error,
-        error.statusCode || 500,
-      );
+      next(error)
     }
   };
 
   // ============ REJECT INVITATION (ADMIN) ============
-  rejectInvitation = async (req: AuthenticatedRequest, res: Response) => {
+  rejectInvitation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const validatedData = rejectInvitationSchema.parse(req.body);
       const adminId = req.user!.id;
@@ -102,17 +87,12 @@ export class InvitationController {
 
       return sendSuccess(res, invitation, "Invitation rejected successfully");
     } catch (error: any) {
-      return sendError(
-        res,
-        error.message || "Failed to reject invitation",
-        error,
-        error.statusCode || 500,
-      );
+      next(error)
     }
   };
 
   // ============ RESEND INVITATION ============
-  resendInvitation = async (req: AuthenticatedRequest, res: Response) => {
+  resendInvitation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const validatedData = resendInvitationSchema.parse(req.body);
       const userId = req.user!.id;
@@ -124,17 +104,12 @@ export class InvitationController {
 
       return sendSuccess(res, invitation, "Invitation resent successfully");
     } catch (error: any) {
-      return sendError(
-        res,
-        error.message || "Failed to resend invitation",
-        error,
-        error.statusCode || 500,
-      );
+      next(error)
     }
   };
 
   // ============ CANCEL INVITATION ============
-  cancelInvitation = async (req: AuthenticatedRequest, res: Response) => {
+  cancelInvitation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const validatedData = cancelInvitationSchema.parse(req.body);
       const userId = req.user!.id;
@@ -143,17 +118,12 @@ export class InvitationController {
 
       return sendSuccess(res, result, result.message);
     } catch (error: any) {
-      return sendError(
-        res,
-        error.message || "Failed to cancel invitation",
-        error,
-        error.statusCode || 500,
-      );
+      next(error)
     }
   };
 
   // ============ GET ALL INVITATIONS (WITH FILTERS) ============
-  getInvitations = async (req: AuthenticatedRequest, res: Response) => {
+  getInvitations = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const validatedQuery = getInvitationsQuerySchema.parse(req.query);
       const userId = req.user!.id;
@@ -167,17 +137,12 @@ export class InvitationController {
         200,
       );
     } catch (error: any) {
-      return sendError(
-        res,
-        error.message || "Failed to get invitations",
-        error,
-        error.statusCode || 500,
-      );
+      next(error)
     }
   };
 
   // ============ GET USER'S INVITATIONS ============
-  getUserInvitations = async (req: AuthenticatedRequest, res: Response) => {
+  getUserInvitations = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const userEmail = req.user!.email;
 
@@ -189,17 +154,12 @@ export class InvitationController {
         "User invitations retrieved successfully",
       );
     } catch (error: any) {
-      return sendError(
-        res,
-        error.message || "Failed to get user invitations",
-        error,
-        error.statusCode || 500,
-      );
+      next(error)
     }
   };
 
   // ============ GET INVITATION BY ID ============
-  getInvitationById = async (req: AuthenticatedRequest, res: Response) => {
+  getInvitationById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
 
@@ -207,12 +167,23 @@ export class InvitationController {
 
       return sendSuccess(res, invitation, "Invitation retrieved successfully");
     } catch (error: any) {
-      return sendError(
-        res,
-        error.message || "Failed to get invitation",
-        error,
-        error.statusCode || 500,
-      );
+      next(error)
+    }
+  };
+  // ============ VALIDATE TOKEN (PUBLIC) ============
+  validateToken = async (req: any, res: Response, next: NextFunction) => {
+    try {
+      const { token } = req.params;
+
+      if (!token) {
+        return sendError(res, "Token is required", null, 400);
+      }
+
+      const result = await this.service.validateInvitationToken(token);
+
+      return sendSuccess(res, result, "Token validated successfully");
+    } catch (error: any) {
+      next(error)
     }
   };
 }

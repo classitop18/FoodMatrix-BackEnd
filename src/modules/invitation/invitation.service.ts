@@ -265,7 +265,7 @@ export class InvitationService {
     );
 
     // Resend email
-    const invitationLink = `${process.env.FRONTEND_URL || "http://localhost:3000"}/accept-invitation?token=${token}`;
+    const invitationLink = `${CONFIG.FRONTEND_BASE_URL || "http://localhost:3001"}/accept-invitation?token=${token}`;
 
     await this.emailService.sendInvitationEmail({
       to: invitation.email,
@@ -322,8 +322,41 @@ export class InvitationService {
     return invitation;
   }
 
-  // ============ CLEANUP EXPIRED INVITATIONS (Cron Job) ============
-  async cleanupExpiredInvitations() {
-    await this.repository.expireOldInvitations();
+  // ============ VALIDATE INVITATION TOKEN (PUBLIC) ============
+  async validateInvitationToken(token: string) {
+    const invitation = await this.repository.findByToken(token);
+
+    if (!invitation) {
+      throw Object.assign(new Error("Invitation not found"), {
+        statusCode: 404,
+      });
+    }
+
+    // Check if invitation is valid
+    if (invitation.status !== "pending") {
+      throw Object.assign(
+        new Error(`Invitation has already been ${invitation.status}`),
+        { statusCode: 400 },
+      );
+    }
+
+    // Check if expired
+    if (new Date() > new Date(invitation.expiresAt)) {
+      await this.repository.updateStatus(invitation.id, "expired");
+      throw Object.assign(new Error("Invitation has expired"), {
+        statusCode: 400,
+      });
+    }
+
+    // Check if user exists
+    const user = await this.userRepository.findByEmail(invitation.email);
+
+    return {
+      email: invitation.email,
+      exists: !!user,
+      invitationId: invitation.id,
+      accountId: invitation.accountId,
+      role: invitation.role,
+    };
   }
 }
