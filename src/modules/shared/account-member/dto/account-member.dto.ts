@@ -36,7 +36,10 @@ const accountSchema = z.object({
   longitude: z.string().optional(),
   placeId: z.string().optional(),
 
+  primaryAdminId: z.string().optional(),
+
   // Budget
+  currentAllocation: z.enum(["daily", "weekly", "monthly", "annual"]).optional(),
   weeklyBudget: z.string().or(z.number()),
   dailyBudget: z.string().or(z.number()).optional(),
   monthlyBudget: z.string().or(z.number()).optional(),

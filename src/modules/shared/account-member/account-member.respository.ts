@@ -57,6 +57,8 @@ export class AccountMemberRepository implements IAccountMemberRepository {
           longitude: payload.account.longitude,
           placeId: payload.account.placeId,
 
+          currentAllocation: payload.account.currentAllocation,
+
           weeklyBudget: payload.account.weeklyBudget,
           dailyBudget: payload.account.dailyBudget,
           monthlyBudget: payload.account.monthlyBudget,

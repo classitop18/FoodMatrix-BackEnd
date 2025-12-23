@@ -233,8 +233,8 @@ export const healthProfiles = pgTable("health_profiles", {
     .references(() => members.id),
 
   // Demographics & Physical Info
-  height: integer("height"), // in inches
-  weight: integer("weight"), // in pounds
+  height: decimal("height", { precision: 5, scale: 2 }), // in inches
+  weight: decimal("weight", { precision: 5, scale: 2 }), // in pounds
   activityLevel: activityLevelEnum("activity_level"),
 
   // Medical Conditions & Health Issues
@@ -256,7 +256,7 @@ export const healthProfiles = pgTable("health_profiles", {
   goals: healthGoalEnum("goals")
     .array()
     .default(sql`'{}'::health_goal[]`),
-  targetWeight: integer("target_weight"), // in pounds
+  targetWeight: decimal("target_weight", { precision: 5, scale: 2 }), // in pounds
 
   // Food Behavior & Lifestyle
   cookingSkill: cookingSkillEnum("cooking_skill"),

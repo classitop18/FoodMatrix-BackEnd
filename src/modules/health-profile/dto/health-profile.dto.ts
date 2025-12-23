@@ -12,8 +12,8 @@ import {
 } from "@/database/schemas/enums.js";
 import z from "zod";
 export const healthProfileSchema = z.object({
-  height: z.number().int().optional(),
-  weight: z.number().int().optional(),
+  height: z.number().optional(),
+  weight: z.number().optional(),
 
   activityLevel: z.string().optional(),
 
@@ -43,8 +43,8 @@ export const createHealthProfileSchema = z.object({
   memberId: z.string().uuid(),
 
   // Demographics & Physical Info
-  height: z.number().int().positive().optional(),
-  weight: z.number().int().positive().optional(),
+  height: z.number().positive().optional(),
+  weight: z.number().positive().optional(),
   activityLevel: z.enum(activityLevelEnum.enumValues).optional(),
 
   // Medical Conditions & Health Issues
@@ -59,7 +59,7 @@ export const createHealthProfileSchema = z.object({
 
   // Health & Nutrition Goals
   goals: z.array(z.enum(healthGoalEnum.enumValues)).optional(),
-  targetWeight: z.number().int().positive().optional(),
+  targetWeight: z.number().positive().optional(),
 
   // Food Behavior & Lifestyle
   cookingSkill: z.enum(cookingSkillEnum.enumValues).optional(),
@@ -157,8 +157,8 @@ export interface HealthProfileResponseDto {
 
 // src/modules/health-profiles/dto/health-assessment.dto.ts
 export const healthAssessmentSchema = z.object({
-  weight: z.number().int().positive(),
-  height: z.number().int().positive(),
+  weight: z.number().positive(),
+  height: z.number().positive(),
   activityLevel: z.enum(activityLevelEnum.enumValues),
   conditions: z.array(z.enum(healthConditionEnum.enumValues)),
   allergies: z.array(z.enum(allergyEnum.enumValues)),

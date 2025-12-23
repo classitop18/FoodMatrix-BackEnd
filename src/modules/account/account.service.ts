@@ -34,6 +34,11 @@ export class AccountService {
         accountType: data.accountType || "family",
         primaryAdminId: data.primaryAdminId,
 
+
+
+
+        currentAllocation: data.currentAllocation,
+
         dailyBudget: data.dailyBudget ? Number(data.dailyBudget) : undefined,
 
         weeklyBudget: Number(data.weeklyBudget),
