@@ -1,40 +1,70 @@
+<!-- Invitation Header -->
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
+  <tr>
+    <td align="center">
+      <div
+        style="width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #f3f0fd 0%, #ffffff 100%); box-shadow: 0 8px 16px rgba(118, 97, 211, 0.1); line-height: 64px; text-align: center; font-size: 32px;">
+        📨
+      </div>
+    </td>
+  </tr>
+</table>
+
+<!-- Title -->
 <h2
-  style="font-size: 24px; font-weight: 800; color: #1F2937; margin-bottom: 20px;"
->Join the team! 🤝</h2>
+  style="font-family: 'Manrope', sans-serif; font-size: 24px; font-weight: 800; color: #3d326d; margin: 0 0 16px 0; text-align: center;">
+  Join {{accountName}}
+</h2>
 
-<p style="font-size: 16px; color: #4B5563;">Hi {{inviteeName}},</p>
-
-<p style="font-size: 16px; color: #4B5563;">
-  <span class="highlight">{{inviterName}}</span>
-  has invited you to join the
-  <strong>{{accountName}}</strong>
-  account on
-  <strong>FoodMatrix</strong>.
+<!-- Personal Message -->
+<p
+  style="font-family: 'Manrope', sans-serif; font-size: 16px; color: #4b5563; margin: 0 0 32px 0; text-align: center; line-height: 1.6;">
+  Hi <strong style="color: #313131;">{{inviteeName}}</strong>,<br>
+  <strong style="color: #7661d3;">{{inviterName}}</strong> has invited you to join their household account on
+  FoodMatrix.
 </p>
 
+<!-- Feature Box -->
 <div
-  style="background-color: #F8F7FF; border-left: 4px solid #7661d3; padding: 20px; border-radius: 12px; margin: 30px 0;"
->
-  <p style="margin: 0; font-size: 15px; color: #374151;">
-    Collaborate on meal planning, health tracking, and smart budgeting with your
-    family or roommates in real-time.
+  style="padding: 24px; background-color: #f8f7ff; border-radius: 16px; border: 1px solid rgba(118, 97, 211, 0.1); margin-bottom: 32px;">
+  <p
+    style="margin: 0 0 16px 0; font-size: 14px; font-weight: 700; color: #3d326d; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">
+    Collaborate Together
   </p>
+
+  <table border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td width="33%" align="center" style="padding: 8px;">
+        <div style="font-size: 24px; margin-bottom: 8px;">📅</div>
+        <div style="font-size: 13px; color: #4b5563; font-weight: 600;">Meal Plans</div>
+      </td>
+      <td width="33%" align="center"
+        style="padding: 8px; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb;">
+        <div style="font-size: 24px; margin-bottom: 8px;">🛒</div>
+        <div style="font-size: 13px; color: #4b5563; font-weight: 600;">Groceries</div>
+      </td>
+      <td width="33%" align="center" style="padding: 8px;">
+        <div style="font-size: 24px; margin-bottom: 8px;">💰</div>
+        <div style="font-size: 13px; color: #4b5563; font-weight: 600;">Budget</div>
+      </td>
+    </tr>
+  </table>
 </div>
 
-<div style="text-align: center;">
-  <a href="{{acceptLink}}" class="button">Accept Invitation</a>
-</div>
+<!-- Main CTA -->
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 24px 0;">
+  <tr>
+    <td align="center">
+      <a href="{{acceptLink}}"
+        style="display: inline-block; background: linear-gradient(135deg, #7661d3 0%, #3d326d 100%); color: #ffffff; font-family: 'Manrope', sans-serif; font-size: 16px; font-weight: 700; text-decoration: none; padding: 18px 48px; border-radius: 14px; box-shadow: 0 10px 20px rgba(118, 97, 211, 0.25);">
+        Accept Invitation
+      </a>
+    </td>
+  </tr>
+</table>
 
+<!-- Expiry Warning -->
 <p
-  style="font-size: 14px; color: #9CA3AF; text-align: center; margin-top: 30px;"
->
-  This invitation will expire in
-  <span style="color: #4B5563; font-weight: 600;">7 days</span>.
-</p>
-
-<p
-  style="font-size: 15px; color: #4B5563; border-top: 1px solid #F3F4F6; padding-top: 30px; margin-top: 30px;"
->
-  Let's get started,<br />
-  <span class="highlight">The FoodMatrix Team</span>
+  style="text-align: center; font-size: 13px; color: #92400e; background-color: #fffbeb; padding: 8px 16px; border-radius: 20px; display: inline-block; margin: 0 auto;">
+  ⏰ Expires in 7 days
 </p>

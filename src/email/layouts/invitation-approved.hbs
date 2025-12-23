@@ -1,39 +1,87 @@
+<!-- Welcome Title -->
 <h2
-  style="font-size: 24px; font-weight: 800; color: #1F2937; margin-bottom: 20px;"
->Welcome to the family! 🎉</h2>
+  style="font-family: 'Manrope', sans-serif; font-size: 28px; font-weight: 800; color: #3d326d; margin: 0 0 16px 0; letter-spacing: -0.5px;">
+  Welcome to the Family! 🎉
+</h2>
 
-<p style="font-size: 16px; color: #4B5563;">Hello,</p>
-
-<p style="font-size: 16px; color: #4B5563;">
-  Great news! Your request to join the household account
-  <span class="highlight">"{{accountName}}"</span>
-  has been
-  <strong style="color: #7dab4f;">Approved</strong>
-  by the administrator.
+<!-- Intro Text -->
+<p style="font-family: 'Manrope', sans-serif; font-size: 16px; color: #4b5563; margin: 0 0 24px 0; line-height: 1.6;">
+  Your request to join <strong style="color: #3d326d;">{{accountName}}</strong> has been approved. You're now ready to
+  start collaborating!
 </p>
 
-<div
-  style="background-color: #F0FDF4; border-left: 4px solid #7dab4f; padding: 20px; border-radius: 12px; margin: 30px 0;"
->
-  <p style="margin: 0; font-size: 15px; color: #166534;">
-    <strong>Assigned Role:</strong>
-    Your access level has been set to
-    <strong>{{role}}</strong>.
-  </p>
-</div>
+<!-- Access Card -->
+<table border="0" cellpadding="0" cellspacing="0" width="100%"
+  style="margin-bottom: 32px; background-color: #f3f0fd; border-radius: 16px; overflow: hidden;">
+  <tr>
+    <td style="padding: 24px;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td width="40" style="vertical-align: top; padding-right: 16px;">
+            <div
+              style="width: 40px; height: 40px; background-color: #ffffff; border-radius: 10px; text-align: center; line-height: 40px; font-size: 20px;">
+              🛡️
+            </div>
+          </td>
+          <td>
+            <p
+              style="margin: 0 0 4px 0; font-size: 13px; font-weight: 600; color: #7661d3; text-transform: uppercase; letter-spacing: 0.5px;">
+              Assigned Role</p>
+            <p style="margin: 0; font-size: 18px; font-weight: 700; color: #3d326d; text-transform: capitalize;">
+              {{role}}</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
 
-<p style="font-size: 16px; color: #4B5563;">
-  You can now access all shared recipes, meal plans, and household data from
-  your dashboard.
+<!-- Features Grid -->
+<p style="font-family: 'Manrope', sans-serif; font-size: 15px; font-weight: 700; color: #313131; margin: 0 0 16px 0;">
+  🚀 Quick Start Guide:
 </p>
 
-<div style="text-align: center;">
-  <a href="{{appUrl}}/account" class="button">Go to Dashboard</a>
-</div>
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 32px;">
+  <tr>
+    <td style="padding-bottom: 12px;">
+      <table border="0" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="padding-right: 12px; font-size: 18px;">🥘</td>
+          <td style="font-size: 15px; color: #4b5563;">Explore shared meal plans</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding-bottom: 12px;">
+      <table border="0" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="padding-right: 12px; font-size: 18px;">🥗</td>
+          <td style="font-size: 15px; color: #4b5563;">Update your diet preferences</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding-bottom: 12px;">
+      <table border="0" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="padding-right: 12px; font-size: 18px;">🛒</td>
+          <td style="font-size: 15px; color: #4b5563;">Check the pantry inventory</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
 
-<p
-  style="font-size: 15px; color: #4B5563; border-top: 1px solid #F3F4F6; padding-top: 30px; margin-top: 30px;"
->
-  Enjoy your collaborative journey,<br />
-  <span class="highlight">The FoodMatrix Team</span>
-</p>
+<!-- CTA Button -->
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+  <tr>
+    <td align="center">
+      <a href="{{appUrl}}/account"
+        style="display: inline-block; background-color: #3d326d; color: #ffffff; font-family: 'Manrope', sans-serif; font-size: 16px; font-weight: 700; text-decoration: none; padding: 16px 32px; border-radius: 12px; box-shadow: 0 4px 12px rgba(61, 50, 109, 0.2);">
+        Go to Dashboard
+      </a>
+    </td>
+  </tr>
+</table>

@@ -1,42 +1,48 @@
+<!-- Header Icon -->
+<div style="margin-bottom: 24px; text-align: center;">
+  <span
+    style="display: inline-block; width: 56px; height: 56px; background-color: #f3f0fd; border-radius: 50%; text-align: center; line-height: 56px; font-size: 28px;">🔐</span>
+</div>
+
+<!-- Title -->
 <h2
-  style="font-size: 24px; font-weight: 800; color: #1F2937; margin-bottom: 20px;"
->Verification Code</h2>
+  style="font-family: 'Manrope', sans-serif; font-size: 24px; font-weight: 800; color: #3d326d; margin: 0 0 16px 0; text-align: center; letter-spacing: -0.5px;">
+  Security Verification
+</h2>
 
-<p style="font-size: 16px; color: #4B5563;">Hello,</p>
-
-<p style="font-size: 16px; color: #4B5563;">
-  Your security is important to us. Use the following code to complete your
-  verification process:
-</p>
-
-<div style="text-align: center; margin: 40px 0;">
-  <div
-    style="background-color: #F3F0FD; border: 2px dashed #7661d3; display: inline-block; padding: 20px 40px; border-radius: 16px;"
-  >
-    <span
-      style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #7661d3;"
-    >{{otp}}</span>
-  </div>
-</div>
-
-<p style="font-size: 14px; color: #9CA3AF; text-align: center;">
-  This code will expire in
-  <span style="color: #4B5563; font-weight: 600;">10 minutes</span>.
-</p>
-
-<div
-  style="background-color: #FFFBEB; border-radius: 12px; padding: 15px; margin-top: 30px;"
->
-  <p style="margin: 0; font-size: 13px; color: #92400E; line-height: 1.4;">
-    <strong>Security Tip:</strong>
-    Never share this code with anyone. FoodMatrix staff will never ask for your
-    password or verification code.
-  </p>
-</div>
-
+<!-- Content -->
 <p
-  style="font-size: 15px; color: #4B5563; border-top: 1px solid #F3F4F6; padding-top: 30px; margin-top: 30px;"
->
-  Stay secure,<br />
-  <span class="highlight">The FoodMatrix Security Team</span>
+  style="font-family: 'Manrope', sans-serif; font-size: 15px; color: #6b7280; margin: 0 0 32px 0; text-align: center; line-height: 1.6;">
+  Please use the following code to complete your verification.<br>This code will expire in <strong
+    style="color: #313131;">{{expiresMins}} minutes</strong>.
 </p>
+
+<!-- OTP Display -->
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 32px;">
+  <tr>
+    <td align="center">
+      <div
+        style="display: inline-block; padding: 24px 48px; background-color: #f8f7ff; border: 2px dashed #7661d3; border-radius: 16px;">
+        <span
+          style="font-family: 'Courier New', monospace; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #3d326d;">
+          {{otp}}
+        </span>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<!-- Security Warning -->
+<div style="padding: 16px; background-color: #fffbeb; border-radius: 12px; border-left: 4px solid #f59e0b;">
+  <table border="0" cellpadding="0" cellspacing="0">
+    <tr>
+      <td style="vertical-align: top; padding-right: 12px; font-size: 18px;">🛡️</td>
+      <td>
+        <p style="margin: 0; font-size: 13px; color: #92400e; line-height: 1.5;">
+          <strong>Security Tip:</strong> Never share this code with anyone. configuration staff will never ask for this
+          code.
+        </p>
+      </td>
+    </tr>
+  </table>
+</div>

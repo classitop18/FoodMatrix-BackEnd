@@ -102,7 +102,7 @@ export class AccountController {
 
   //         if (!account) {
   //             return res.status(404).json({
-  //                 success: false,
+  //                 success : false,
   //                 message: "Account not found",
   //             });
   //         }

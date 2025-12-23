@@ -14,18 +14,33 @@ import { emailQueue } from "./queues/email.queue.js";
 import { emailWorker } from "./queues/worker/email.worker.js";
 import cookieParser from "cookie-parser";
 import { initializePantryCron } from "./cron/pantry-alert.cron.js";
+import { config } from "dotenv";
 
+
+config(); // Load .env variables
 const app = express();
 const PORT = CONFIG.PORT || 3000;
 
 // Security middlewares
 app.use(helmet());
+
+const allowedOrigins = process.env.CORS_ORIGINS?.split(",") || [];
+
+
 app.use(
   cors({
-    origin: "http://localhost:3001", // frontend URL
+    origin: (origin, callback) => {
+    
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    credentials: true, // if you want to send cookies or auth headers
-  }),
+    credentials: true,
+  })
 );
 
 app.use(express.json());

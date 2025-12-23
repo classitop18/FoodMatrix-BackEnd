@@ -184,6 +184,8 @@ export class EmailService {
     to: string;
     invitationLink: string;
     expiresAt: Date;
+    inviterName?: string;
+    accountName?: string;
   }) {
     const expiryDate = new Date(data.expiresAt).toLocaleDateString("en-US", {
       month: "long",
@@ -193,10 +195,13 @@ export class EmailService {
 
     return this.sendMail(
       data.to,
-      "You're invited to join FoodMatrix",
-      "invitation",
+      `You're invited to join ${data.accountName || "FoodMatrix"}`,
+      "member-invitation",
       {
-        invitationLink: data.invitationLink,
+        inviteeName: data.to.split("@")[0], // Extract name from email if not provided
+        inviterName: data.inviterName || "Someone",
+        accountName: data.accountName || "a household account",
+        acceptLink: data.invitationLink,
         expiryDate,
       },
     );

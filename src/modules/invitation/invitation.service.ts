@@ -76,6 +76,13 @@ export class InvitationService {
       role: data.proposedRole || "member", // Default to member
     });
 
+    // Fetch account and inviter details for email
+    const { AccountRepository } = await import("../account/account.repository.js");
+    const accountRepo = new AccountRepository();
+    const account = await accountRepo.getAccountData({ id: data.accountId });
+
+    const inviter = await this.userRepository.findById(invitedBy);
+
     // Send invitation email
     const invitationLink = `${CONFIG.FRONTEND_BASE_URL || "http://localhost:3001"}/accept-invitation?token=${token}`;
 
@@ -83,6 +90,8 @@ export class InvitationService {
       to: data.email,
       invitationLink,
       expiresAt,
+      inviterName: inviter ? `${inviter.firstName} ${inviter.lastName}` : undefined,
+      accountName: account?.accountName || undefined,
     });
 
     return invitation;
@@ -264,6 +273,13 @@ export class InvitationService {
       expiresAt,
     );
 
+    // Fetch account and inviter details for email
+    const { AccountRepository } = await import("../account/account.repository.js");
+    const accountRepo = new AccountRepository();
+    const account = await accountRepo.getAccountData({ id: invitation.accountId });
+
+    const inviter = await this.userRepository.findById(invitation.invitedBy);
+
     // Resend email
     const invitationLink = `${CONFIG.FRONTEND_BASE_URL || "http://localhost:3001"}/accept-invitation?token=${token}`;
 
@@ -271,6 +287,8 @@ export class InvitationService {
       to: invitation.email,
       invitationLink,
       expiresAt,
+      inviterName: inviter ? `${inviter.firstName} ${inviter.lastName}` : undefined,
+      accountName: account?.accountName || undefined,
     });
 
     return updated;

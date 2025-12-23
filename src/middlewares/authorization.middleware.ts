@@ -173,7 +173,7 @@ export const requireRole = (
       });
 
       next();
-    } catch (error: any) {
+    } catch (error: any) { 
       logger.error("Authorization middleware error:", {
         error: error.message,
         stack: error.stack,
