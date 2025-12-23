@@ -27,10 +27,15 @@ app.use(helmet());
 const allowedOrigins = process.env.CORS_ORIGINS?.split(",") || [];
 
 
+logger.info("Allowed origins: ", allowedOrigins);
+
 app.use(
   cors({
+
     origin: (origin, callback) => {
-    
+      logger.info("Origin: ", origin);
+
+
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) {
         callback(null, true);

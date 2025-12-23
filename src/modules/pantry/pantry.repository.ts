@@ -14,7 +14,7 @@ export interface PantryPaginationParams {
     location?: string;
     sortBy?: 'createdAt' | 'expirationDate' | 'name';
     sortOrder?: 'asc' | 'desc';
-}
+}   
 
 // Update interface
 interface PantryItemsStorageInterface {
