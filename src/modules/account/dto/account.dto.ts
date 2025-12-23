@@ -11,11 +11,12 @@ export const createAccountSchema = z
     accountName: z
       .string()
       .min(2, "Account name must be at least 2 characters"),
+    description: z.string().optional(),
 
-    dailyBudget: z.coerce.number().positive(),
-    weeklyBudget: z.coerce.number().positive(),
-    monthlyBudget: z.coerce.number().positive(),
-    annualBudget: z.coerce.number().positive(),
+    dailyBudget: z.coerce.number().optional(),
+    weeklyBudget: z.coerce.number().optional(),
+    monthlyBudget: z.coerce.number().optional(),
+    annualBudget: z.coerce.number().optional(),
 
     currentAllocation: z.enum(["daily", "weekly", "monthly", "annual"]),
 
@@ -38,8 +39,8 @@ export const createAccountSchema = z
   .refine(
     (data) =>
       data.groceriesPercentage +
-        data.diningPercentage +
-        data.emergencyPercentage ===
+      data.diningPercentage +
+      data.emergencyPercentage ===
       100,
     {
       message: "Budget percentages must total 100%",

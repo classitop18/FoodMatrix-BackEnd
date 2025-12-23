@@ -9,7 +9,7 @@ export type AccountInsert = Omit<Account, "id" | "createdAt" | "accountNumber">;
 // ================== INTERFACE ==================
 export interface IAccountRepository {
   createAccount(data: AccountInsert): Promise<Account>;
-  getAccountById(id: string, primaryAdminId: string): Promise<Account | null>;
+  getAccountById(id: string, userId: string): Promise<Account | null>;
   getAccountsByPrimaryAdmin(userId: string): Promise<Account[]>;
   updateAccount(id: string, data: Partial<Account>): Promise<Account | null>;
   deleteAccount(id: string): Promise<void>;
@@ -69,14 +69,20 @@ export class AccountRepository implements IAccountRepository {
 
   async getAccountById(
     id: string,
-    primaryAdminId: string,
+    userId: string,
   ): Promise<Account | null> {
+    // First check if user is a member of this account
+    const isMember = await this.isUserMemberOfAccount(userId, id);
+
+    if (!isMember) {
+      throw new Error("User is not a member of this account");
+    }
+
+    // If user is a member, return the account details
     const result = await this.db
       .select()
       .from(accounts)
-      .where(
-        and(eq(accounts.id, id), eq(accounts.primaryAdminId, primaryAdminId)),
-      )
+      .where(eq(accounts.id, id))
       .limit(1);
 
     return result[0] ?? null;
@@ -164,7 +170,7 @@ export class AccountRepository implements IAccountRepository {
     const result = await this.db
       .select()
       .from(members)
-      .where(eq(members.userId, userId), eq(members.accountId, accountId))
+      .where(and(eq(members.userId, userId), eq(members.accountId, accountId)))
       .limit(1);
 
     return result.length > 0;

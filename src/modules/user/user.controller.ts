@@ -11,6 +11,7 @@ import { CONFIG } from "@/utils/env.config.js";
 import {
   addOtpVerificationEmailJob,
   addVerificationEmailJob,
+  addPasswordResetEmailJob,
 } from "@/queues/jobs/email.jobs.js";
 import { sendSuccess } from "@/utils/response.utils.js";
 import { OTP_PURPOSES } from "../user-otps/constant/user-otp.constant.js";
@@ -22,13 +23,14 @@ import {
   userFiltersSchema,
 } from "./schema/user.schema.js";
 import { ISessionService } from "../session/session.service.js";
+import { AuthenticatedRequest } from "@/middlewares/auth.middleware.js";
 
 export class UserController {
   constructor(
     private userService: IUserService,
     private sessionService: ISessionService,
     private otpService: IUserOtpService,
-  ) {}
+  ) { }
 
   createUser = async (
     req: Request,
@@ -156,7 +158,7 @@ export class UserController {
       // Calculate session expiration
       const expiresAt = new Date(
         Date.now() +
-          Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
+        Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
       );
 
       // Create session in database
@@ -207,7 +209,7 @@ export class UserController {
   };
 
   checkIsPropertytExist = async (
-    req: Request,
+    req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
   ) => {
@@ -258,11 +260,11 @@ export class UserController {
     }
   };
 
-  updateUser = async (req: Request, res: Response, next: NextFunction) => {
+  updateUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const id = req?.user?.id;
       const validated = updateUserSchema.parse(req.body);
-      const user = await this.userService.updateUser(id, validated);
+      const user = await this.userService.updateUser(id!, validated);
 
       res.status(200).json({
         success: true,
@@ -274,7 +276,7 @@ export class UserController {
     }
   };
 
-  deleteUser = async (req: Request, res: Response, next: NextFunction) => {
+  deleteUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
       await this.userService.deleteUser(id);
@@ -288,11 +290,12 @@ export class UserController {
     }
   };
 
-  changePassword = async (req: Request, res: Response, next: NextFunction) => {
+  changePassword = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const id = req.user?.id;
 
-      await this.userService.changePassword(id, req?.body);
+
+      await this.userService.changePassword(id!, req?.body);
 
       sendSuccess(res, {}, "Password changed successfully", 200);
     } catch (error) {
@@ -352,7 +355,7 @@ export class UserController {
       // Calculate session expiration
       const expiresAt = new Date(
         Date.now() +
-          Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
+        Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
       );
 
       // Create session in database
@@ -495,7 +498,7 @@ export class UserController {
 
       const expiresAt = new Date(
         Date.now() +
-          Number(CONFIG.PASSWORD_RESET_EXPIRATION_MINUTES) * 60 * 1000,
+        Number(CONFIG.PASSWORD_RESET_EXPIRATION_MINUTES) * 60 * 1000,
       );
       // Create session first
       const tempRefreshToken =
