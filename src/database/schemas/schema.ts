@@ -340,10 +340,10 @@ export const invitations = pgTable("invitations", {
     .notNull(),
 });
 
-
-
 export const ingredients = pgTable("ingredients", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: text("name").notNull().unique(),
   category: text("category").notNull(), // produce, dairy, meat, etc.
   averagePrice: varchar("average_price"),
@@ -351,32 +351,52 @@ export const ingredients = pgTable("ingredients", {
   defaultMeasurementUnit: text("default_measurement_unit"), // tbsp, cup, piece, etc.
   isPerishable: boolean("is_perishable").default(true),
   shelfLifeDays: integer("shelf_life_days"),
-  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
 });
 
 export const pantryItems = pgTable("pantry_items", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  accountId: varchar("account_id").notNull().references(() => accounts.id),
-  ingredientId: varchar("ingredient_id").notNull().references(() => ingredients.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id")
+    .notNull()
+    .references(() => accounts.id),
+  ingredientId: varchar("ingredient_id")
+    .notNull()
+    .references(() => ingredients.id),
   quantity: decimal("quantity", { precision: 8, scale: 3 }).notNull(),
   unit: text("unit").notNull(),
   location: text("location").notNull(),
   expirationDate: timestamp("expiration_date"),
   costPaid: decimal("cost_paid", { precision: 8, scale: 2 }),
   addedBy: varchar("added_by").references(() => members.id),
-  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
-  updatedAt: timestamp("updated_at").default(sql`now()`).notNull(),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+  updatedAt: timestamp("updated_at")
+    .default(sql`now()`)
+    .notNull(),
 });
 
 // Pantry Alerts - for expiry and low stock notifications
 export const pantryAlerts = pgTable("pantry_alerts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  accountId: varchar("account_id").notNull().references(() => accounts.id),
-  pantryItemId: varchar("pantry_item_id").references(() => pantryItems.id, { onDelete: "cascade" }),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id")
+    .notNull()
+    .references(() => accounts.id),
+  pantryItemId: varchar("pantry_item_id").references(() => pantryItems.id, {
+    onDelete: "cascade",
+  }),
   alertType: text("alert_type").notNull(), // 'expiring_soon', 'expired', 'low_stock'
   message: text("message").notNull(),
   severity: text("severity").notNull().default("warning"), // 'info', 'warning', 'critical'
   isDismissed: boolean("is_dismissed").default(false).notNull(),
   dismissedAt: timestamp("dismissed_at"),
-  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
 });

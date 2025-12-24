@@ -39,8 +39,8 @@ export const createAccountSchema = z
   .refine(
     (data) =>
       data.groceriesPercentage +
-      data.diningPercentage +
-      data.emergencyPercentage ===
+        data.diningPercentage +
+        data.emergencyPercentage ===
       100,
     {
       message: "Budget percentages must total 100%",

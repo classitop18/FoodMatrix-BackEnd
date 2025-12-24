@@ -16,7 +16,6 @@ import cookieParser from "cookie-parser";
 import { initializePantryCron } from "./cron/pantry-alert.cron.js";
 import { config } from "dotenv";
 
-
 config(); // Load .env variables
 const app = express();
 const PORT = CONFIG.PORT || 3000;
@@ -26,15 +25,12 @@ app.use(helmet());
 
 const allowedOrigins = process.env.CORS_ORIGINS?.split(",") || [];
 
-
 logger.info("Allowed origins: ", allowedOrigins);
 
 app.use(
   cors({
-
     origin: (origin, callback) => {
       logger.info("Origin: ", origin);
-
 
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) {
@@ -45,7 +41,7 @@ app.use(
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.json());

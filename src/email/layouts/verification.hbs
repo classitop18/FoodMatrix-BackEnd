@@ -1,28 +1,41 @@
 <!-- Header Icon -->
 <div style="margin-bottom: 24px;">
   <span
-    style="display: inline-block; width: 48px; height: 48px; background-color: #f3f0fd; border-radius: 12px; text-align: center; line-height: 48px; font-size: 24px;">✨</span>
+    style="display: inline-block; width: 48px; height: 48px; background-color: #f3f0fd; border-radius: 12px; text-align: center; line-height: 48px; font-size: 24px;"
+  >✨</span>
 </div>
 
 <!-- Title -->
 <h2
-  style="font-family: 'Manrope', sans-serif; font-size: 28px; font-weight: 800; color: #3d326d; margin: 0 0 16px 0; letter-spacing: -0.5px;">
+  style="font-family: 'Manrope', sans-serif; font-size: 28px; font-weight: 800; color: #3d326d; margin: 0 0 16px 0; letter-spacing: -0.5px;"
+>
   Verify Your Email
 </h2>
 
 <!-- Content -->
-<p style="font-family: 'Manrope', sans-serif; font-size: 16px; color: #4b5563; margin: 0 0 24px 0; line-height: 1.6;">
-  Hi <strong style="color: #313131;">{{name}}</strong>,<br><br>
-  Welcome to FoodMatrix! To ensure the security of your account and access all features, please verify your email
-  address.
+<p
+  style="font-family: 'Manrope', sans-serif; font-size: 16px; color: #4b5563; margin: 0 0 24px 0; line-height: 1.6;"
+>
+  Hi
+  <strong style="color: #313131;">{{name}}</strong>,<br /><br />
+  Welcome to FoodMatrix! To ensure the security of your account and access all
+  features, please verify your email address.
 </p>
 
 <!-- Verification Button -->
-<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 32px 0;">
+<table
+  border="0"
+  cellpadding="0"
+  cellspacing="0"
+  width="100%"
+  style="margin: 32px 0;"
+>
   <tr>
     <td align="center">
-      <a href="{{verifyUrl}}"
-        style="display: inline-block; background: linear-gradient(135deg, #7661d3 0%, #3d326d 100%); color: #ffffff; font-family: 'Manrope', sans-serif; font-size: 16px; font-weight: 700; text-decoration: none; padding: 18px 40px; border-radius: 14px; box-shadow: 0 10px 20px rgba(118, 97, 211, 0.25);">
+      <a
+        href="{{verifyUrl}}"
+        style="display: inline-block; background: linear-gradient(135deg, #7661d3 0%, #3d326d 100%); color: #ffffff; font-family: 'Manrope', sans-serif; font-size: 16px; font-weight: 700; text-decoration: none; padding: 18px 40px; border-radius: 14px; box-shadow: 0 10px 20px rgba(118, 97, 211, 0.25);"
+      >
         Verify My Account
       </a>
     </td>
@@ -31,11 +44,15 @@
 
 <!-- Link Fallback -->
 <div
-  style="margin-top: 32px; padding: 20px; background-color: #f9f9f9; border-radius: 12px; border: 1px solid #eeeeee;">
-  <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: #9ca3af; text-transform: uppercase;">Or paste
-    this link:</p>
-  <a href="{{verifyUrl}}"
-    style="display: block; font-size: 13px; color: #7661d3; text-decoration: none; word-break: break-all; line-height: 1.5;">
+  style="margin-top: 32px; padding: 20px; background-color: #f9f9f9; border-radius: 12px; border: 1px solid #eeeeee;"
+>
+  <p
+    style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: #9ca3af; text-transform: uppercase;"
+  >Or paste this link:</p>
+  <a
+    href="{{verifyUrl}}"
+    style="display: block; font-size: 13px; color: #7661d3; text-decoration: none; word-break: break-all; line-height: 1.5;"
+  >
     {{verifyUrl}}
   </a>
 </div>

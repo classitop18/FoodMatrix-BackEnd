@@ -67,10 +67,7 @@ export class AccountRepository implements IAccountRepository {
     return result[0] ?? null;
   }
 
-  async getAccountById(
-    id: string,
-    userId: string,
-  ): Promise<Account | null> {
+  async getAccountById(id: string, userId: string): Promise<Account | null> {
     // First check if user is a member of this account
     const isMember = await this.isUserMemberOfAccount(userId, id);
 

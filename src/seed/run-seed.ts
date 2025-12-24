@@ -12,66 +12,66 @@ import { eq } from "drizzle-orm";
  * 3. Update existing ingredients with new data (like defaultMeasurementUnit)
  */
 export async function seedIngredients() {
-    const db = getDb();
+  const db = getDb();
 
-    logger.info("🌱 Starting ingredients seed...");
+  logger.info("🌱 Starting ingredients seed...");
 
-    let inserted = 0;
-    let updated = 0;
-    let skipped = 0;
+  let inserted = 0;
+  let updated = 0;
+  let skipped = 0;
 
-    for (const ingredientData of ingredientsData) {
-        try {
-            // Check if ingredient exists
-            const existing = await db
-                .select()
-                .from(ingredients)
-                .where(eq(ingredients.name, ingredientData.name))
-                .limit(1);
+  for (const ingredientData of ingredientsData) {
+    try {
+      // Check if ingredient exists
+      const existing = await db
+        .select()
+        .from(ingredients)
+        .where(eq(ingredients.name, ingredientData.name))
+        .limit(1);
 
-            if (existing.length > 0) {
-                // Update existing ingredient with new fields (like defaultMeasurementUnit)
-                await db
-                    .update(ingredients)
-                    .set({
-                        category: ingredientData.category,
-                        averagePrice: ingredientData.averagePrice,
-                        averageUnit: ingredientData.averageUnit,
-                        defaultMeasurementUnit: ingredientData.defaultMeasurementUnit,
-                        isPerishable: ingredientData.isPerishable,
-                        shelfLifeDays: ingredientData.shelfLifeDays,
-                    })
-                    .where(eq(ingredients.name, ingredientData.name));
-                updated++;
-            } else {
-                // Insert new ingredient
-                await db.insert(ingredients).values({
-                    name: ingredientData.name,
-                    category: ingredientData.category,
-                    averagePrice: ingredientData.averagePrice,
-                    averageUnit: ingredientData.averageUnit,
-                    defaultMeasurementUnit: ingredientData.defaultMeasurementUnit,
-                    isPerishable: ingredientData.isPerishable,
-                    shelfLifeDays: ingredientData.shelfLifeDays,
-                });
-                inserted++;
-            }
-        } catch (error: any) {
-            // Handle duplicate key errors gracefully
-            if (error.code === '23505') {
-                skipped++;
-            } else {
-                logger.error(`Error seeding ingredient ${ingredientData.name}:`, error);
-            }
-        }
+      if (existing.length > 0) {
+        // Update existing ingredient with new fields (like defaultMeasurementUnit)
+        await db
+          .update(ingredients)
+          .set({
+            category: ingredientData.category,
+            averagePrice: ingredientData.averagePrice,
+            averageUnit: ingredientData.averageUnit,
+            defaultMeasurementUnit: ingredientData.defaultMeasurementUnit,
+            isPerishable: ingredientData.isPerishable,
+            shelfLifeDays: ingredientData.shelfLifeDays,
+          })
+          .where(eq(ingredients.name, ingredientData.name));
+        updated++;
+      } else {
+        // Insert new ingredient
+        await db.insert(ingredients).values({
+          name: ingredientData.name,
+          category: ingredientData.category,
+          averagePrice: ingredientData.averagePrice,
+          averageUnit: ingredientData.averageUnit,
+          defaultMeasurementUnit: ingredientData.defaultMeasurementUnit,
+          isPerishable: ingredientData.isPerishable,
+          shelfLifeDays: ingredientData.shelfLifeDays,
+        });
+        inserted++;
+      }
+    } catch (error: any) {
+      // Handle duplicate key errors gracefully
+      if (error.code === "23505") {
+        skipped++;
+      } else {
+        logger.error(`Error seeding ingredient ${ingredientData.name}:`, error);
+      }
     }
+  }
 
-    logger.info(`✅ Ingredients seed completed!`);
-    logger.info(`   📊 Inserted: ${inserted}`);
-    logger.info(`   🔄 Updated: ${updated}`);
-    logger.info(`   ⏭️  Skipped: ${skipped}`);
+  logger.info(`✅ Ingredients seed completed!`);
+  logger.info(`   📊 Inserted: ${inserted}`);
+  logger.info(`   🔄 Updated: ${updated}`);
+  logger.info(`   ⏭️  Skipped: ${skipped}`);
 
-    return { inserted, updated, skipped };
+  return { inserted, updated, skipped };
 }
 
 // Run if called directly

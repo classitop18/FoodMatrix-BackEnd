@@ -39,7 +39,9 @@ const accountSchema = z.object({
   primaryAdminId: z.string().optional(),
 
   // Budget
-  currentAllocation: z.enum(["daily", "weekly", "monthly", "annual"]).optional(),
+  currentAllocation: z
+    .enum(["daily", "weekly", "monthly", "annual"])
+    .optional(),
   weeklyBudget: z.string().or(z.number()),
   dailyBudget: z.string().or(z.number()).optional(),
   monthlyBudget: z.string().or(z.number()).optional(),

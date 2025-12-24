@@ -30,7 +30,7 @@ export class UserController {
     private userService: IUserService,
     private sessionService: ISessionService,
     private otpService: IUserOtpService,
-  ) { }
+  ) {}
 
   createUser = async (
     req: Request,
@@ -158,7 +158,7 @@ export class UserController {
       // Calculate session expiration
       const expiresAt = new Date(
         Date.now() +
-        Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
+          Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
       );
 
       // Create session in database
@@ -260,7 +260,11 @@ export class UserController {
     }
   };
 
-  updateUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  updateUser = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const id = req?.user?.id;
       const validated = updateUserSchema.parse(req.body);
@@ -276,7 +280,11 @@ export class UserController {
     }
   };
 
-  deleteUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  deleteUser = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const { id } = req.params;
       await this.userService.deleteUser(id);
@@ -290,10 +298,13 @@ export class UserController {
     }
   };
 
-  changePassword = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  changePassword = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const id = req.user?.id;
-
 
       await this.userService.changePassword(id!, req?.body);
 
@@ -355,7 +366,7 @@ export class UserController {
       // Calculate session expiration
       const expiresAt = new Date(
         Date.now() +
-        Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
+          Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
       );
 
       // Create session in database
@@ -409,15 +420,41 @@ export class UserController {
 
   verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      console.log("aya mai yha pr");
       const token = req.query?.token;
-      if (typeof token !== "string") {
-        throw new Error("Invalid or missing token");
+      const timestamp = Date.now(); // Unique timestamp for this verification attempt
+
+      if (typeof token !== "string" || !token) {
+        return res.redirect(
+          `${CONFIG.FRONTEND_BASE_URL}/login?verified=false&error=${encodeURIComponent("Invalid verification link")}&t=${timestamp}`,
+        );
       }
+
+      // Verify user email using token
       const user = await this.userService.verifyUserEmailUsingToken({ token });
-      res.redirect(CONFIG.FRONTEND_BASE_URL + "/login");
-    } catch (error) {
-      next(error);
+
+      // Success - redirect with success flag and timestamp
+      return res.redirect(
+        `${CONFIG.FRONTEND_BASE_URL}/login?verified=true&t=${timestamp}`,
+      );
+    } catch (error: any) {
+      const timestamp = Date.now();
+      // Handle specific error cases
+      let errorMessage = "Verification failed. Please try again.";
+
+      if (
+        error.message?.includes("expired") ||
+        error.message?.includes("invalid")
+      ) {
+        errorMessage =
+          "Verification link is invalid or expired. Please request a new one.";
+      } else if (error.message?.includes("already verified")) {
+        errorMessage = "Your email is already verified. Please log in.";
+      }
+
+      // Redirect to login with error and timestamp
+      return res.redirect(
+        `${CONFIG.FRONTEND_BASE_URL}/login?verified=false&error=${encodeURIComponent(errorMessage)}&t=${timestamp}`,
+      );
     }
   };
 
@@ -498,7 +535,7 @@ export class UserController {
 
       const expiresAt = new Date(
         Date.now() +
-        Number(CONFIG.PASSWORD_RESET_EXPIRATION_MINUTES) * 60 * 1000,
+          Number(CONFIG.PASSWORD_RESET_EXPIRATION_MINUTES) * 60 * 1000,
       );
       // Create session first
       const tempRefreshToken =

@@ -1,11 +1,11 @@
 // Pantry Constants
 
 export const STORAGE_LOCATIONS = [
-    "refrigerator",
-    "freezer",
-    "pantry",
-    "cabinet",
-    "countertop",
+  "refrigerator",
+  "freezer",
+  "pantry",
+  "cabinet",
+  "countertop",
 ] as const;
 
 export const ALERT_TYPES = ["expiring_soon", "expired", "low_stock"] as const;

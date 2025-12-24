@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { accounts, ingredients, members, pantryItems, sessions, userOtps, users } from "./schema.js";
+import {
+  accounts,
+  ingredients,
+  members,
+  pantryItems,
+  sessions,
+  userOtps,
+  users,
+} from "./schema.js";
 
 export const usersRelations = relations(users, ({ many, one }) => ({
   accounts: many(accounts),
@@ -46,11 +54,9 @@ export const membersRelations = relations(members, ({ one }) => ({
   }),
 }));
 
-
 export const ingredientsRelations = relations(ingredients, ({ many }) => ({
   pantryItems: many(pantryItems),
 }));
-
 
 export const pantryItemsRelations = relations(pantryItems, ({ one }) => ({
   account: one(accounts, {

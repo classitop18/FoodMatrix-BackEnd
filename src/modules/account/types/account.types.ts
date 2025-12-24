@@ -1,6 +1,7 @@
 export interface AccountCreationInput {
   accountType: "family" | "individual";
   accountName: string;
+  description?: string;
   dailyBudget?: number | string;
   weeklyBudget: number | string;
   monthlyBudget?: number | string;

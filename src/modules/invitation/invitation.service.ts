@@ -77,7 +77,8 @@ export class InvitationService {
     });
 
     // Fetch account and inviter details for email
-    const { AccountRepository } = await import("../account/account.repository.js");
+    const { AccountRepository } =
+      await import("../account/account.repository.js");
     const accountRepo = new AccountRepository();
     const account = await accountRepo.getAccountData({ id: data.accountId });
 
@@ -90,7 +91,9 @@ export class InvitationService {
       to: data.email,
       invitationLink,
       expiresAt,
-      inviterName: inviter ? `${inviter.firstName} ${inviter.lastName}` : undefined,
+      inviterName: inviter
+        ? `${inviter.firstName} ${inviter.lastName}`
+        : undefined,
       accountName: account?.accountName || undefined,
     });
 
@@ -274,9 +277,12 @@ export class InvitationService {
     );
 
     // Fetch account and inviter details for email
-    const { AccountRepository } = await import("../account/account.repository.js");
+    const { AccountRepository } =
+      await import("../account/account.repository.js");
     const accountRepo = new AccountRepository();
-    const account = await accountRepo.getAccountData({ id: invitation.accountId });
+    const account = await accountRepo.getAccountData({
+      id: invitation.accountId,
+    });
 
     const inviter = await this.userRepository.findById(invitation.invitedBy);
 
@@ -287,7 +293,9 @@ export class InvitationService {
       to: invitation.email,
       invitationLink,
       expiresAt,
-      inviterName: inviter ? `${inviter.firstName} ${inviter.lastName}` : undefined,
+      inviterName: inviter
+        ? `${inviter.firstName} ${inviter.lastName}`
+        : undefined,
       accountName: account?.accountName || undefined,
     });
 

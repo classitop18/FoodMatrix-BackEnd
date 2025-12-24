@@ -9,7 +9,6 @@ import invitationRoutes from "./invitation.routes.js";
 import pantryRoutes from "./pantry.routes.js";
 import ingredientRoutes from "./ingredient.routes.js";
 
-
 const appRouter = Router();
 
 // User management routes (legacy - consider migrating to auth routes)
