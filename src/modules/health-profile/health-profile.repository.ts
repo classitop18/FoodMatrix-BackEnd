@@ -53,7 +53,7 @@ export class HealthProfileRepository implements IHealthProfileRepository {
         .returning();
 
       return this.mapToDto(profile);
-    } catch (error) {}
+    } catch (error) { }
   }
 
   async findById(id: string): Promise<HealthProfileResponseDto | null> {
@@ -147,18 +147,25 @@ export class HealthProfileRepository implements IHealthProfileRepository {
   ): Promise<HealthProfileResponseDto> {
     const existing = await this.findById(id);
     if (!existing) {
+      throw new Error("Health profile not found");
     }
 
-    const [updated] = await this._db
-      .update(healthProfiles)
-      .set({
-        ...data,
-        updatedAt: sql`now()`,
-      })
-      .where(eq(healthProfiles.id, id))
-      .returning();
+    try {
+      const [updated] = await this.db
+        .update(healthProfiles)
+        .set({
+          ...data,
+          updatedAt: sql`now()`,
+        })
+        .where(eq(healthProfiles.id, id))
+        .returning();
 
-    return this.mapToDto(updated);
+      return this.mapToDto(updated);
+    } catch (error: any) {
+      console.error("Database update error:", error);
+      console.error("Update data:", JSON.stringify(data, null, 2));
+      throw error;
+    }
   }
 
   async delete(id: string): Promise<void> {

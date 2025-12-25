@@ -103,6 +103,7 @@ export const cookingSkillEnum = pgEnum("cooking_skill", [
   "advanced",
 ]);
 export const cookingFrequencyEnum = pgEnum("cooking_frequency", [
+  "rarely",
   "mostly_home",
   "mixed",
   "mostly_dining_out",

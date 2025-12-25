@@ -11,12 +11,17 @@ import {
   IHealthProfileRepository,
   IHealthProfileService,
 } from "./types/health-profile.types.js";
+import { log } from "console";
 
 export class HealthProfileService {
   constructor(
     private readonly repository: IHealthProfileRepository,
     private readonly healthCalculator: IHealthCalculator,
-  ) {}
+  ) { }
+
+  async verifyMemberAccess(memberId: string, userId: string) {
+
+  }
 
   async createHealthProfile(
     data: CreateHealthProfileDto,
@@ -27,7 +32,7 @@ export class HealthProfileService {
       const bmi = this.healthCalculator.calculateBMI(data.weight, data.height);
       calculatedData = {
         ...calculatedData,
-        bmi: bmi.toFixed(1),
+        bmi: parseFloat(bmi.toFixed(1)),
       } as any;
     }
 
@@ -61,37 +66,39 @@ export class HealthProfileService {
   //     return profile;
   // }
 
-  // async updateHealthProfile(
-  //     id: string,
-  //     data: UpdateHealthProfileDto,
-  //     userId: string
-  // ): Promise<HealthProfileResponseDto> {
-  //     const existing = await this.repository.findById(id);
-  //     if (!existing) {
+  async updateHealthProfile(
+    id: string,
+    data: UpdateHealthProfileDto,
+    userId: string
+  ): Promise<HealthProfileResponseDto> {
+    const existing = await this.repository.findByMemberId(id);
 
-  //     }
+    if (!existing) {
+      throw new Error("Health profile not found");
+    }
 
-  //     await this.verifyMemberAccess(existing.memberId, userId);
+    // await this.verifyMemberAccess(existing.memberId, userId);
 
-  //     // Recalculate BMI if height or weight changed
-  //     let updateData = { ...data };
-  //     const newWeight = data.weight ?? existing.weight;
-  //     const newHeight = data.height ?? existing.height;
+    // Recalculate BMI if height or weight changed
+    let updateData = { ...data };
 
-  //     if (newWeight && newHeight && (data.weight || data.height)) {
-  //         const bmi = this.healthCalculator.calculateBMI(newWeight, newHeight);
-  //         updateData = {
-  //             ...updateData,
-  //             bmi: bmi.toFixed(1),
-  //         } as any;
-  //     }
+    const newWeight = data.weight ?? existing.weight;
+    const newHeight = data.height ?? existing.height;
 
-  //     const updated = await this.repository.update(id, updateData);
+    if (newWeight && newHeight && (data.weight || data.height)) {
+      const bmi = this.healthCalculator.calculateBMI(newWeight, newHeight);
+      updateData = {
+        ...updateData,
+        bmi: parseFloat(bmi.toFixed(1)),
+      } as any;
+    }
 
-  //     // Recalculate health score
-  //     const healthScore = this.healthCalculator.calculateHealthScore(updated);
-  //     return this.repository.update(id, { healthScore });
-  // }
+    const updated = await this.repository.update(existing.id, updateData);
+
+    // Recalculate health score
+    const healthScore = this.healthCalculator.calculateHealthScore(updated);
+    return this.repository.update(existing.id, { healthScore } as any);
+  }
 
   // async deleteHealthProfile(id: string, userId: string): Promise<void> {
   //     const profile = await this.repository.findById(id);
