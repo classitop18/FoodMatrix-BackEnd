@@ -9,8 +9,6 @@ export const accountTypeEnum = pgEnum("account_type", [
 export const rolesEnum = pgEnum("role", [
   "admin",
   "super_admin",
-  "viewer",
-  "creator",
   "member",
 ]);
 export const sexEnum = pgEnum("sex", ["male", "female", "other"]);
@@ -25,6 +23,7 @@ export const foodCategoryEnum = pgEnum("food_category", [
   "dining_out",
   "food_emergency",
 ]);
+
 export const budgetAllocationEnum = pgEnum("budget_allocation", [
   "daily",
   "weekly",
@@ -145,4 +144,11 @@ export const fulfillmentMethodEnum = pgEnum("fulfillment_method", [
 export const guestCategoryEnum = pgEnum("guest_category", [
   "family_member",
   "party_guest",
+]);
+
+export const mealTypeEnum = pgEnum("meal_type", [
+  "breakfast",
+  "lunch",
+  "dinner",
+  "snack",
 ]);

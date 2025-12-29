@@ -17,11 +17,9 @@ export class HealthProfileService {
   constructor(
     private readonly repository: IHealthProfileRepository,
     private readonly healthCalculator: IHealthCalculator,
-  ) { }
+  ) {}
 
-  async verifyMemberAccess(memberId: string, userId: string) {
-
-  }
+  async verifyMemberAccess(memberId: string, userId: string) {}
 
   async createHealthProfile(
     data: CreateHealthProfileDto,
@@ -69,7 +67,7 @@ export class HealthProfileService {
   async updateHealthProfile(
     id: string,
     data: UpdateHealthProfileDto,
-    userId: string
+    userId: string,
   ): Promise<HealthProfileResponseDto> {
     const existing = await this.repository.findByMemberId(id);
 

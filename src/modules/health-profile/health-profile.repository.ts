@@ -53,7 +53,7 @@ export class HealthProfileRepository implements IHealthProfileRepository {
         .returning();
 
       return this.mapToDto(profile);
-    } catch (error) { }
+    } catch (error) {}
   }
 
   async findById(id: string): Promise<HealthProfileResponseDto | null> {

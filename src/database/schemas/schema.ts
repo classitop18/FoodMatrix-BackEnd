@@ -23,6 +23,7 @@ import {
   dietaryRestrictionEnum,
   healthConditionEnum,
   healthGoalEnum,
+  mealTypeEnum,
   organicPreferenceEnum,
   privacyLevelEnum,
   rolesEnum,
@@ -213,7 +214,7 @@ export const members = pgTable("members", {
     onDelete: "set null",
   }), // null => internal member
 
-  role: rolesEnum("role").notNull().default("viewer"), // owner, super_admin, member, internal
+  role: rolesEnum("role").notNull().default("member"), // super_admin(owner) , admin , member
 
   name: text("name"), // For internal members only
   age: integer("age"),
@@ -396,6 +397,27 @@ export const pantryAlerts = pgTable("pantry_alerts", {
   severity: text("severity").notNull().default("warning"), // 'info', 'warning', 'critical'
   isDismissed: boolean("is_dismissed").default(false).notNull(),
   dismissedAt: timestamp("dismissed_at"),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
+// Meal plans
+export const mealPlan = pgTable("meal_plan", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id")
+    .notNull()
+    .references(() => accounts.id),
+  createdBy: varchar("created_by")
+    .notNull()
+    .references(() => members.id),
+  mealDate: timestamp("meal_date").notNull(),
+  mealType: mealTypeEnum("meal_type").notNull(), // breakfast, lunch, dinner, snack
+  // recipeId: varchar("recipe_id").notNull().references(() => recipes.id),
+  servings: integer("servings").default(1).notNull(),
+  status: varchar("status").default("planned"), // planned, cooked, skipped
   createdAt: timestamp("created_at")
     .default(sql`now()`)
     .notNull(),

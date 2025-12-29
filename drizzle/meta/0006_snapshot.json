@@ -1,6 +1,6 @@
 {
-  "id": "558df879-6a02-4f2b-887c-82331ba6fe87",
-  "prevId": "e6bbd473-13b8-482d-aa5e-afd61b4e23a7",
+  "id": "5cdabcae-06ef-4963-bc67-a86e2cf5114e",
+  "prevId": "558df879-6a02-4f2b-887c-82331ba6fe87",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -231,8 +231,12 @@
           "name": "accounts_primary_admin_id_users_id_fk",
           "tableFrom": "accounts",
           "tableTo": "users",
-          "columnsFrom": ["primary_admin_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "primary_admin_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -242,7 +246,9 @@
         "accounts_account_number_unique": {
           "name": "accounts_account_number_unique",
           "nullsNotDistinct": false,
-          "columns": ["account_number"]
+          "columns": [
+            "account_number"
+          ]
         }
       },
       "policies": {},
@@ -509,8 +515,12 @@
           "name": "health_profiles_member_id_members_id_fk",
           "tableFrom": "health_profiles",
           "tableTo": "members",
-          "columnsFrom": ["member_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "member_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -590,7 +600,9 @@
         "ingredients_name_unique": {
           "name": "ingredients_name_unique",
           "nullsNotDistinct": false,
-          "columns": ["name"]
+          "columns": [
+            "name"
+          ]
         }
       },
       "policies": {},
@@ -683,8 +695,12 @@
           "name": "invitations_account_id_accounts_id_fk",
           "tableFrom": "invitations",
           "tableTo": "accounts",
-          "columnsFrom": ["account_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -692,8 +708,12 @@
           "name": "invitations_invited_by_users_id_fk",
           "tableFrom": "invitations",
           "tableTo": "users",
-          "columnsFrom": ["invited_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "invited_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -703,9 +723,104 @@
         "invitations_token_unique": {
           "name": "invitations_token_unique",
           "nullsNotDistinct": false,
-          "columns": ["token"]
+          "columns": [
+            "token"
+          ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.meal_plan": {
+      "name": "meal_plan",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "meal_date": {
+          "name": "meal_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "meal_type": {
+          "name": "meal_type",
+          "type": "meal_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "servings": {
+          "name": "servings",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'planned'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "meal_plan_account_id_accounts_id_fk": {
+          "name": "meal_plan_account_id_accounts_id_fk",
+          "tableFrom": "meal_plan",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "meal_plan_created_by_members_id_fk": {
+          "name": "meal_plan_created_by_members_id_fk",
+          "tableFrom": "meal_plan",
+          "tableTo": "members",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -739,7 +854,7 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "default": "'viewer'"
+          "default": "'member'"
         },
         "name": {
           "name": "name",
@@ -774,8 +889,12 @@
           "name": "members_account_id_accounts_id_fk",
           "tableFrom": "members",
           "tableTo": "accounts",
-          "columnsFrom": ["account_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -783,8 +902,12 @@
           "name": "members_user_id_users_id_fk",
           "tableFrom": "members",
           "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -864,8 +987,12 @@
           "name": "pantry_alerts_account_id_accounts_id_fk",
           "tableFrom": "pantry_alerts",
           "tableTo": "accounts",
-          "columnsFrom": ["account_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -873,8 +1000,12 @@
           "name": "pantry_alerts_pantry_item_id_pantry_items_id_fk",
           "tableFrom": "pantry_alerts",
           "tableTo": "pantry_items",
-          "columnsFrom": ["pantry_item_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "pantry_item_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -965,8 +1096,12 @@
           "name": "pantry_items_account_id_accounts_id_fk",
           "tableFrom": "pantry_items",
           "tableTo": "accounts",
-          "columnsFrom": ["account_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -974,8 +1109,12 @@
           "name": "pantry_items_ingredient_id_ingredients_id_fk",
           "tableFrom": "pantry_items",
           "tableTo": "ingredients",
-          "columnsFrom": ["ingredient_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "ingredient_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -983,8 +1122,12 @@
           "name": "pantry_items_added_by_members_id_fk",
           "tableFrom": "pantry_items",
           "tableTo": "members",
-          "columnsFrom": ["added_by"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "added_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1064,8 +1207,12 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1144,8 +1291,12 @@
           "name": "user_otps_user_id_users_id_fk",
           "tableFrom": "user_otps",
           "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1323,12 +1474,16 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": ["email"]
+          "columns": [
+            "email"
+          ]
         },
         "users_username_unique": {
           "name": "users_username_unique",
           "nullsNotDistinct": false,
-          "columns": ["username"]
+          "columns": [
+            "username"
+          ]
         }
       },
       "policies": {},
@@ -1340,42 +1495,79 @@
     "public.account_type": {
       "name": "account_type",
       "schema": "public",
-      "values": ["individual", "family", "group"]
+      "values": [
+        "individual",
+        "family",
+        "group"
+      ]
     },
     "public.activity_level": {
       "name": "activity_level",
       "schema": "public",
-      "values": ["sedentary", "moderate", "active", "very_active"]
+      "values": [
+        "sedentary",
+        "moderate",
+        "active",
+        "very_active"
+      ]
     },
     "public.allergy": {
       "name": "allergy",
       "schema": "public",
-      "values": ["nuts", "dairy", "gluten", "shellfish", "soy", "eggs"]
+      "values": [
+        "nuts",
+        "dairy",
+        "gluten",
+        "shellfish",
+        "soy",
+        "eggs"
+      ]
     },
     "public.budget_allocation": {
       "name": "budget_allocation",
       "schema": "public",
-      "values": ["daily", "weekly", "monthly", "annual"]
+      "values": [
+        "daily",
+        "weekly",
+        "monthly",
+        "annual"
+      ]
     },
     "public.budget_flexibility": {
       "name": "budget_flexibility",
       "schema": "public",
-      "values": ["strict", "moderate", "flexible"]
+      "values": [
+        "strict",
+        "moderate",
+        "flexible"
+      ]
     },
     "public.budget_source": {
       "name": "budget_source",
       "schema": "public",
-      "values": ["separate", "merged"]
+      "values": [
+        "separate",
+        "merged"
+      ]
     },
     "public.cooking_frequency": {
       "name": "cooking_frequency",
       "schema": "public",
-      "values": ["rarely", "mostly_home", "mixed", "mostly_dining_out"]
+      "values": [
+        "rarely",
+        "mostly_home",
+        "mixed",
+        "mostly_dining_out"
+      ]
     },
     "public.cooking_skill": {
       "name": "cooking_skill",
       "schema": "public",
-      "values": ["beginner", "moderate", "advanced"]
+      "values": [
+        "beginner",
+        "moderate",
+        "advanced"
+      ]
     },
     "public.dietary_restriction": {
       "name": "dietary_restriction",
@@ -1409,17 +1601,29 @@
     "public.food_category": {
       "name": "food_category",
       "schema": "public",
-      "values": ["groceries", "dining_out", "food_emergency"]
+      "values": [
+        "groceries",
+        "dining_out",
+        "food_emergency"
+      ]
     },
     "public.fulfillment_method": {
       "name": "fulfillment_method",
       "schema": "public",
-      "values": ["cook", "catering", "group_dining", "potluck_coordination"]
+      "values": [
+        "cook",
+        "catering",
+        "group_dining",
+        "potluck_coordination"
+      ]
     },
     "public.guest_category": {
       "name": "guest_category",
       "schema": "public",
-      "values": ["family_member", "party_guest"]
+      "values": [
+        "family_member",
+        "party_guest"
+      ]
     },
     "public.health_condition": {
       "name": "health_condition",
@@ -1458,37 +1662,77 @@
     "public.item_category": {
       "name": "item_category",
       "schema": "public",
-      "values": ["food", "non_food", "uncertain"]
+      "values": [
+        "food",
+        "non_food",
+        "uncertain"
+      ]
+    },
+    "public.meal_type": {
+      "name": "meal_type",
+      "schema": "public",
+      "values": [
+        "breakfast",
+        "lunch",
+        "dinner",
+        "snack"
+      ]
     },
     "public.organic_preference": {
       "name": "organic_preference",
       "schema": "public",
-      "values": ["standard_only", "prefer_when_budget_allows", "organic_only"]
+      "values": [
+        "standard_only",
+        "prefer_when_budget_allows",
+        "organic_only"
+      ]
     },
     "public.privacy_level": {
       "name": "privacy_level",
       "schema": "public",
-      "values": ["private", "admin_only", "shared"]
+      "values": [
+        "private",
+        "admin_only",
+        "shared"
+      ]
     },
     "public.receipt_status": {
       "name": "receipt_status",
       "schema": "public",
-      "values": ["processing", "completed", "failed", "needs_review"]
+      "values": [
+        "processing",
+        "completed",
+        "failed",
+        "needs_review"
+      ]
     },
     "public.role": {
       "name": "role",
       "schema": "public",
-      "values": ["admin", "super_admin", "viewer", "creator", "member"]
+      "values": [
+        "admin",
+        "super_admin",
+        "member"
+      ]
     },
     "public.sex": {
       "name": "sex",
       "schema": "public",
-      "values": ["male", "female", "other"]
+      "values": [
+        "male",
+        "female",
+        "other"
+      ]
     },
     "public.transaction_category": {
       "name": "transaction_category",
       "schema": "public",
-      "values": ["groceries", "dining_out", "food_emergency", "non_food"]
+      "values": [
+        "groceries",
+        "dining_out",
+        "food_emergency",
+        "non_food"
+      ]
     }
   },
   "schemas": {},

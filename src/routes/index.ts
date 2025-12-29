@@ -8,6 +8,7 @@ import healthProfileRoutes from "./health-profile.routes.js";
 import invitationRoutes from "./invitation.routes.js";
 import pantryRoutes from "./pantry.routes.js";
 import ingredientRoutes from "./ingredient.routes.js";
+import mealPlanRoutes from "./meal-plan.routes.js";
 
 const appRouter = Router();
 
@@ -20,5 +21,6 @@ appRouter.use("/health-profile", healthProfileRoutes);
 appRouter.use("/invitations", invitationRoutes);
 appRouter.use("/pantry", pantryRoutes);
 appRouter.use("/ingredients", ingredientRoutes);
+appRouter.use("/meal-plans", mealPlanRoutes);
 
 export default appRouter;

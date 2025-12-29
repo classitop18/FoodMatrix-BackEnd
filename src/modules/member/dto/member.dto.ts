@@ -2,11 +2,9 @@ import { z } from "zod";
 
 // ============ Enums ============
 export const MemberRole = z.enum([
-  "owner",
+  "admin",
   "super_admin",
   "member",
-  "viewer",
-  "internal",
 ]);
 export const Sex = z.enum(["male", "female", "other"]);
 
@@ -15,7 +13,7 @@ export const createMemberSchema = z
   .object({
     accountId: z.string().uuid("Invalid account ID"),
     userId: z.string().uuid("Invalid user ID").optional().nullable(),
-    role: MemberRole.default("viewer"),
+    role: MemberRole.default("member"),
     name: z.string().min(1, "Name is required for internal members").optional(),
     age: z.number().int().min(0).max(150).optional().nullable(),
     sex: Sex.optional().nullable(),
