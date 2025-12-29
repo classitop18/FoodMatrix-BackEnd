@@ -5,24 +5,18 @@ import { sendError } from "../utils/response.utils.js";
 import { getDb } from "../database/db.js";
 import { members, accounts } from "../database/schemas/schema.js";
 import { eq, and } from "drizzle-orm";
+import {
+  RoleType,
+  ROLE_HIERARCHY,
+  hasPermission,
+} from "../common/permissions.config.js";
 
-/**
- * Role hierarchy for permission checking
- * Higher number = more permissions
- */
-const ROLE_HIERARCHY = {
-  viewer: 1,
-  creator: 2,
-  admin: 3,
-  super_admin: 4,
-} as const;
-
-type RoleType = keyof typeof ROLE_HIERARCHY;
+// ============ HELPER FUNCTIONS ============
 
 /**
  * Get user's role in a specific account
  */
-async function getUserAccountRole(
+export async function getUserAccountRole(
   userId: string,
   accountId: string,
 ): Promise<RoleType | null> {
@@ -38,6 +32,38 @@ async function getUserAccountRole(
     return (member?.role as RoleType) || null;
   } catch (error: any) {
     logger.error("Failed to get user account role:", {
+      error: error.message,
+      userId,
+      accountId,
+    });
+    return null;
+  }
+}
+
+/**
+ * Get user's membership details in a specific account
+ */
+export async function getUserMembership(
+  userId: string,
+  accountId: string,
+): Promise<{ id: string; role: RoleType } | null> {
+  try {
+    const db = getDb();
+
+    const [member] = await db
+      .select({ id: members.id, role: members.role })
+      .from(members)
+      .where(and(eq(members.userId, userId), eq(members.accountId, accountId)))
+      .limit(1);
+
+    if (!member) return null;
+
+    return {
+      id: member.id,
+      role: member.role as RoleType,
+    };
+  } catch (error: any) {
+    logger.error("Failed to get user membership:", {
       error: error.message,
       userId,
       accountId,
@@ -74,6 +100,25 @@ async function isPrimaryAdmin(
 }
 
 /**
+ * Helper to extract accountId from request
+ * Checks in order: params, query, body, headers (x-account-id)
+ */
+function getAccountIdFromRequest(
+  req: AuthenticatedRequest,
+  paramName: string,
+): string | null {
+  return (
+    req.params[paramName] ||
+    (req.query[paramName] as string) ||
+    req.body?.[paramName] ||
+    (req.headers["x-account-id"] as string) ||
+    null
+  );
+}
+
+// ============ MIDDLEWARE FACTORIES ============
+
+/**
  * Role-Based Access Control Middleware Factory
  * Checks if user has required role or higher in the account
  *
@@ -95,17 +140,13 @@ export const requireRole = (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       if (!req.user) {
         return sendError(res, "Authentication required.", null, 401);
       }
 
-      // Get accountId from route params, query, or body
-      const accountId =
-        req.params[accountIdParam] ||
-        req.query[accountIdParam] ||
-        (req.body && req.body[accountIdParam]);
+      const accountId = getAccountIdFromRequest(req, accountIdParam);
 
       if (!accountId) {
         logger.warn("Authorization failed: No account ID provided", {
@@ -118,10 +159,7 @@ export const requireRole = (
       }
 
       // Get user's role in this account
-      const userRole = await getUserAccountRole(
-        req.user.id,
-        accountId as string,
-      );
+      const userRole = await getUserAccountRole(req.user.id, accountId);
 
       if (!userRole) {
         logger.warn("Authorization failed: User not a member of account", {
@@ -186,6 +224,108 @@ export const requireRole = (
 };
 
 /**
+ * Permission-Based Access Control Middleware Factory
+ * Checks if user has a specific permission based on their role
+ *
+ * @param permission - Required permission string (e.g., 'meal:create')
+ * @param accountIdParam - Name of the route parameter containing accountId
+ *
+ * @example
+ * router.post('/meal-plans',
+ *   authenticate,
+ *   requirePermission('meal:create'),
+ *   controller.createMealPlan
+ * );
+ */
+export const requirePermission = (
+  permission: string,
+  accountIdParam: string = "accountId",
+) => {
+  return async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<any> => {
+    try {
+      if (!req.user) {
+        return sendError(res, "Authentication required.", null, 401);
+      }
+
+      const accountId = getAccountIdFromRequest(req, accountIdParam);
+
+      if (!accountId) {
+        logger.warn("Permission check failed: No account ID provided", {
+          userId: req.user.id,
+          path: req.path,
+          permission,
+        });
+
+        return sendError(res, "Account ID is required.", null, 400);
+      }
+
+      // Get user's role in this account
+      const userRole = await getUserAccountRole(req.user.id, accountId);
+
+      if (!userRole) {
+        logger.warn("Permission check failed: User not a member of account", {
+          userId: req.user.id,
+          accountId,
+          permission,
+        });
+
+        return sendError(
+          res,
+          "You do not have access to this account.",
+          null,
+          403,
+        );
+      }
+
+      // Check if user's role has the required permission
+      if (!hasPermission(userRole, permission)) {
+        logger.warn("Permission check failed: Missing permission", {
+          userId: req.user.id,
+          accountId,
+          userRole,
+          permission,
+        });
+
+        return sendError(
+          res,
+          "You do not have permission to perform this action.",
+          {
+            userRole,
+            requiredPermission: permission,
+          },
+          403,
+        );
+      }
+
+      // Attach role to request for use in controllers
+      req.user.role = userRole;
+
+      logger.info("Permission check successful", {
+        userId: req.user.id,
+        accountId,
+        userRole,
+        permission,
+        path: req.path,
+      });
+
+      next();
+    } catch (error: any) {
+      logger.error("Permission middleware error:", {
+        error: error.message,
+        stack: error.stack,
+        userId: req.user?.id,
+      });
+
+      return sendError(res, "Permission check failed.", null, 500);
+    }
+  };
+};
+
+/**
  * Require Primary Admin Access
  * Only allows the primary admin of an account to access the resource
  *
@@ -203,22 +343,19 @@ export const requirePrimaryAdmin = (accountIdParam: string = "accountId") => {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       if (!req.user) {
         return sendError(res, "Authentication required.", null, 401);
       }
 
-      const accountId =
-        req.params[accountIdParam] ||
-        req.query[accountIdParam] ||
-        (req.body && req.body[accountIdParam]);
+      const accountId = getAccountIdFromRequest(req, accountIdParam);
 
       if (!accountId) {
         return sendError(res, "Account ID is required.", null, 400);
       }
 
-      const isAdmin = await isPrimaryAdmin(req.user.id, accountId as string);
+      const isAdmin = await isPrimaryAdmin(req.user.id, accountId);
 
       if (!isAdmin) {
         logger.warn("Authorization failed: Not primary admin", {
@@ -265,25 +402,19 @@ export const requireAccountMembership = (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       if (!req.user) {
         return sendError(res, "Authentication required.", null, 401);
       }
 
-      const accountId =
-        req.params[accountIdParam] ||
-        req.query[accountIdParam] ||
-        (req.body && req.body[accountIdParam]);
+      const accountId = getAccountIdFromRequest(req, accountIdParam);
 
       if (!accountId) {
         return sendError(res, "Account ID is required.", null, 400);
       }
 
-      const userRole = await getUserAccountRole(
-        req.user.id,
-        accountId as string,
-      );
+      const userRole = await getUserAccountRole(req.user.id, accountId);
 
       if (!userRole) {
         logger.warn("Authorization failed: Not a member", {
@@ -337,7 +468,7 @@ export const requireOwnership = (userIdParam: string = "userId") => {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       if (!req.user) {
         return sendError(res, "Authentication required.", null, 401);
@@ -345,8 +476,8 @@ export const requireOwnership = (userIdParam: string = "userId") => {
 
       const resourceUserId =
         req.params[userIdParam] ||
-        req.query[userIdParam] ||
-        (req.body && req.body[userIdParam]);
+        (req.query[userIdParam] as string) ||
+        req.body?.[userIdParam];
 
       if (!resourceUserId) {
         return sendError(res, "User ID is required.", null, 400);

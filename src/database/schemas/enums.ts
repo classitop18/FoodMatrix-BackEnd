@@ -6,11 +6,7 @@ export const accountTypeEnum = pgEnum("account_type", [
   "family",
   "group",
 ]);
-export const rolesEnum = pgEnum("role", [
-  "admin",
-  "super_admin",
-  "member",
-]);
+export const rolesEnum = pgEnum("role", ["admin", "super_admin", "member"]);
 export const sexEnum = pgEnum("sex", ["male", "female", "other"]);
 export const transactionCategoryEnum = pgEnum("transaction_category", [
   "groceries",

@@ -4,7 +4,7 @@ import { z } from "zod";
 export const createInvitationSchema = z.object({
   email: z.string().email("Invalid email address"),
   accountId: z.string().uuid("Invalid account ID"),
-  proposedRole: z.enum(["admin", "member",]).optional(), // Role suggestion (admin decides final role)
+  proposedRole: z.enum(["admin", "member"]).optional(), // Role suggestion (admin decides final role)
 });
 
 export type CreateInvitationDTO = z.infer<typeof createInvitationSchema>;
@@ -19,7 +19,7 @@ export type AcceptInvitationDTO = z.infer<typeof acceptInvitationSchema>;
 // ============ ADMIN APPROVE/REJECT ============
 export const approveInvitationSchema = z.object({
   invitationId: z.string().uuid("Invalid invitation ID"),
-  role: z.enum(["admin", "member",  "super_admin"]),
+  role: z.enum(["admin", "member", "super_admin"]),
 });
 
 export type ApproveInvitationDTO = z.infer<typeof approveInvitationSchema>;

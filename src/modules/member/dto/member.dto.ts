@@ -1,11 +1,7 @@
 import { z } from "zod";
 
 // ============ Enums ============
-export const MemberRole = z.enum([
-  "admin",
-  "super_admin",
-  "member",
-]);
+export const MemberRole = z.enum(["admin", "super_admin", "member"]);
 export const Sex = z.enum(["male", "female", "other"]);
 
 // ============ Create Member DTO ============

@@ -67,22 +67,35 @@ export class AccountRepository implements IAccountRepository {
     return result[0] ?? null;
   }
 
-  async getAccountById(id: string, userId: string): Promise<Account | null> {
-    // First check if user is a member of this account
+  async getAccountById(
+    id: string,
+    userId: string,
+  ): Promise<(Account & { role: string }) | null> {
+    // check membership
     const isMember = await this.isUserMemberOfAccount(userId, id);
-
     if (!isMember) {
       throw new Error("User is not a member of this account");
     }
 
-    // If user is a member, return the account details
     const result = await this.db
-      .select()
+      .select({
+        account: accounts,
+        role: members.role,
+      })
       .from(accounts)
+      .innerJoin(
+        members,
+        and(eq(accounts.id, members.accountId), eq(members.userId, userId)),
+      )
       .where(eq(accounts.id, id))
       .limit(1);
 
-    return result[0] ?? null;
+    if (!result.length) return null;
+
+    return {
+      ...result[0].account,
+      role: result[0].role,
+    };
   }
 
   // Get accounts where user is primary admin

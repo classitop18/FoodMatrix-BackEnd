@@ -185,10 +185,7 @@ export class MemberRepository implements IMemberRepository {
     if (userId) conditions.push(eq(members.userId, userId));
     if (role)
       conditions.push(
-        eq(
-          members.role,
-          role as "admin" | "super_admin"  | "mmember",
-        ),
+        eq(members.role, role as "admin" | "super_admin" | "member"),
       );
     if (isInternal !== undefined) {
       conditions.push(
@@ -369,7 +366,7 @@ export class MemberRepository implements IMemberRepository {
 
   async findByRole(
     accountId: string,
-    role: "admin" | "super_admin"| "member",
+    role: "admin" | "super_admin" | "member",
   ): Promise<Member[]> {
     return await this.db
       .select()
