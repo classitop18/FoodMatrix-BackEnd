@@ -77,6 +77,7 @@ createBullBoard({
 
 app.use("/admin/queues", serverAdapter.getRouter());
 
+app.use("/api", appRouter);
 app.use("/api/v1", appRouter);
 
 // Global error handler

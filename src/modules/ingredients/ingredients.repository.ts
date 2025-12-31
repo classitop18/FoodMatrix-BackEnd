@@ -99,4 +99,19 @@ export class IngredientsRepository {
       .returning();
     return newIngredient;
   }
+
+  async findOrCreateIngredient(data: {
+    name: string;
+    category?: string;
+    unit?: string;
+  }): Promise<any> {
+    const existing = await this.findByName(data.name);
+    if (existing) return existing;
+
+    return await this.createIngredient({
+      name: data.name,
+      category: data.category || "misc",
+      defaultMeasurementUnit: data.unit,
+    });
+  }
 }

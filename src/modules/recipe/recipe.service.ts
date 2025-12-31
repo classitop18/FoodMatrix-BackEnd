@@ -1,0 +1,248 @@
+import {
+  InsertRecipe,
+  Recipe,
+  InsertRecipeIngredient,
+} from "../../database/schemas/schema.js";
+import { randomUUID } from "crypto";
+import { RecipeFilters, RecipeStorage } from "./recipe.repository.js";
+import { IngredientsRepository } from "../ingredients/ingredients.repository.js";
+
+export type { RecipeFilters };
+
+import { AIRecipeService } from "../ai/services/ai-recipe.service.js";
+import { AIRecipeRequest } from "../ai/interfaces/ai.interfaces.js";
+
+export class RecipeService {
+  private storage: RecipeStorage;
+  private ingredientStorage: IngredientsRepository;
+  private aiRecipeService: AIRecipeService;
+
+  constructor(
+    storage: RecipeStorage,
+    ingredientStorage: IngredientsRepository,
+    aiRecipeService: AIRecipeService,
+  ) {
+    this.storage = storage;
+    this.ingredientStorage = ingredientStorage;
+    this.aiRecipeService = aiRecipeService;
+  }
+
+  // 🧑‍🍳 Create a new recipe
+  async createRecipe(accountId: string, data: any): Promise<Recipe> {
+    const recipeData = {
+      ...data,
+      id: randomUUID(),
+      accountId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true,
+    };
+
+    const recipe = await this.storage.createRecipe(recipeData);
+
+    // 2️⃣ Convert raw ingredients → DB ingredient mapping
+    const finalIngredients = [];
+
+    for (const ing of data.ingredients) {
+      const ingredient = await this.ingredientStorage.findOrCreateIngredient({
+        ...ing,
+      });
+
+      finalIngredients.push({
+        recipeId: recipe.id,
+        ingredientId: ingredient.id,
+        quantity: String(ing.quantity),
+        unit: ing.unit,
+        isOptional: ing.isOptional ?? false,
+        notes: ing.notes || null,
+      });
+    }
+
+    // Insert one-by-one (Consider bulk insert in future optimization)
+    for (const fi of finalIngredients) {
+      await this.storage.addRecipeIngredient(fi);
+    }
+    return recipe;
+  }
+
+  // ✏️ Update recipe (only owner or admin)
+  async updateRecipe(
+    recipeId: string,
+    accountId: string,
+    updates: Partial<InsertRecipe> & { scoreChange?: number },
+  ) {
+    const existing = await this.storage.getRecipeById(recipeId);
+    if (!existing) throw new Error("Recipe not found");
+    if (existing.accountId && existing.accountId !== accountId)
+      throw new Error("You don’t have permission to update this recipe.");
+
+    // Handle score change separately - increment/decrement instead of replace
+    if (updates.scoreChange !== undefined) {
+      const currentScore = existing.score || 0;
+      const newScore = currentScore + updates.scoreChange;
+
+      console.log(
+        `Recipe ${recipeId}: Score ${currentScore} → ${newScore} (change: ${updates.scoreChange > 0 ? "+" : ""}${updates.scoreChange})`,
+      );
+
+      // Remove scoreChange from updates and add the calculated score
+      const { scoreChange, ...restUpdates } = updates;
+      return await this.storage.updateRecipe(recipeId, {
+        ...restUpdates,
+        score: newScore,
+      });
+    }
+
+    return await this.storage.updateRecipe(recipeId, updates);
+  }
+
+  // ❌ Delete recipe (only owner)
+  async deleteRecipe(recipeId: string, accountId: string) {
+    const existing = await this.storage.getRecipeById(recipeId);
+    if (!existing) throw new Error("Recipe not found");
+    if (existing.accountId && existing.accountId !== accountId)
+      throw new Error("You don’t have permission to delete this recipe.");
+
+    return await this.storage.deleteRecipe(recipeId);
+  }
+
+  // 🌍 Toggle public/private
+  async toggleVisibility(
+    recipeId: string,
+    accountId: string,
+    isPublic: boolean,
+  ) {
+    const recipe = await this.storage.getRecipeById(recipeId);
+    if (!recipe) throw new Error("Recipe not found");
+    if (recipe.accountId !== accountId) throw new Error("Unauthorized");
+
+    return await this.storage.toggleRecipeVisibility(recipeId, isPublic);
+  }
+
+  // 💤 Deactivate recipe (soft delete)
+  async deactivateRecipe(recipeId: string, accountId: string) {
+    const recipe = await this.storage.getRecipeById(recipeId);
+    if (!recipe) throw new Error("Recipe not found");
+    if (recipe.accountId !== accountId) throw new Error("Unauthorized");
+
+    return await this.storage.deactivateRecipe(recipeId);
+  }
+
+  // 🍳 Update cooking status
+  async updateCookingStatus(
+    recipeId: string,
+    accountId: string,
+    status: string,
+  ) {
+    const recipe = await this.storage.getRecipeById(recipeId);
+    if (!recipe) throw new Error("Recipe not found");
+    if (recipe.accountId !== accountId) throw new Error("Unauthorized");
+
+    return await this.storage.updateCookingStatus(recipeId, status);
+  }
+
+  async getRecipes(accountId: string, filters: RecipeFilters) {
+    return await this.storage.getRecipes(accountId, filters);
+  }
+
+  // 📄 Get recipe with ingredients
+  async getRecipeDetails(recipeId: string) {
+    const recipe = await this.storage.getRecipeWithIngredients(recipeId);
+    if (!recipe) throw new Error("Recipe not found");
+    return recipe;
+  }
+
+  // 🔎 Search by name or keywords
+  async searchRecipes(query: string, accountId?: string) {
+    return await this.storage.searchRecipesByName(query, accountId);
+  }
+
+  // 💰 Filter by budget
+  async searchByBudget(accountId: string, maxBudget: number, members: number) {
+    return await this.storage.searchRecipesByBudget(
+      accountId,
+      maxBudget,
+      members,
+    );
+  }
+
+  // 🕒 Recently created recipes
+  async getRecentRecipes(accountId: string, limit = 10) {
+    return await this.storage.getRecentRecipes(accountId, limit);
+  }
+
+  // 🌎 Public recipes
+  async getPublicRecipes() {
+    return await this.storage.getPublicRecipes();
+  }
+
+  // 🧂 Add an ingredient to recipe
+  async addIngredient(
+    recipeId: string,
+    ingredient: InsertRecipeIngredient,
+    accountId: string,
+  ) {
+    const recipe = await this.storage.getRecipeById(recipeId);
+    if (!recipe) throw new Error("Recipe not found");
+    if (recipe.accountId !== accountId) throw new Error("Unauthorized");
+
+    return await this.storage.addRecipeIngredient({ ...ingredient, recipeId });
+  }
+
+  // ❌ Remove ingredient
+  async removeIngredient(
+    recipeId: string,
+    ingredientId: string,
+    accountId: string,
+  ) {
+    const recipe = await this.storage.getRecipeById(recipeId);
+    if (!recipe) throw new Error("Recipe not found");
+    if (recipe.accountId !== accountId) throw new Error("Unauthorized");
+
+    return await this.storage.removeRecipeIngredient(recipeId, ingredientId);
+  }
+
+  // 🍽️ Get ingredients for recipe
+  async getIngredients(recipeId: string) {
+    return await this.storage.getRecipeIngredients(recipeId);
+  }
+
+  // 🧠 Generate AI recipes
+  async generateAIRecipes(payload: any, accountId: string) {
+    const request: AIRecipeRequest = {
+      accountId: accountId,
+      mealType: payload.mealType,
+      memberCount: payload.memberCount || 1,
+      recipeCount: payload.recipeCount || 1,
+
+      servings: payload.servings || 4,
+      usePantryItems: payload.usePantryItems || false,
+      pantryOnly: payload.pantryOnly || false,
+      maxBudgetPerServing: payload.maxBudgetPerServing,
+      dietaryRestrictions: payload.dietaryRestrictions || [],
+      allergies: payload.allergies || [],
+      cuisine: payload.cuisine, // Explicit single cuisine preference
+      preferredCuisines: payload.preferredCuisines || payload.cuisines || [], // Handle both field names
+      difficulty: payload.difficulty || "medium", // Default to medium
+      maxPrepTime: payload.maxPrepTime || 60,
+      healthGoals: payload.healthGoals || [],
+      // ingredientsToUse: payload.ingredientsToUse || [],
+      // ingredientsToExclude: payload.ingredientsToExclude || []
+    };
+
+    return await this.aiRecipeService.generatePersonalizedRecipes(request);
+  }
+
+  // 🕵️‍♀️ Search/Generate Custom Recipe
+  async generateAICustomRecipes(payload: any, accountId: string) {
+    // payload: { customRecipe: string, mealType: string ... }
+    // Frontend sends: recipeName, mealType, servings, dietaryRestrictions
+    return await this.aiRecipeService.searchSpecificRecipe(
+      payload.recipeName || payload.customRecipe,
+      payload.mealType || "dinner", // default fallback
+      payload.servings || 4,
+      payload.dietaryRestrictions,
+      accountId,
+    );
+  }
+}

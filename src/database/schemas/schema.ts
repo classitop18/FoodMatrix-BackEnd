@@ -422,3 +422,113 @@ export const mealPlan = pgTable("meal_plan", {
     .default(sql`now()`)
     .notNull(),
 });
+
+// Recipes
+export const recipes = pgTable("recipes", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id").references(() => accounts.id), // null for public recipes
+  name: text("name").notNull(),
+  description: text("description"),
+  instructions: text("instructions").notNull(), // Can store JSON array of instruction steps
+  servings: integer("servings").default(1).notNull(),
+  score: integer("score").default(0).notNull(),
+  lastPreference: text("last_preference"),
+  prepTimeMinutes: integer("prep_time_minutes").notNull(),
+  cookTimeMinutes: integer("cook_time_minutes").notNull(),
+  totalTimeMinutes: integer("total_time_minutes").notNull(),
+  difficultyLevel: text("difficulty_level").notNull(),
+  mealType: mealTypeEnum("meal_type").notNull(),
+  cuisineType: text("cuisine_type").notNull(),
+  estimatedCostPerServing: decimal("estimated_cost_per_serving", {
+    precision: 8,
+    scale: 2,
+  }),
+  calories: integer("calories"),
+  isPublic: boolean("is_public").default(false),
+  isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+  updatedAt: timestamp("updated_at")
+    .default(sql`now()`)
+    .notNull(),
+  cookingStatus: text("cooking_status").default("not_cooked"), // cooked, not_cooked, not_interested
+  imageUrl: text("image_url"),
+  // AI Recipe Enhanced Fields - Store all AI-generated data
+  // Nutrition Information (JSON object)
+  nutrition: jsonb("nutrition"), // { calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g, sodium_mg, cholesterol_mg }
+  // Cost Analysis (JSON object)
+  costAnalysis: jsonb("cost_analysis"), // { totalCost, costPerServing, budgetEfficiency, pantryItemsSavings, shoppingCost }
+  // Arrays for additional recipe information
+  nutritionalHighlights: jsonb("nutritional_highlights"), // string[] - health benefits
+  cookingTips: jsonb("cooking_tips"), // string[] - helpful cooking advice
+  variations: jsonb("variations"), // string[] - recipe variations and substitutions
+  healthConsiderations: jsonb("health_considerations"), // string[] - dietary considerations
+  webSourceInspirations: jsonb("web_source_inspirations"), // string[] - source URLs or references
+  // Health and Scoring
+  healthScore: integer("health_score"), // 0-100 health rating
+  budgetEfficiency: decimal("budget_efficiency", { precision: 5, scale: 2 }), // Percentage
+  // AI Reasoning and Metadata
+  aiReasoningNotes: text("ai_reasoning_notes"), // Why this recipe was suggested
+  aiGeneratedMetadata: jsonb("ai_generated_metadata"), // Any additional AI metadata
+  // Recipe Statistics
+  timesCooked: integer("times_cooked").default(0),
+  averageRating: decimal("average_rating", { precision: 3, scale: 2 }),
+  totalRatings: integer("total_ratings").default(0),
+});
+
+// Recipe ingredients (junction table)
+export const recipeIngredients = pgTable("recipe_ingredients", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  recipeId: varchar("recipe_id")
+    .notNull()
+    .references(() => recipes.id, { onDelete: "cascade" }),
+  ingredientId: varchar("ingredient_id")
+    .notNull()
+    .references(() => ingredients.id),
+  quantity: varchar("quantity"),
+  unit: varchar("unit"),
+  isOptional: boolean("is_optional").default(false),
+  notes: text("notes"), // e.g., "or substitute with..."
+
+  // AI Recipe Enhanced Fields
+  estimatedCost: decimal("estimated_cost", { precision: 8, scale: 2 }), // Cost for this ingredient in this recipe
+  category: text("category"), // 'produce' | 'pantry' | 'dairy' | 'protein' | 'seafood' | 'meat' | 'bakery' | 'spices' | 'beverages' | 'frozen' | 'other'
+  isPantryItem: boolean("is_pantry_item").default(false), // Whether this came from user's pantry
+  substitutions: jsonb("substitutions"), // string[] - possible substitutions for this ingredient
+  preparationNotes: text("preparation_notes"), // How to prepare this ingredient
+
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+  updatedAt: timestamp("updated_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
+// Export Types
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+
+export type Account = typeof accounts.$inferSelect;
+export type InsertAccount = typeof accounts.$inferInsert;
+
+export type Member = typeof members.$inferSelect;
+export type InsertMember = typeof members.$inferInsert;
+
+export type Ingredient = typeof ingredients.$inferSelect;
+export type InsertIngredient = typeof ingredients.$inferInsert;
+
+export type PantryItem = typeof pantryItems.$inferSelect;
+export type InsertPantryItem = typeof pantryItems.$inferInsert;
+
+export type Recipe = typeof recipes.$inferSelect;
+export type InsertRecipe = typeof recipes.$inferInsert;
+
+export type RecipeIngredient = typeof recipeIngredients.$inferSelect;
+export type InsertRecipeIngredient = typeof recipeIngredients.$inferInsert;

@@ -50,6 +50,27 @@
       "when": 1766979666936,
       "tag": "0006_loving_morgan_stark",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1767078746199,
+      "tag": "0007_blue_vulcan",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1767169521210,
+      "tag": "0008_first_shadow_king",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1767171225433,
+      "tag": "0009_far_vampiro",
+      "breakpoints": true
     }
   ]
 }
