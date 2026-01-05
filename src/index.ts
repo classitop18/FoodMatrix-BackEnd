@@ -15,17 +15,24 @@ import { emailWorker } from "./queues/worker/email.worker.js";
 import cookieParser from "cookie-parser";
 import { initializePantryCron } from "./cron/pantry-alert.cron.js";
 import { config } from "dotenv";
-
+import path from "path";
 config(); // Load .env variables
 const app = express();
 const PORT = CONFIG.PORT || 3000;
 
 // Security middlewares
 app.use(helmet());
+// ||  process.env.CORS_ORIGINS?.split(",") || [];
 
-const allowedOrigins = process.env.CORS_ORIGINS?.split(",") || [];
+const allowedOrigins =["http://localhost:3001","http://localhost:3000","https://app.example.com" ,"localhost"] 
 
 logger.info("Allowed origins: ", allowedOrigins);
+
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  next();
+});
 
 app.use(
   cors({
@@ -48,6 +55,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+
+
 // HTTP request logging with morgan integrated with Winston
 app.use(
   morgan("combined", {
@@ -56,6 +65,13 @@ app.use(
     },
   }),
 );
+
+// Serve static files (uploads)
+app.use(
+  "/uploads",
+  express.static(path.join(process.cwd(), "public", "uploads")),
+);
+
 
 // Basic route
 app.get("/", (req: Request, res: Response) => {

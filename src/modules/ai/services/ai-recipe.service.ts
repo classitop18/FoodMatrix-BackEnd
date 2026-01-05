@@ -9,6 +9,10 @@ import {
   RecipePromptBuilder,
   RecipeStorage,
 } from "../interfaces/ai.interfaces.js";
+import fs from "fs";
+import path from "path";
+import axios from "axios";
+import { randomUUID } from "crypto";
 
 export class AIRecipeService {
   constructor(
@@ -16,7 +20,41 @@ export class AIRecipeService {
     private promptBuilder: AdvancedRecipePromptBuilder,
     private recipeParser: RecipeParser,
     private recipeStorage: RecipeStorage,
-  ) {}
+  ) { }
+
+  private async downloadAndSaveImage(
+    url: string,
+    recipeName: string,
+  ): Promise<string> {
+    try {
+      const uploadsDir = path.join(
+        process.cwd(),
+        "public",
+        "uploads",
+        "recipes",
+      );
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const extension = "png"; // DALL-E usually returns PNG
+      const filename = `${randomUUID()}.${extension}`;
+      const filepath = path.join(uploadsDir, filename);
+
+      const response = await axios({
+        url,
+        method: "GET",
+        responseType: "arraybuffer",
+      });
+
+      fs.writeFileSync(filepath, response.data);
+
+      return `/uploads/recipes/${filename}`;
+    } catch (error) {
+      console.error("Failed to download image:", error);
+      return url; // Fallback to original URL
+    }
+  }
 
   async generatePersonalizedRecipes(
     request: AIRecipeRequest,
@@ -57,6 +95,8 @@ export class AIRecipeService {
 
       // Build advanced prompt with all learning data
       const prompt = await this.promptBuilder.buildPrompt(enhancedRequest);
+
+      console.log({ prompt })
 
       // Generate recipes using AI
       const maxTokens = this.calculateMaxTokens(request.recipeCount);
@@ -212,7 +252,12 @@ export class AIRecipeService {
             });
 
             if (generatedUrl && generatedUrl.length > 0) {
-              recipe.imageUrl = generatedUrl;
+              // Download and save locally
+              const localUrl = await this.downloadAndSaveImage(
+                generatedUrl,
+                recipe.name,
+              );
+              recipe.imageUrl = localUrl;
             } else {
               console.warn(
                 `⚠️ DALL-E returned empty URL for ${recipe.name}, using fallback`,
@@ -388,19 +433,19 @@ export class AIRecipeService {
     // Build nutrition info (use DB data if available, otherwise estimate)
     const nutrition: NutritionInfo = dbRecipe.calories
       ? {
-          calories: Math.round(dbRecipe.calories * servingRatio),
-          protein_g: Math.round((dbRecipe.calories * 0.25) / 4), // Estimate from calories
-          carbs_g: Math.round((dbRecipe.calories * 0.45) / 4),
-          fat_g: Math.round((dbRecipe.calories * 0.3) / 9),
-          fiber_g: 8,
-          sugar_g: 6,
-          sodium_mg: 600,
-          cholesterol_mg: 50,
-        }
+        calories: Math.round(dbRecipe.calories * servingRatio),
+        protein_g: Math.round((dbRecipe.calories * 0.25) / 4), // Estimate from calories
+        carbs_g: Math.round((dbRecipe.calories * 0.45) / 4),
+        fat_g: Math.round((dbRecipe.calories * 0.3) / 9),
+        fiber_g: 8,
+        sugar_g: 6,
+        sodium_mg: 600,
+        cholesterol_mg: 50,
+      }
       : this.estimateNutrition({
-          mealType: dbRecipe.mealType,
-          servings: targetServings,
-        } as any);
+        mealType: dbRecipe.mealType,
+        servings: targetServings,
+      } as any);
 
     // Calculate health score based on nutrition
     const healthScore = this.calculateHealthScore(nutrition);

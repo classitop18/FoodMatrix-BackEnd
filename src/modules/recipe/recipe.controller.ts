@@ -1,6 +1,7 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { RecipeService } from "./recipe.service.js";
 import { AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
+import { sendSuccess } from "@/utils/response.utils.js";
 
 export class RecipeController {
   private recipeService: RecipeService;
@@ -21,7 +22,7 @@ export class RecipeController {
     return accountId;
   }
 
-  getRecipes = async (req: Request, res: Response) => {
+  getRecipes = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const accountId = this.getAccountId(req as AuthenticatedRequest);
       if (!accountId)
@@ -61,14 +62,14 @@ export class RecipeController {
       };
 
       const result = await this.recipeService.getRecipes(accountId, filters);
-      res.json(result);
+      sendSuccess(res, result, "Recipes fetched successfully", 200);
     } catch (err) {
       console.error("Error fetching recipes:", err);
-      res.status(500).json({ message: "Failed to fetch recipes" });
+      next(err);
     }
   };
   // 📄 Get single recipe with ingredients
-  getRecipeById = async (req: Request, res: Response) => {
+  getRecipeById = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const accountId = this.getAccountId(req as AuthenticatedRequest);
       if (!accountId)
@@ -77,25 +78,27 @@ export class RecipeController {
       const recipe = await this.recipeService.getRecipeDetails(req.params.id);
       if (!recipe) return res.status(404).json({ message: "Recipe not found" });
 
-      res.json(recipe);
+      sendSuccess(res, recipe, "Recipe fetched successfully", 200);
+
     } catch (err) {
       console.error("Error fetching recipe:", err);
-      res.status(500).json({ message: "Failed to fetch recipe" });
+      next(err);
     }
   };
 
   // 🧑‍🍳 Create a new recipe
-  createRecipe = async (req: Request, res: Response) => {
+  createRecipe = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const accountId = this.getAccountId(req as AuthenticatedRequest);
       if (!accountId)
         return res.status(401).json({ message: "Account ID is required" });
 
       const recipe = await this.recipeService.createRecipe(accountId, req.body);
-      res.status(201).json(recipe);
+      sendSuccess(res, recipe, "Recipe Created Successfully", 201)
+
     } catch (err) {
       console.error("Error creating recipe:", err);
-      res.status(500).json({ message: "Failed to create recipe" });
+      next(err)
     }
   };
 

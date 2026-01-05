@@ -187,40 +187,37 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
     return `**🧠 AI LEARNING & PERSONALIZATION:**
 
                     **User's Favorite Recipes (High Score ≥3):**
-                    ${
-                      highScoreRecipes.length > 0
-                        ? highScoreRecipes
-                            .map(
-                              (r) =>
-                                `- "${r.recipeName}" (Score: ${r.score}, Cooked: ${r.timesCooked}x, Cuisine: ${r.cuisineType})`,
-                            )
-                            .join("\n")
-                        : "- None yet"
-                    }
+                    ${highScoreRecipes.length > 0
+        ? highScoreRecipes
+          .map(
+            (r) =>
+              `- "${r.recipeName}" (Score: ${r.score}, Cooked: ${r.timesCooked}x, Cuisine: ${r.cuisineType})`,
+          )
+          .join("\n")
+        : "- None yet"
+      }
 
                     **Recipes User Disliked (Score ≤-2):**
-                    ${
-                      lowScoreRecipes.length > 0
-                        ? lowScoreRecipes
-                            .map(
-                              (r) =>
-                                `- "${r.recipeName}" (Score: ${r.score}) - AVOID similar recipes`,
-                            )
-                            .join("\n")
-                        : "- None yet"
-                    }
+                    ${lowScoreRecipes.length > 0
+        ? lowScoreRecipes
+          .map(
+            (r) =>
+              `- "${r.recipeName}" (Score: ${r.score}) - AVOID similar recipes`,
+          )
+          .join("\n")
+        : "- None yet"
+      }
 
                     **Cuisine Preferences (Based on cooking frequency & scores):**
-                    ${
-                      frequentCuisines.length > 0
-                        ? frequentCuisines
-                            .map(
-                              (c) =>
-                                `- ${c.cuisine}: ${c.percentage}% preference (Avg Score: ${c.avgScore})`,
-                            )
-                            .join("\n")
-                        : "- No clear pattern yet"
-                    }
+                    ${frequentCuisines.length > 0
+        ? frequentCuisines
+          .map(
+            (c) =>
+              `- ${c.cuisine}: ${c.percentage}% preference (Avg Score: ${c.avgScore})`,
+          )
+          .join("\n")
+        : "- No clear pattern yet"
+      }
 
                     **Ingredient Patterns (User often cooks with):**
                     ${preferredIngredients.length > 0 ? preferredIngredients.join(", ") : "Varied ingredients"}
@@ -228,14 +225,13 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
                     **Recently Skipped Recipes (AVOID THESE):**
                     ${skippedRecipes.length > 0 ? skippedRecipes.join(", ") : "None"}
 
-                    ${
-                      request.avoidRecentRecipes?.length
-                        ? `
+                    ${request.avoidRecentRecipes?.length
+        ? `
                     **🚫 DO NOT SUGGEST (Recent recipes - avoid repetition):**
                     ${request.avoidRecentRecipes.join(", ")}
                     `
-                        : ""
-                    }
+        : ""
+      }
 
                     **AI INSTRUCTIONS BASED ON LEARNING:**
                     1. Strongly favor cuisines and ingredients the user has cooked successfully
@@ -319,31 +315,28 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
                 **Cuisine Selection:**
                 - ${cuisinePreference}
 
-                ${
-                  healthInfo.length > 0
-                    ? `
+                ${healthInfo.length > 0
+        ? `
                 **🏥 Health Considerations (CRITICAL - Must Follow):**
                 ${healthInfo.map((info) => `- ${info}`).join("\n")}
                 `
-                    : ""
-                }
+        : ""
+      }
 
-                ${
-                  foodPreferences.length > 0
-                    ? `
+                ${foodPreferences.length > 0
+        ? `
                 **🍽️ Food Preferences (STRICT RULES):**
                 ${foodPreferences.map((pref) => `- ${pref}`).join("\n")}
                 `
-                    : ""
-                }
+        : ""
+      }
 
-                ${
-                  request.dayOfWeek
-                    ? `
+                ${request.dayOfWeek
+        ? `
                 **📅 Context:** It's ${request.dayOfWeek} - consider this for recipe complexity and meal planning
                 `
-                    : ""
-                }`;
+        : ""
+      }`;
   }
 
   private buildConstraintsSection(request: AIRecipeRequest): string {
@@ -396,31 +389,29 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
         Return a JSON array with EXACTLY ${recipeCount} recipe object${recipeCount > 1 ? "s" : ""}:
 
         \`\`\`json
-        [
+        [ 
         {
             "name": "Creative Recipe Name",
             "description": "2-3 sentence appetizing description highlighting key flavors and health benefits",
             "cuisineType": "${request.cuisine || "based on user preference"}",
             "mealType": "${request.mealType}",
             "servings": ${servings},
-            "imageUrl": "MUST be a valid, real, publicly accessible HTTP image URL for this dish (e.g. from Wikimedia, Unsplash, etc). Do NOT return a description string. Return null ONLY if absolutely no image can be found.",
+         "imageUrl": Provide a valid, real, publicly accessible HTTP image URL for this dish by searching trusted public sources (such as Wikimedia Commons, Unsplash, or similar). Do NOT generate or fabricate a URL. Do NOT return an image description or placeholder text. Return only the direct image URL. Return null ONLY if no publicly available image exists after searching.
             "totalTimeMinutes": <number>,
             "difficultyLevel": "easy|medium|hard",
-            ${
-              request.pantryOnly || request.usePantryItems
-                ? `
+            ${request.pantryOnly || request.usePantryItems
+        ? `
             "canGenerateRecipe": true|false,
-            ${
-              request.pantryOnly
-                ? `"insufficientPantryReason": "optional: explanation if canGenerateRecipe is false",
+            ${request.pantryOnly
+          ? `"insufficientPantryReason": "optional: explanation if canGenerateRecipe is false",
             "suggestedPantryAdditions": ["optional: items needed if insufficient"],`
-                : ""
-            }
+          : ""
+        }
             "pantryItemsUsedCount": <number of pantry items used>,`
-                : ""
-            }
+        : ""
+      }
             
-            "ingredients": [
+            "ingredients": [  
             {
                 "name": "ingredient name",
                 "quantity": "precise amount",
@@ -503,13 +494,12 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
         ✅ Complete nutrition data with realistic values
         ✅ Budget constraints met
         ✅ Allergens completely avoided
-        ✅ Pantry rules followed${
-          request.pantryOnly || request.usePantryItems
-            ? `
+        ✅ Pantry rules followed${request.pantryOnly || request.usePantryItems
+        ? `
         ✅ Recipe feasibility tracked (canGenerateRecipe field included)
         ✅ Pantry items usage count included`
-            : ""
-        }
+        : ""
+      }
         ✅ Learning from user history applied
         ✅ Valid JSON format (no markdown, no extra text)`;
   }
@@ -646,14 +636,14 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
   ): Promise<any> {
     const dietarySection = dietaryRestrictions?.length
       ? dietaryRestrictions
-          .map((r: any, index) => {
-            return `
+        .map((r: any, index) => {
+          return `
 Member ${index + 1}:
   - Dietary: ${r.dietary?.join(", ") || "None"}
   - Allergies: ${r.allergies?.join(", ") || "None"}
   - Goals: ${r.goals?.join(", ") || "None"}`;
-          })
-          .join("\n")
+        })
+        .join("\n")
       : "None";
 
     return `Create a detailed, authentic recipe for "${recipeName}" as a ${mealType} dish for ${servings} servings.

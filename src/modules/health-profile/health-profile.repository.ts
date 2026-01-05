@@ -53,7 +53,7 @@ export class HealthProfileRepository implements IHealthProfileRepository {
         .returning();
 
       return this.mapToDto(profile);
-    } catch (error) {}
+    } catch (error) { }
   }
 
   async findById(id: string): Promise<HealthProfileResponseDto | null> {
@@ -130,11 +130,11 @@ export class HealthProfileRepository implements IHealthProfileRepository {
       where: whereClause,
       limit,
       offset,
-      orderBy: (hp, { desc }) => [desc(hp.updatedAt)],
+      orderBy: (hp: any, { desc }: any) => [desc(hp.updatedAt)],
     });
 
     return {
-      data: profiles.map((p) => this.mapToDto(p)),
+      data: profiles.map((p: any) => this.mapToDto(p)),
       total: count,
       page,
       limit,

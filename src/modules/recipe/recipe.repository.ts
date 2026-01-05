@@ -71,8 +71,8 @@ export interface RecipeStorageInterface {
     recipeId: string,
   ): Promise<
     | (Recipe & {
-        ingredients: (RecipeIngredient & { ingredient: Ingredient })[];
-      })
+      ingredients: (RecipeIngredient & { ingredient: Ingredient })[];
+    })
     | undefined
   >;
 
@@ -299,6 +299,8 @@ export class RecipeStorage implements RecipeStorageInterface {
       sortOrder = "desc",
     } = filters;
 
+    console.log({ filters })
+
     // Build dynamic WHERE conditions
     const conditions = [
       sql`(${recipes.accountId} = ${accountId} OR ${recipes.isPublic} = true OR ${recipes.accountId} IS NULL)`,
@@ -306,20 +308,20 @@ export class RecipeStorage implements RecipeStorageInterface {
 
     // Cuisine filter
     if (cuisines) {
-      const cuisineArray = cuisines.split(",").map((c) => c.trim());
-      conditions.push(sql`${recipes.cuisineType} IN ${cuisineArray} `);
+      const cuisineArray = cuisines.split(",").map((c) => c.trim().toLowerCase());
+      conditions.push(sql`LOWER(${recipes.cuisineType}) IN ${cuisineArray} `);
     }
 
     // Meal type filter
     if (mealTypes) {
-      const mealTypeArray = mealTypes.split(",").map((m) => m.trim());
-      conditions.push(sql`${recipes.mealType} IN ${mealTypeArray} `);
+      const mealTypeArray = mealTypes.split(",").map((m) => m.trim().toLowerCase());
+      conditions.push(sql`LOWER(${recipes.mealType}) IN ${mealTypeArray} `);
     }
 
     // Difficulty filter
     if (difficulty) {
-      const difficultyArray = difficulty.split(",").map((d) => d.trim());
-      conditions.push(sql`${recipes.difficultyLevel} IN ${difficultyArray} `);
+      const difficultyArray = difficulty.split(",").map((d) => d.trim().toLowerCase());
+      conditions.push(sql`LOWER(${recipes.difficultyLevel}) IN ${difficultyArray} `);
     }
 
     // Prep time range
@@ -377,13 +379,13 @@ export class RecipeStorage implements RecipeStorageInterface {
 
     // Search filter (name, description, cuisine)
     if (search) {
-      const searchTerm = `% ${search}% `;
+      const searchTerm = `%${search.trim()}%`;
       conditions.push(
         sql`(
-    ${recipes.name} ILIKE ${searchTerm} OR 
-                ${recipes.description} ILIKE ${searchTerm} OR 
-                ${recipes.cuisineType} ILIKE ${searchTerm}
-)`,
+          ${recipes.name} ILIKE ${searchTerm} OR 
+          ${recipes.description} ILIKE ${searchTerm} OR 
+          ${recipes.cuisineType} ILIKE ${searchTerm}
+        )`,
       );
     }
 
@@ -400,26 +402,42 @@ export class RecipeStorage implements RecipeStorageInterface {
     const totalPages = Math.ceil(totalRecipes / pageSize);
 
     // Dynamic sorting
-    let orderByClause;
+    const orderByClauses = [];
+
+    // 🔍 Priority Sorting for Search (Name > Cuisine > Other)
+    if (search) {
+      const searchTerm = `%${search.trim()}%`;
+      orderByClauses.push(sql`
+        CASE 
+          WHEN ${recipes.name} ILIKE ${searchTerm} THEN 1 
+          WHEN ${recipes.cuisineType} ILIKE ${searchTerm} THEN 2 
+          ELSE 3 
+        END ASC
+      `);
+    }
+
+    let primarySort;
     const sortDirection = sortOrder === "asc" ? asc : desc;
 
     switch (sortBy) {
       case "name":
-        orderByClause = sortDirection(recipes.name);
+        primarySort = sortDirection(recipes.name);
         break;
       case "totalTimeMinutes":
-        orderByClause = sortDirection(recipes.totalTimeMinutes);
+        primarySort = sortDirection(recipes.totalTimeMinutes);
         break;
       case "calories":
-        orderByClause = sortDirection(recipes.calories);
+        primarySort = sortDirection(recipes.calories);
         break;
       case "estimatedCostPerServing":
-        orderByClause = sortDirection(recipes.estimatedCostPerServing);
+        primarySort = sortDirection(recipes.estimatedCostPerServing);
         break;
       case "createdAt":
       default:
-        orderByClause = sortDirection(recipes.createdAt);
+        primarySort = sortDirection(recipes.createdAt);
     }
+
+    orderByClauses.push(primarySort);
 
     // Get paginated recipes
     const offset = (page - 1) * pageSize;
@@ -427,7 +445,7 @@ export class RecipeStorage implements RecipeStorageInterface {
       .select()
       .from(recipes)
       .where(whereClause)
-      .orderBy(orderByClause)
+      .orderBy(...orderByClauses)
       .limit(pageSize)
       .offset(offset);
 
@@ -480,6 +498,7 @@ export class RecipeStorage implements RecipeStorageInterface {
         description: recipe.description || "",
         cuisineType: recipe.cuisineType,
         mealType: recipe.mealType,
+        imageUrl: recipe?.imageUrl || null,
         servings: recipe.servings,
         totalTimeMinutes: recipe.totalTimeMinutes,
         prepTimeMinutes: recipe.prepTimeMinutes,
@@ -826,12 +845,12 @@ export class RecipeStorage implements RecipeStorageInterface {
         aiReasoningNotes: recipe.aiReasoningNotes || null,
         aiGeneratedMetadata: recipe.pantryOptimization
           ? JSON.stringify({
-              pantryOptimization: recipe.pantryOptimization,
-              canGenerateRecipe: recipe.canGenerateRecipe,
-              insufficientPantryReason: recipe.insufficientPantryReason,
-              suggestedPantryAdditions: recipe.suggestedPantryAdditions,
-              pantryItemsUsedCount: recipe.pantryItemsUsedCount,
-            })
+            pantryOptimization: recipe.pantryOptimization,
+            canGenerateRecipe: recipe.canGenerateRecipe,
+            insufficientPantryReason: recipe.insufficientPantryReason,
+            suggestedPantryAdditions: recipe.suggestedPantryAdditions,
+            pantryItemsUsedCount: recipe.pantryItemsUsedCount,
+          })
           : null,
 
         // Initialize statistics
