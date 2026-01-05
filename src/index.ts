@@ -24,10 +24,9 @@ const PORT = CONFIG.PORT || 3000;
 app.use(helmet());
 // ||  process.env.CORS_ORIGINS?.split(",") || [];
 
-const allowedOrigins =["http://localhost:3001","http://localhost:3000","https://app.example.com" ,"localhost"] 
+const allowedOrigins = process.env.CORS_ORIGINS?.split(",") || [];
 
 logger.info("Allowed origins: ", allowedOrigins);
-
 app.use((req, res, next) => {
   res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
   res.setHeader("Access-Control-Allow-Origin", "*");
