@@ -32,6 +32,7 @@ export interface IUserRepository {
 }
 
 export class UserRepository implements IUserRepository {
+   
   private _db: any = null;
 
   private get db() {

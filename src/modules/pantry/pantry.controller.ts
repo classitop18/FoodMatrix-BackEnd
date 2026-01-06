@@ -1,15 +1,22 @@
 import type { NextFunction, Response } from "express";
 import { PantryItemsService } from "./pantry.service.js";
 import { AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
-import { sendSuccess } from "../../utils/response.utils.js";
+import { sendResponse } from "../../utils/response.utils.js";
+import { AppError } from "@/utils/app-error.utils.js";
 import {
-  createPantryItemSchema,
   updatePantryItemSchema,
   getPantryItemsQuerySchema,
   pantryItemIdParamSchema,
   getExpiringItemsQuerySchema,
   alertIdParamSchema,
 } from "./dto/pantry.dto.js";
+
+interface SessionRequest {
+  session?: {
+    accountId?: string;
+    memberId?: string;
+  };
+}
 
 export class PantryItemsController {
   private service: PantryItemsService;
@@ -22,7 +29,7 @@ export class PantryItemsController {
     // Try to get from headers (sent by frontend) or session (if set by some middleware)
     const accountId =
       (req.headers["x-account-id"] as string) ||
-      (req as any).session?.accountId;
+      (req as unknown as SessionRequest).session?.accountId;
     if (!accountId) {
       // throw new Error("Account ID is required");
       // We can't throw here easily to return 400 without custom error class.
@@ -44,7 +51,7 @@ export class PantryItemsController {
       const accountId = this.getAccountId(req);
 
       if (!accountId) {
-        return res.status(400).json({ error: "Account ID is required" });
+        throw new AppError("Account ID is required", 400);
       }
 
       const result = await this.service.getPantryItems(
@@ -52,7 +59,12 @@ export class PantryItemsController {
         validatedQuery,
       );
 
-      return sendSuccess(res, result, "Pantry items fetched successfully", 200);
+      return sendResponse(
+        res,
+        result,
+        "Pantry items fetched successfully",
+        200,
+      );
     } catch (error) {
       next(error);
     }
@@ -69,7 +81,7 @@ export class PantryItemsController {
       const accountId = this.getAccountId(req);
 
       if (!accountId) {
-        return res.status(400).json({ error: "Account ID is required" });
+        throw new AppError("Account ID is required", 400);
       }
 
       const result = await this.service.getExpiringItems(
@@ -77,7 +89,7 @@ export class PantryItemsController {
         validatedQuery.days,
       );
 
-      return sendSuccess(
+      return sendResponse(
         res,
         result,
         "Expiring items fetched successfully",
@@ -98,12 +110,12 @@ export class PantryItemsController {
       const accountId = this.getAccountId(req);
 
       if (!accountId) {
-        return res.status(400).json({ error: "Account ID is required" });
+        throw new AppError("Account ID is required", 400);
       }
 
       const result = await this.service.getPantryAlerts(accountId);
 
-      return sendSuccess(
+      return sendResponse(
         res,
         result,
         "Pantry alerts fetched successfully",
@@ -124,7 +136,7 @@ export class PantryItemsController {
       const validatedParams = alertIdParamSchema.parse(req.params);
       await this.service.dismissAlert(validatedParams.id);
 
-      return sendSuccess(res, null, "Alert dismissed successfully", 200);
+      return sendResponse(res, null, "Alert dismissed successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -140,10 +152,10 @@ export class PantryItemsController {
       const validatedData = req.body;
       const accountId = this.getAccountId(req);
 
-      console.log({ validatedData, accountId });
+      // console.log({ validatedData, accountId });
 
       if (!accountId) {
-        return res.status(400).json({ error: "Account ID is required" });
+        throw new AppError("Account ID is required", 400);
       }
       // Try to find a valid member ID from session or user object attached by auth middleware
       // Note: 'addedBy' references 'members.id', NOT 'users.id'.
@@ -151,14 +163,17 @@ export class PantryItemsController {
       // we should probably pass NULL or try to look it up if critical.
       // For now, if we can't find a memberId, we pass null to avoid FK violation with users.id
       const addedBy =
-        (req as any).session?.memberId || (req.user as any)?.memberId || null;
+         
+        (req as unknown as SessionRequest).session?.memberId ||
+        (req.user as any)?.memberId ||
+        null;
       const item = await this.service.addPantryItem({
         ...validatedData,
         accountId,
         addedBy,
       });
 
-      return sendSuccess(res, item, "Pantry item added successfully", 201);
+      return sendResponse(res, item, "Pantry item added successfully", 201);
     } catch (error) {
       next(error);
     }
@@ -179,7 +194,12 @@ export class PantryItemsController {
         validatedData,
       );
 
-      return sendSuccess(res, updated, "Pantry item updated successfully", 200);
+      return sendResponse(
+        res,
+        updated,
+        "Pantry item updated successfully",
+        200,
+      );
     } catch (error) {
       next(error);
     }
@@ -195,7 +215,7 @@ export class PantryItemsController {
       const validatedParams = pantryItemIdParamSchema.parse(req.params);
       await this.service.deletePantryItem(validatedParams.id);
 
-      return sendSuccess(res, null, "Pantry item deleted successfully", 200);
+      return sendResponse(res, null, "Pantry item deleted successfully", 200);
     } catch (error) {
       next(error);
     }

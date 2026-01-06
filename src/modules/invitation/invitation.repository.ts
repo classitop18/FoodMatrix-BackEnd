@@ -118,7 +118,7 @@ export class InvitationRepository {
     const { accountId, status, page = 1, limit = 10 } = query;
     const offset = (page - 1) * limit;
 
-    let whereConditions = [];
+    const whereConditions = [];
 
     if (accountId) {
       whereConditions.push(eq(invitations.accountId, accountId));

@@ -1,13 +1,21 @@
 import type { NextFunction, Response } from "express";
 import { MealPlanService } from "./meal-plan.service.js";
 import { AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
-import { sendSuccess } from "../../utils/response.utils.js";
+import { sendResponse } from "../../utils/response.utils.js";
+import { AppError } from "@/utils/app-error.utils.js";
 import {
   createMealPlanSchema,
   getMealPlansQuerySchema,
   mealPlanIdParamSchema,
   updateMealPlanSchema,
 } from "./dto/meal-plan.dto.js";
+
+interface SessionRequest {
+  session?: {
+    accountId?: string;
+    memberId?: string;
+  };
+}
 
 export class MealPlanController {
   private service: MealPlanService;
@@ -19,7 +27,7 @@ export class MealPlanController {
   private getAccountId(req: AuthenticatedRequest): string {
     const accountId =
       (req.headers["x-account-id"] as string) ||
-      (req as any).session?.accountId;
+      (req as unknown as SessionRequest).session?.accountId;
 
     if (!accountId) {
       return "";
@@ -38,12 +46,12 @@ export class MealPlanController {
       const accountId = this.getAccountId(req);
 
       if (!accountId) {
-        return res.status(400).json({ error: "Account ID is required" });
+        throw new AppError("Account ID is required", 400);
       }
 
       const result = await this.service.getMealPlans(accountId, validatedQuery);
 
-      return sendSuccess(res, result, "Meal plans fetched successfully", 200);
+      return sendResponse(res, result, "Meal plans fetched successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -60,16 +68,16 @@ export class MealPlanController {
       const accountId = this.getAccountId(req);
 
       if (!accountId) {
-        return res.status(400).json({ error: "Account ID is required" });
+        throw new AppError("Account ID is required", 400);
       }
 
       const createdBy =
-        (req as any).session?.memberId || (req.user as any)?.memberId;
+        (req as unknown as SessionRequest).session?.memberId ||
+         
+        (req.user as any)?.memberId;
 
       if (!createdBy) {
-        return res
-          .status(400)
-          .json({ error: "Member ID (created_by) is required" });
+        throw new AppError("Member ID (created_by) is required", 400);
       }
 
       const item = await this.service.createMealPlan({
@@ -78,7 +86,7 @@ export class MealPlanController {
         createdBy,
       });
 
-      return sendSuccess(res, item, "Meal plan created successfully", 201);
+      return sendResponse(res, item, "Meal plan created successfully", 201);
     } catch (error) {
       // console.error(error)
       next(error);
@@ -100,7 +108,7 @@ export class MealPlanController {
         validatedData,
       );
 
-      return sendSuccess(res, updated, "Meal plan updated successfully", 200);
+      return sendResponse(res, updated, "Meal plan updated successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -116,7 +124,7 @@ export class MealPlanController {
       const validatedParams = mealPlanIdParamSchema.parse(req.params);
       await this.service.deleteMealPlan(validatedParams.id);
 
-      return sendSuccess(res, null, "Meal plan deleted successfully", 200);
+      return sendResponse(res, null, "Meal plan deleted successfully", 200);
     } catch (error) {
       next(error);
     }

@@ -5,7 +5,7 @@ import {
   members,
   healthProfiles,
 } from "../../../database/schemas/schema.js";
-import { sql } from "drizzle-orm";
+
 import { getDb } from "../../../database/db.js";
 import { CreateAccountMemberPayload } from "./dto/account-member.dto.js";
 
@@ -22,6 +22,7 @@ export interface IAccountMemberRepository {
 
 export class AccountMemberRepository implements IAccountMemberRepository {
   private _db: any = null;
+   
 
   private get db() {
     if (!this._db) {
@@ -33,6 +34,7 @@ export class AccountMemberRepository implements IAccountMemberRepository {
   async createAccountWithMemberAndHealthProfile(
     payload: CreateAccountMemberPayload,
     primaryAdminId: string,
+     
   ) {
     return this.db.transaction(async (tx: any) => {
       // Create Account

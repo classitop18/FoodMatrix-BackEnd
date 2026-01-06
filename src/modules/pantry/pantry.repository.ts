@@ -35,7 +35,9 @@ export interface PantryPaginationParams {
 interface PantryItemsStorageInterface {
   getPantryItems(
     accountId: string,
+     
     params: any,
+     
   ): Promise<{ data: (PantryItem & { ingredient: any })[]; total: number }>;
   addPantryItem(pantryItem: InsertPantryItem): Promise<PantryItem>;
   updatePantryItem(
@@ -46,6 +48,7 @@ interface PantryItemsStorageInterface {
 }
 
 export class PantryItemsStorage implements PantryItemsStorageInterface {
+   
   private _db: any = null;
 
   private get db() {
@@ -166,7 +169,9 @@ export class PantryItemsStorage implements PantryItemsStorageInterface {
 
   async getPantryItems(
     accountId: string,
+     
     params: any,
+     
   ): Promise<{ data: (PantryItem & { ingredient: any })[]; total: number }> {
     const { page, limit, search, location, sortBy, sortOrder } = params;
     const offset = (page - 1) * limit;

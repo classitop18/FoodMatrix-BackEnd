@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 
 import {
   createHealthProfileSchema,
@@ -8,7 +8,7 @@ import {
 } from "./dto/health-profile.dto.js";
 import { IHealthProfileService } from "./types/health-profile.types.js";
 import { AuthenticatedRequest } from "@/middlewares/auth.middleware.js";
-import { sendSuccess } from "@/utils/response.utils.js";
+import { sendResponse } from "@/utils/response.utils.js";
 
 export class HealthProfileController {
   constructor(private readonly service: IHealthProfileService) {}
@@ -22,7 +22,7 @@ export class HealthProfileController {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       const validatedData = createHealthProfileSchema.parse(req.body);
       const userId = req.user!.id;
@@ -31,7 +31,12 @@ export class HealthProfileController {
         userId,
       );
 
-      sendSuccess(res, profile, "Health profile created successfully", 201);
+      return sendResponse(
+        res,
+        profile,
+        "Health profile created successfully",
+        201,
+      );
     } catch (error) {
       next(error);
     }
@@ -46,14 +51,14 @@ export class HealthProfileController {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       const { id } = req.params;
       const userId = req.user!.id;
 
       const profile = await this.service.getHealthProfile(id, userId);
 
-      sendSuccess(res, profile, "", 200);
+      return sendResponse(res, profile, "", 200);
     } catch (error) {
       next(error);
     }
@@ -68,7 +73,7 @@ export class HealthProfileController {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       const { memberId } = req.params;
       const userId = req.user!.id;
@@ -77,6 +82,8 @@ export class HealthProfileController {
         memberId,
         userId,
       );
+
+      return sendResponse(res, profile, "Fetched successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -91,12 +98,14 @@ export class HealthProfileController {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       const query = queryHealthProfileSchema.parse(req.query);
       const userId = req.user!.id;
 
       const result = await this.service.getAllHealthProfiles(query, userId);
+
+      return sendResponse(res, result, "Fetched successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -111,7 +120,7 @@ export class HealthProfileController {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       const { id } = req.params;
       const validatedData = updateHealthProfileSchema.parse(req.body);
@@ -123,7 +132,12 @@ export class HealthProfileController {
         userId,
       );
 
-      sendSuccess(res, profile, "Health profile updated successfully", 200);
+      return sendResponse(
+        res,
+        profile,
+        "Health profile updated successfully",
+        200,
+      );
     } catch (error) {
       next(error);
     }
@@ -138,14 +152,19 @@ export class HealthProfileController {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       const { id } = req.params;
       const userId = req.user!.id;
 
       await this.service.deleteHealthProfile(id, userId);
 
-      sendSuccess(res, null, "Health profile deleted successfully", 200);
+      return sendResponse(
+        res,
+        null,
+        "Health profile deleted successfully",
+        200,
+      );
     } catch (error) {
       next(error);
     }
@@ -160,11 +179,13 @@ export class HealthProfileController {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       const { weight, height } = req.body;
 
       const bmi = this.service.calculateBMI(Number(weight), Number(height));
+
+      return sendResponse(res, bmi, "BMI calculated successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -179,7 +200,7 @@ export class HealthProfileController {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       const { memberId } = req.params;
       const validatedData = healthAssessmentSchema.parse(req.body);
@@ -189,6 +210,13 @@ export class HealthProfileController {
         memberId,
         validatedData,
         userId,
+      );
+
+      return sendResponse(
+        res,
+        assessment,
+        "Assessment performed successfully",
+        200,
       );
     } catch (error) {
       next(error);
@@ -204,12 +232,14 @@ export class HealthProfileController {
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       const { memberId } = req.params;
       const userId = req.user!.id;
 
       await this.service.syncWearableData(memberId, userId);
+
+      return sendResponse(res, null, "Synced successfully", 200);
     } catch (error) {
       next(error);
     }

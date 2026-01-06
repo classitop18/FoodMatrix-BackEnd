@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { IPlacesService } from "./gp.service.js";
-import { sendSuccess } from "@/utils/response.utils.js";
+import { sendResponse } from "@/utils/response.utils.js";
 
 export class PlacesController {
   constructor(private placesService: IPlacesService) {}
@@ -12,14 +12,14 @@ export class PlacesController {
     try {
       const dto = req.query;
 
-      console.log(req.query, "myquwry");
+      // console.log(req.query, "myquwry");
 
       const results = await this.placesService.autocomplete(
-        dto.input,
-        dto.types,
+        dto.input as string,
+        dto.types as string,
       );
 
-      return sendSuccess(
+      return sendResponse(
         res,
         results,
         "Autocomplete suggestions fetched successfully",
@@ -39,7 +39,7 @@ export class PlacesController {
 
       const details = await this.placesService.getPlaceDetails(dto.placeId);
 
-      return sendSuccess(
+      return sendResponse(
         res,
         details,
         "Place details fetched successfully",
@@ -59,7 +59,7 @@ export class PlacesController {
 
       const coordinates = await this.placesService.geocodeAddress(dto.address);
 
-      return sendSuccess(
+      return sendResponse(
         res,
         coordinates,
         "Address geocoded successfully",
@@ -82,7 +82,7 @@ export class PlacesController {
         dto.longitude,
       );
 
-      return sendSuccess(
+      return sendResponse(
         res,
         details,
         "Coordinates reverse geocoded successfully",

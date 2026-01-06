@@ -1,8 +1,5 @@
 import { validate } from "@/middlewares/validation.middleware.js";
-import {
-  AutocompleteQuerySchema,
-  PlaceDetailsParamsSchema,
-} from "@/modules/google-places/dto/gp-dto.js";
+import { PlaceDetailsParamsSchema } from "@/modules/google-places/dto/gp-dto.js";
 import { PlacesController } from "@/modules/google-places/gp.controller.js";
 import { GooglePlacesRepository } from "@/modules/google-places/gp.repository.js";
 import { PlacesService } from "@/modules/google-places/gp.service.js";

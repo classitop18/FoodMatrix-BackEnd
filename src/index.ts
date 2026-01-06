@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";
@@ -6,7 +6,6 @@ import { logger } from "./utils/logger.utils.js";
 import { CONFIG } from "./utils/env.config.js";
 import { connectDatabase } from "./database/db.js";
 import appRouter from "./routes/index.js";
-import { sendError } from "./utils/response.utils.js";
 import { ExpressAdapter } from "@bull-board/express";
 import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
@@ -14,6 +13,7 @@ import { emailQueue } from "./queues/email.queue.js";
 import { emailWorker } from "./queues/worker/email.worker.js";
 import cookieParser from "cookie-parser";
 import { initializePantryCron } from "./cron/pantry-alert.cron.js";
+import { errorHandler } from "./middlewares/error.middleware.js";
 import { config } from "dotenv";
 import path from "path";
 config(); // Load .env variables
@@ -27,7 +27,7 @@ app.use(helmet());
 const allowedOrigins = process.env.CORS_ORIGINS?.split(",") || [];
 
 logger.info("Allowed origins: ", allowedOrigins);
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
   res.setHeader("Access-Control-Allow-Origin", "*");
   next();
@@ -54,8 +54,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-
-
 // HTTP request logging with morgan integrated with Winston
 app.use(
   morgan("combined", {
@@ -70,7 +68,6 @@ app.use(
   "/uploads",
   express.static(path.join(process.cwd(), "public", "uploads")),
 );
-
 
 // Basic route
 app.get("/", (req: Request, res: Response) => {
@@ -96,16 +93,7 @@ app.use("/api", appRouter);
 app.use("/api/v1", appRouter);
 
 // Global error handler
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  logger.error(err.stack || err.message || err);
-
-  return sendError(
-    res,
-    err?.message || "Internal Server Error",
-    null,
-    err?.status || 500,
-  );
-});
+app.use(errorHandler);
 
 // Start server
 const server = app.listen(PORT, async () => {

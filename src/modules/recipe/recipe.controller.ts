@@ -1,7 +1,14 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Response } from "express";
 import { RecipeService } from "./recipe.service.js";
 import { AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
-import { sendSuccess } from "@/utils/response.utils.js";
+import { sendResponse } from "@/utils/response.utils.js";
+import { AppError } from "@/utils/app-error.utils.js";
+
+interface SessionRequest {
+  session?: {
+    accountId?: string;
+  };
+}
 
 export class RecipeController {
   private recipeService: RecipeService;
@@ -14,7 +21,7 @@ export class RecipeController {
     // Try to get from headers (sent by frontend) or session (if set by some middleware)
     const accountId =
       (req.headers["x-account-id"] as string) ||
-      (req as any).session?.accountId; // Fallback if custom session middleware exists
+      (req as unknown as SessionRequest).session?.accountId; // Fallback if custom session middleware exists
 
     if (!accountId) {
       return "";
@@ -22,11 +29,14 @@ export class RecipeController {
     return accountId;
   }
 
-  getRecipes = async (req: Request, res: Response, next: NextFunction) => {
+  getRecipes = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const accountId = this.getAccountId(req as AuthenticatedRequest);
-      if (!accountId)
-        return res.status(401).json({ message: "Account ID is required" });
+      const accountId = this.getAccountId(req);
+      if (!accountId) throw new AppError("Account ID is required", 401);
 
       // Extract query parameters
       const filters = {
@@ -62,89 +72,98 @@ export class RecipeController {
       };
 
       const result = await this.recipeService.getRecipes(accountId, filters);
-      sendSuccess(res, result, "Recipes fetched successfully", 200);
+      return sendResponse(res, result, "Recipes fetched successfully", 200);
     } catch (err) {
-      console.error("Error fetching recipes:", err);
       next(err);
     }
   };
   // 📄 Get single recipe with ingredients
-  getRecipeById = async (req: Request, res: Response, next: NextFunction) => {
+  getRecipeById = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const accountId = this.getAccountId(req as AuthenticatedRequest);
-      if (!accountId)
-        return res.status(401).json({ message: "Account ID is required" });
+      const accountId = this.getAccountId(req);
+      if (!accountId) throw new AppError("Account ID is required", 401);
 
       const recipe = await this.recipeService.getRecipeDetails(req.params.id);
-      if (!recipe) return res.status(404).json({ message: "Recipe not found" });
+      if (!recipe) throw new AppError("Recipe not found", 404);
 
-      sendSuccess(res, recipe, "Recipe fetched successfully", 200);
-
+      return sendResponse(res, recipe, "Recipe fetched successfully", 200);
     } catch (err) {
-      console.error("Error fetching recipe:", err);
       next(err);
     }
   };
 
   // 🧑‍🍳 Create a new recipe
-  createRecipe = async (req: Request, res: Response, next: NextFunction) => {
+  createRecipe = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const accountId = this.getAccountId(req as AuthenticatedRequest);
-      if (!accountId)
-        return res.status(401).json({ message: "Account ID is required" });
+      const accountId = this.getAccountId(req);
+      if (!accountId) throw new AppError("Account ID is required", 401);
 
       const recipe = await this.recipeService.createRecipe(accountId, req.body);
-      sendSuccess(res, recipe, "Recipe Created Successfully", 201)
-
+      return sendResponse(res, recipe, "Recipe Created Successfully", 201);
     } catch (err) {
-      console.error("Error creating recipe:", err);
-      next(err)
+      next(err);
     }
   };
 
   // ✏️ Update recipe
-  updateRecipe = async (req: Request, res: Response) => {
+  updateRecipe = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const accountId = this.getAccountId(req as AuthenticatedRequest);
-      if (!accountId)
-        return res.status(401).json({ message: "Account ID is required" });
+      const accountId = this.getAccountId(req);
+      if (!accountId) throw new AppError("Account ID is required", 401);
 
       const updated = await this.recipeService.updateRecipe(
         req.params.id,
         accountId,
         req.body,
       );
-      res.json(updated);
-    } catch (err: any) {
-      console.error("Error updating recipe:", err);
-      res
-        .status(500)
-        .json({ message: err.message || "Failed to update recipe" });
+      return sendResponse(res, updated, "Recipe updated successfully", 200);
+    } catch (err) {
+      next(err);
     }
   };
 
   // ❌ Delete recipe
-  deleteRecipe = async (req: Request, res: Response) => {
+  deleteRecipe = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const accountId = this.getAccountId(req as AuthenticatedRequest);
-      if (!accountId)
-        return res.status(401).json({ message: "Account ID is required" });
+      const accountId = this.getAccountId(req);
+      if (!accountId) throw new AppError("Account ID is required", 401);
       await this.recipeService.deleteRecipe(req.params.id, accountId);
-      res.json({ success: true });
-    } catch (err: any) {
-      console.error("Error deleting recipe:", err);
-      res
-        .status(500)
-        .json({ message: err.message || "Failed to delete recipe" });
+      return sendResponse(
+        res,
+        { success: true },
+        "Recipe deleted successfully",
+        200,
+      );
+    } catch (err) {
+      next(err);
     }
   };
 
   // Toggle recipe visibility (public/private)
-  toggleVisibility = async (req: Request, res: Response) => {
+  toggleVisibility = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const accountId = this.getAccountId(req as AuthenticatedRequest);
-      if (!accountId)
-        return res.status(401).json({ message: "Account ID is required" });
+      const accountId = this.getAccountId(req);
+      if (!accountId) throw new AppError("Account ID is required", 401);
 
       const { isPublic } = req.body;
       const result = await this.recipeService.toggleVisibility(
@@ -152,46 +171,46 @@ export class RecipeController {
         accountId,
         isPublic,
       );
-      res.json(result);
-    } catch (err: any) {
-      console.error("Error toggling visibility:", err);
-      res
-        .status(500)
-        .json({ message: err.message || "Failed to toggle visibility" });
+      return sendResponse(res, result, "Visibility toggled", 200);
+    } catch (err) {
+      next(err);
     }
   };
 
   // 💤 Deactivate (soft delete)
-  deactivateRecipe = async (req: Request, res: Response) => {
+  deactivateRecipe = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const accountId = this.getAccountId(req as AuthenticatedRequest);
-      if (!accountId)
-        return res.status(401).json({ message: "Account ID is required" });
+      const accountId = this.getAccountId(req);
+      if (!accountId) throw new AppError("Account ID is required", 401);
 
       const result = await this.recipeService.deactivateRecipe(
         req.params.id,
         accountId,
       );
-      res.json(result);
-    } catch (err: any) {
-      console.error("Error deactivating recipe:", err);
-      res
-        .status(500)
-        .json({ message: err.message || "Failed to deactivate recipe" });
+      return sendResponse(res, result, "Recipe deactivated", 200);
+    } catch (err) {
+      next(err);
     }
   };
 
   // 🍳 Update cooking status
-  updateCookingStatus = async (req: Request, res: Response) => {
+  updateCookingStatus = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const accountId = this.getAccountId(req as AuthenticatedRequest);
-      if (!accountId)
-        return res.status(401).json({ message: "Account ID is required" });
+      const accountId = this.getAccountId(req);
+      if (!accountId) throw new AppError("Account ID is required", 401);
 
       const { status } = req.body;
       // Validate status
       if (!["cooked", "not_cooked", "not_interested"].includes(status)) {
-        return res.status(400).json({ message: "Invalid status value" });
+        throw new AppError("Invalid status value", 400);
       }
 
       const result = await this.recipeService.updateCookingStatus(
@@ -199,41 +218,43 @@ export class RecipeController {
         accountId,
         status,
       );
-      res.json(result);
-    } catch (err: any) {
-      console.error("Error updating cooking status:", err);
-      res
-        .status(500)
-        .json({ message: err.message || "Failed to update cooking status" });
+      return sendResponse(res, result, "Cooking status updated", 200);
+    } catch (err) {
+      next(err);
     }
   };
 
   // 🔎 Search by keyword
-  searchRecipes = async (req: Request, res: Response) => {
+  searchRecipes = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const accountId = this.getAccountId(req as AuthenticatedRequest);
+      const accountId = this.getAccountId(req);
       // Search might be allowed for public recipes without accountId, but let's enforce safely for now or allow optional?
       // Existing service allows optional accountId.
       // If strictly protected route, we expect accountId. But let's act robust.
 
       const query = req.query.q as string;
-      if (!query)
-        return res.status(400).json({ message: "Missing search query" });
+      if (!query) throw new AppError("Missing search query", 400);
 
       const results = await this.recipeService.searchRecipes(query, accountId);
-      res.json(results);
+      return sendResponse(res, results, "Search results", 200);
     } catch (err) {
-      console.error("Error searching recipes:", err);
-      res.status(500).json({ message: "Failed to search recipes" });
+      next(err);
     }
   };
 
   // 💰 Search by budget
-  searchByBudget = async (req: Request, res: Response) => {
+  searchByBudget = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const accountId = this.getAccountId(req as AuthenticatedRequest);
-      if (!accountId)
-        return res.status(401).json({ message: "Account ID is required" });
+      const accountId = this.getAccountId(req);
+      if (!accountId) throw new AppError("Account ID is required", 401);
 
       const { maxBudget, members } = req.body;
       const results = await this.recipeService.searchByBudget(
@@ -241,19 +262,21 @@ export class RecipeController {
         maxBudget,
         members,
       );
-      res.json(results);
+      return sendResponse(res, results, "Budget search results", 200);
     } catch (err) {
-      console.error("Error filtering recipes by budget:", err);
-      res.status(500).json({ message: "Failed to filter recipes" });
+      next(err);
     }
   };
 
   // 🧂 Add an ingredient
-  addIngredient = async (req: Request, res: Response) => {
+  addIngredient = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const accountId = this.getAccountId(req as AuthenticatedRequest);
-      if (!accountId)
-        return res.status(401).json({ message: "Account ID is required" });
+      const accountId = this.getAccountId(req);
+      if (!accountId) throw new AppError("Account ID is required", 401);
 
       const recipeId = req.params.id;
       const ingredient = await this.recipeService.addIngredient(
@@ -261,19 +284,21 @@ export class RecipeController {
         req.body,
         accountId,
       );
-      res.status(201).json(ingredient);
+      return sendResponse(res, ingredient, "Ingredient added", 201);
     } catch (err) {
-      console.error("Error adding ingredient:", err);
-      res.status(500).json({ message: "Failed to add ingredient" });
+      next(err);
     }
   };
 
   // ❌ Remove ingredient
-  removeIngredient = async (req: Request, res: Response) => {
+  removeIngredient = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const accountId = this.getAccountId(req as AuthenticatedRequest);
-      if (!accountId)
-        return res.status(401).json({ message: "Account ID is required" });
+      const accountId = this.getAccountId(req);
+      if (!accountId) throw new AppError("Account ID is required", 401);
 
       const { recipeId, ingredientId } = req.params;
       await this.recipeService.removeIngredient(
@@ -281,50 +306,49 @@ export class RecipeController {
         ingredientId,
         accountId,
       );
-      res.json({ success: true });
+      return sendResponse(res, { success: true }, "Ingredient removed", 200);
     } catch (err) {
-      console.error("Error removing ingredient:", err);
-      res.status(500).json({ message: "Failed to remove ingredient" });
+      next(err);
     }
   };
 
   // 🧠 Generate AI recipes (ChatGPT / GPT-5)
-  generateAIRecipes = async (req: Request, res: Response) => {
+  generateAIRecipes = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const accountId = this.getAccountId(req as AuthenticatedRequest);
-      if (!accountId)
-        return res.status(401).json({ message: "Account ID is required" });
+      const accountId = this.getAccountId(req);
+      if (!accountId) throw new AppError("Account ID is required", 401);
 
       const response = await this.recipeService.generateAIRecipes(
         req.body,
         accountId,
       );
-      res.json(response);
-    } catch (err: any) {
-      console.error("AI Recipe Generation Error:", err);
-      res
-        .status(500)
-        .json({ message: err.message || "AI recipe generation failed" });
+      return sendResponse(res, response, "AI recipes generated", 200);
+    } catch (err) {
+      next(err);
     }
   };
 
   // 🔍 Generate Custom AI Recipe (Search)
-  generateCustomRecipe = async (req: Request, res: Response) => {
+  generateCustomRecipe = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const accountId = this.getAccountId(req as AuthenticatedRequest);
-      if (!accountId)
-        return res.status(401).json({ message: "Account ID is required" });
+      const accountId = this.getAccountId(req);
+      if (!accountId) throw new AppError("Account ID is required", 401);
 
       const response = await this.recipeService.generateAICustomRecipes(
         req.body,
         accountId,
       );
-      res.json(response);
-    } catch (err: any) {
-      console.error("AI Custom Recipe Search Error:", err);
-      res
-        .status(500)
-        .json({ message: err.message || "Custom recipe search failed" });
+      return sendResponse(res, response, "Custom recipe generated", 200);
+    } catch (err) {
+      next(err);
     }
   };
 }

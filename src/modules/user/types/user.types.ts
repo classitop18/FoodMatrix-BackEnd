@@ -3,7 +3,7 @@ import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 export type User = InferSelectModel<typeof users>;
 export type NewUser = InferInsertModel<typeof users>;
-export interface UserWithoutPassword extends Omit<User, "password" | "otp"> {}
+export type UserWithoutPassword = Omit<User, "password" | "otp">;
 
 export interface CreateUserDTO {
   email: string;
@@ -74,7 +74,7 @@ export interface PaginatedResponse<T> {
   };
 }
 
-export interface CheckPropertyExist<T> {
+export interface CheckPropertyExist {
   field: string;
   value: string;
 }

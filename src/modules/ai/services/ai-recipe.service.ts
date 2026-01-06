@@ -6,7 +6,6 @@ import {
   NutritionInfo,
   RECIPE_GENERATION_SYSTEM_PROMPT,
   RecipeParser,
-  RecipePromptBuilder,
   RecipeStorage,
 } from "../interfaces/ai.interfaces.js";
 import fs from "fs";
@@ -20,11 +19,11 @@ export class AIRecipeService {
     private promptBuilder: AdvancedRecipePromptBuilder,
     private recipeParser: RecipeParser,
     private recipeStorage: RecipeStorage,
-  ) { }
+  ) {}
 
   private async downloadAndSaveImage(
     url: string,
-    recipeName: string,
+    // recipeName: string,
   ): Promise<string> {
     try {
       const uploadsDir = path.join(
@@ -96,7 +95,7 @@ export class AIRecipeService {
       // Build advanced prompt with all learning data
       const prompt = await this.promptBuilder.buildPrompt(enhancedRequest);
 
-      console.log({ prompt })
+      console.log({ prompt });
 
       // Generate recipes using AI
       const maxTokens = this.calculateMaxTokens(request.recipeCount);
@@ -255,7 +254,7 @@ export class AIRecipeService {
               // Download and save locally
               const localUrl = await this.downloadAndSaveImage(
                 generatedUrl,
-                recipe.name,
+                // recipe.name,
               );
               recipe.imageUrl = localUrl;
             } else {
@@ -306,12 +305,12 @@ export class AIRecipeService {
   }
 
   private scaleQuantity(quantity: string, ratio: number): string {
-    const numMatch = quantity.match(/[\d.\/]+/);
+    const numMatch = quantity.match(/[\d./]+/);
     if (!numMatch) return quantity;
 
     const num = eval(numMatch[0]); // Parse fractions like "1/2"
     const scaled = (num * ratio).toFixed(2);
-    return quantity.replace(/[\d.\/]+/, scaled);
+    return quantity.replace(/[\d./]+/, scaled);
   }
 
   private estimateNutrition(recipe: { mealType: string }): NutritionInfo {
@@ -433,19 +432,19 @@ export class AIRecipeService {
     // Build nutrition info (use DB data if available, otherwise estimate)
     const nutrition: NutritionInfo = dbRecipe.calories
       ? {
-        calories: Math.round(dbRecipe.calories * servingRatio),
-        protein_g: Math.round((dbRecipe.calories * 0.25) / 4), // Estimate from calories
-        carbs_g: Math.round((dbRecipe.calories * 0.45) / 4),
-        fat_g: Math.round((dbRecipe.calories * 0.3) / 9),
-        fiber_g: 8,
-        sugar_g: 6,
-        sodium_mg: 600,
-        cholesterol_mg: 50,
-      }
+          calories: Math.round(dbRecipe.calories * servingRatio),
+          protein_g: Math.round((dbRecipe.calories * 0.25) / 4), // Estimate from calories
+          carbs_g: Math.round((dbRecipe.calories * 0.45) / 4),
+          fat_g: Math.round((dbRecipe.calories * 0.3) / 9),
+          fiber_g: 8,
+          sugar_g: 6,
+          sodium_mg: 600,
+          cholesterol_mg: 50,
+        }
       : this.estimateNutrition({
-        mealType: dbRecipe.mealType,
-        servings: targetServings,
-      } as any);
+          mealType: dbRecipe.mealType,
+          servings: targetServings,
+        } as any);
 
     // Calculate health score based on nutrition
     const healthScore = this.calculateHealthScore(nutrition);

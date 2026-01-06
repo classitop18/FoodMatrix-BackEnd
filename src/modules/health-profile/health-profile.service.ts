@@ -1,17 +1,13 @@
-import { members } from "@/database/schemas/schema.js";
 import {
   CreateHealthProfileDto,
-  HealthAssessmentDto,
   HealthProfileResponseDto,
-  QueryHealthProfileDto,
   UpdateHealthProfileDto,
 } from "./dto/health-profile.dto.js";
 import {
   IHealthCalculator,
   IHealthProfileRepository,
-  IHealthProfileService,
 } from "./types/health-profile.types.js";
-import { log } from "console";
+// import { log } from "console";
 
 export class HealthProfileService {
   constructor(
@@ -19,7 +15,9 @@ export class HealthProfileService {
     private readonly healthCalculator: IHealthCalculator,
   ) {}
 
-  async verifyMemberAccess(memberId: string, userId: string) {}
+  async verifyMemberAccess(memberId: string, userId: string) {
+    console.log(memberId, userId);
+  }
 
   async createHealthProfile(
     data: CreateHealthProfileDto,
@@ -41,10 +39,7 @@ export class HealthProfileService {
     return this.repository.update(profile.id, { healthScore } as any);
   }
 
-  async getHealthProfile(
-    id: string,
-    userId: string,
-  ): Promise<HealthProfileResponseDto | null> {
+  async getHealthProfile(id: string): Promise<HealthProfileResponseDto | null> {
     const profile = await this.repository.findByMemberId(id);
     if (!profile) {
       return null;
@@ -67,7 +62,6 @@ export class HealthProfileService {
   async updateHealthProfile(
     id: string,
     data: UpdateHealthProfileDto,
-    userId: string,
   ): Promise<HealthProfileResponseDto> {
     const existing = await this.repository.findByMemberId(id);
 

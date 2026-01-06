@@ -16,6 +16,7 @@ const BASE_DIR = path.join(__dirname, "email", "layouts");
 // const BASE_DIR = path.join(__dirname, "layouts");
 const LAYOUT_FILE = path.join(BASE_DIR, "main.hbs");
 
+ 
 type TemplateContext = Record<string, any>;
 
 export interface EmailServiceOptions {
@@ -29,17 +30,17 @@ export class EmailService {
 
   constructor(opts?: EmailServiceOptions) {
     this.provider =
-      opts?.provider ?? (process.env.EMAIL_PROVIDER as any) ?? "smtp";
-    this.from = process.env.EMAIL_FROM ?? "no-reply@example.com";
+      opts?.provider ?? (CONFIG.EMAIL_PROVIDER as "smtp" | "console") ?? "smtp";
+    this.from = CONFIG.EMAIL_FROM ?? "no-reply@example.com";
 
     if (this.provider === "smtp") {
       this.transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT ?? 587),
-        secure: process.env.SMTP_SECURE === "true",
+        host: CONFIG.SMTP_HOST,
+        port: Number(CONFIG.SMTP_PORT ?? 587),
+        secure: CONFIG.SMTP_SECURE === "true",
         auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
+          user: CONFIG.SMTP_USER,
+          pass: CONFIG.SMTP_PASS,
         },
         tls: {
           rejectUnauthorized: false,
@@ -50,6 +51,7 @@ export class EmailService {
         streamTransport: true,
         newline: "unix",
         buffer: true,
+         
       } as any);
     }
   }
@@ -107,9 +109,10 @@ export class EmailService {
 
     try {
       const info = await this.transporter.sendMail(mailOptions);
-
+       
       if ((info as any).message) {
         console.log("\n📨 EMAIL (console mode):\n");
+         
         console.log((info as any).message.toString());
       } else {
         console.log("Email sent:", info);

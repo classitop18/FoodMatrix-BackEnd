@@ -7,9 +7,7 @@ import { requirePermission } from "../middlewares/authorization.middleware.js";
 import { validate } from "../middlewares/validation.middleware.js";
 import { PERMISSIONS } from "../common/permissions.config.js";
 import {
-  createPantryItemSchema,
   updatePantryItemSchema,
-  getPantryItemsQuerySchema,
   pantryItemIdParamSchema,
   getExpiringItemsQuerySchema,
   alertIdParamSchema,

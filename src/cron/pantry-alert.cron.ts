@@ -4,9 +4,8 @@ import {
   pantryItems,
   ingredients,
   pantryAlerts,
-  accounts,
 } from "../database/schemas/schema.js";
-import { and, eq, gte, lte, isNull } from "drizzle-orm";
+import { and, eq, gte, lte } from "drizzle-orm";
 import { logger } from "../utils/logger.utils.js";
 
 /**
@@ -18,6 +17,7 @@ import { logger } from "../utils/logger.utils.js";
  */
 
 class PantryAlertCron {
+   
   private _db: any = null;
 
   private get db() {

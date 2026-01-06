@@ -395,7 +395,7 @@ export const authenticateMFA = async (
   next: NextFunction,
 ) => {
   try {
-    const { mfa_temp_session } = req?.cookies;
+    const { mfa_temp_session } = req.cookies || {};
 
     if (!mfa_temp_session) {
       return sendError(res, "Reset token missing.", null, 400);

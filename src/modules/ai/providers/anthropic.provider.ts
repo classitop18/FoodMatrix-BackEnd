@@ -40,7 +40,7 @@ export class AnthropicProvider implements AIProvider {
       },
     };
   }
-
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async generateImage(params: AIImageGenerationParams): Promise<string> {
     throw new Error("Image generation is not supported by Anthropic provider.");
   }

@@ -16,7 +16,7 @@ const processEmailJob = async (job: Job): Promise<EmailResult> => {
   await job.updateProgress(10);
 
   try {
-    let result: EmailResult | any;
+    let result: EmailResult;
 
     switch (job.name) {
       case EmailJobType.VERIFICATION: {
@@ -54,9 +54,10 @@ const processEmailJob = async (job: Job): Promise<EmailResult> => {
 
     logger.info(`Email job completed | Job: ${job.id}`);
     return result;
-  } catch (error: any) {
-    logger.error(`Error processing email job ${job.id}: ${error.message}`, {
-      stack: error.stack,
+  } catch (error) {
+    const err = error as Error;
+    logger.error(`Error processing email job ${job.id}: ${err.message}`, {
+      stack: err.stack,
     });
     throw error;
   }

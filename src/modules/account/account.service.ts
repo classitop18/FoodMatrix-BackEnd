@@ -1,15 +1,12 @@
 import { HealthCalculatorService } from "../health-profile/health-calculate.service.js";
-import {
-  AccountMemberRepository,
-  IAccountMemberRepository,
-} from "../shared/account-member/account-member.respository.js";
+import { AccountMemberRepository } from "../shared/account-member/account-member.respository.js";
 import {
   AccountMemberService,
   IAccountMemberService,
 } from "../shared/account-member/account-member.service.js";
 import { CreateAccountMemberPayload } from "../shared/account-member/dto/account-member.dto.js";
 import { AccountRepository } from "./account.repository.js";
-import { AccountInsert, Account } from "./account.repository.js";
+import { Account } from "./account.repository.js";
 import { AccountCreationInput } from "./types/account.types.js";
 
 export class AccountService {

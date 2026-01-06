@@ -4,7 +4,6 @@ import {
   desc,
   and,
   ilike,
-  or,
   asc,
   inArray,
   getTableColumns,
@@ -24,10 +23,9 @@ import {
 import {
   AIGeneratedRecipe,
   AIRecipeRequest,
-  RecipeScore,
 } from "../ai/interfaces/ai.interfaces.js";
 
-type DrizzleClient = ReturnType<typeof getDb>;
+// type DrizzleClient = ReturnType<typeof getDb>;
 
 export interface RecipeFilters {
   cuisines?: string;
@@ -65,14 +63,13 @@ export interface RecipeStorageInterface {
     status: string,
   ): Promise<Recipe | undefined>;
 
+   
   getRecipes(accountId: string, filters: RecipeFilters): Promise<any>;
   getRecipeById(recipeId: string): Promise<Recipe | undefined>;
-  getRecipeWithIngredients(
-    recipeId: string,
-  ): Promise<
+  getRecipeWithIngredients(recipeId: string): Promise<
     | (Recipe & {
-      ingredients: (RecipeIngredient & { ingredient: Ingredient })[];
-    })
+        ingredients: (RecipeIngredient & { ingredient: Ingredient })[];
+      })
     | undefined
   >;
 
@@ -99,6 +96,7 @@ export interface RecipeStorageInterface {
 }
 
 export class RecipeStorage implements RecipeStorageInterface {
+   
   private _db: any = null;
 
   private get db() {
@@ -274,6 +272,7 @@ export class RecipeStorage implements RecipeStorageInterface {
     filters: RecipeFilters,
   ): Promise<{
     recipes: any[];
+     
     pagination: {
       page: number;
       pageSize: number;
@@ -299,7 +298,7 @@ export class RecipeStorage implements RecipeStorageInterface {
       sortOrder = "desc",
     } = filters;
 
-    console.log({ filters })
+    console.log({ filters });
 
     // Build dynamic WHERE conditions
     const conditions = [
@@ -308,20 +307,28 @@ export class RecipeStorage implements RecipeStorageInterface {
 
     // Cuisine filter
     if (cuisines) {
-      const cuisineArray = cuisines.split(",").map((c) => c.trim().toLowerCase());
+      const cuisineArray = cuisines
+        .split(",")
+        .map((c) => c.trim().toLowerCase());
       conditions.push(sql`LOWER(${recipes.cuisineType}) IN ${cuisineArray} `);
     }
 
     // Meal type filter
     if (mealTypes) {
-      const mealTypeArray = mealTypes.split(",").map((m) => m.trim().toLowerCase());
+      const mealTypeArray = mealTypes
+        .split(",")
+        .map((m) => m.trim().toLowerCase());
       conditions.push(sql`LOWER(${recipes.mealType}) IN ${mealTypeArray} `);
     }
 
     // Difficulty filter
     if (difficulty) {
-      const difficultyArray = difficulty.split(",").map((d) => d.trim().toLowerCase());
-      conditions.push(sql`LOWER(${recipes.difficultyLevel}) IN ${difficultyArray} `);
+      const difficultyArray = difficulty
+        .split(",")
+        .map((d) => d.trim().toLowerCase());
+      conditions.push(
+        sql`LOWER(${recipes.difficultyLevel}) IN ${difficultyArray} `,
+      );
     }
 
     // Prep time range
@@ -450,6 +457,7 @@ export class RecipeStorage implements RecipeStorageInterface {
       .offset(offset);
 
     // collect recipeIds from results
+     
     const recipeIds = recipesList.map((r: any) => r.id);
 
     // Get ingredients with ALL enhanced data
@@ -471,9 +479,12 @@ export class RecipeStorage implements RecipeStorageInterface {
       .where(inArray(recipeIngredients.recipeId, recipeIds));
 
     // 🔥 Transform recipes to AI format with parsed JSON fields
+     
     const recipesWithIngredients = recipesList.map((recipe: any) => {
       const recipeIngredientsList = ingredientsRows
+         
         .filter((i: any) => i.recipeId === recipe.id)
+         
         .map((ing: any) => ({
           name: ing.name || "",
           quantity: ing.quantity || "",
@@ -570,6 +581,7 @@ export class RecipeStorage implements RecipeStorageInterface {
   }
 
   // 🧾 Get recipe + ingredients in AI format
+   
   async getRecipeWithIngredients(recipeId: string): Promise<any | undefined> {
     const recipe = await this.getRecipeById(recipeId);
     if (!recipe) return undefined;
@@ -707,6 +719,7 @@ export class RecipeStorage implements RecipeStorageInterface {
   async searchRecipesByBudget(
     accountId: string,
     maxCostPerServing: number,
+    //eslint-disable-next-line @typescript-eslint/no-unused-vars
     memberCount: number,
   ): Promise<Recipe[]> {
     return this.db
@@ -777,6 +790,7 @@ export class RecipeStorage implements RecipeStorageInterface {
       .where(eq(recipeIngredients.recipeId, recipeId));
   }
 
+  //eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getRecentRecipesWithScores(accountId: string) {
     return [];
   }
@@ -808,6 +822,9 @@ export class RecipeStorage implements RecipeStorageInterface {
         prepTimeMinutes: recipe.totalTimeMinutes * 0.4, // estimated split
         cookTimeMinutes: recipe.totalTimeMinutes * 0.6,
         totalTimeMinutes: recipe.totalTimeMinutes,
+         
+         
+         
         difficultyLevel: recipe.difficultyLevel as any,
         mealType: recipe.mealType as any,
         cuisineType: recipe.cuisineType as any,
@@ -845,12 +862,12 @@ export class RecipeStorage implements RecipeStorageInterface {
         aiReasoningNotes: recipe.aiReasoningNotes || null,
         aiGeneratedMetadata: recipe.pantryOptimization
           ? JSON.stringify({
-            pantryOptimization: recipe.pantryOptimization,
-            canGenerateRecipe: recipe.canGenerateRecipe,
-            insufficientPantryReason: recipe.insufficientPantryReason,
-            suggestedPantryAdditions: recipe.suggestedPantryAdditions,
-            pantryItemsUsedCount: recipe.pantryItemsUsedCount,
-          })
+              pantryOptimization: recipe.pantryOptimization,
+              canGenerateRecipe: recipe.canGenerateRecipe,
+              insufficientPantryReason: recipe.insufficientPantryReason,
+              suggestedPantryAdditions: recipe.suggestedPantryAdditions,
+              pantryItemsUsedCount: recipe.pantryItemsUsedCount,
+            })
           : null,
 
         // Initialize statistics
@@ -889,9 +906,11 @@ export class RecipeStorage implements RecipeStorageInterface {
             .returning();
 
           ingredientId = newIng.id;
+           
         }
 
         // Insert into junction table with ALL ingredient data
+         
         const recipeIng: any = {
           recipeId: saved.id,
           ingredientId,

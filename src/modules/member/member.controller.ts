@@ -1,6 +1,4 @@
-import { Request, Response, NextFunction } from "express";
-
-import { ZodError } from "zod";
+import { Response, NextFunction } from "express";
 import { IMemberService, MemberService } from "./member.service.js";
 import {
   bulkDeleteMembersSchema,
@@ -9,9 +7,10 @@ import {
   transferOwnershipSchema,
   updateMemberSchema,
 } from "./dto/member.dto.js";
-import { sendSuccess } from "@/utils/response.utils.js";
-import { MemberError } from "./types/member.types.js";
+import { sendResponse } from "@/utils/response.utils.js";
 import { AuthenticatedRequest } from "@/middlewares/auth.middleware.js";
+import { AppError } from "@/utils/app-error.utils.js";
+import { GetMembersQuery } from "./types/member.types.js";
 
 export class MemberController {
   constructor(
@@ -29,7 +28,7 @@ export class MemberController {
     try {
       const requesterId = req.user?.id; // Assuming auth middleware sets req.user
       if (!requesterId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
 
       const validatedData = createMemberSchema.parse(req.body);
@@ -38,11 +37,7 @@ export class MemberController {
         requesterId,
       );
 
-      return res.status(201).json({
-        success: true,
-        data: member,
-        message: "Member created successfully",
-      });
+      return sendResponse(res, member, "Member created successfully", 201);
     } catch (error) {
       next(error);
     }
@@ -52,20 +47,21 @@ export class MemberController {
    * GET /api/members/:id
    * Get member by ID
    */
-  getMemberById = async (req: Request, res: Response, next: NextFunction) => {
+  getMemberById = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const requesterId = req.user?.id;
       if (!requesterId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
 
       const { id } = req.params;
       const member = await this.memberService.getMemberById(id, requesterId);
 
-      return res.status(200).json({
-        success: true,
-        data: member,
-      });
+      return sendResponse(res, member, "Member fetched successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -75,22 +71,27 @@ export class MemberController {
    * GET /api/members
    * Get all members with filters and pagination
    */
-  getMembers = async (req: any, res: Response, next: NextFunction) => {
+  getMembers = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
-      const userId = req?.user?.id;
+      const userId = req.user!.id;
 
-      const result = await this.memberService.getMembers(
-        {
-          accountId: req?.query?.accountId,
-          page: req?.query?.page || 1,
-          limit: req?.query?.limit || 10,
-          sortBy: req?.query?.sortBy || "createdAt",
-          sortOrder: req?.query?.sortOrder || "desc",
-        },
-        userId,
-      );
+      // Manually construct query object or assume service handles partials
+      const query: GetMembersQuery = {
+        accountId: req.query.accountId as string,
+        page: req.query.page ? Number(req.query.page) : 1,
+        limit: req.query.limit ? Number(req.query.limit) : 10,
+        sortBy:
+          (req.query.sortBy as "createdAt" | "name" | "role") || "createdAt",
+        sortOrder: (req.query.sortOrder as "asc" | "desc") || "desc",
+      };
 
-      return sendSuccess(res, result, "Members fetched successfully", 200);
+      const result = await this.memberService.getMembers(query, userId);
+
+      return sendResponse(res, result, "Members fetched successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -101,14 +102,14 @@ export class MemberController {
    * Get all members of an account
    */
   getAccountMembers = async (
-    req: Request,
+    req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
   ) => {
     try {
       const requesterId = req.user?.id;
       if (!requesterId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
 
       const { accountId } = req.params;
@@ -117,11 +118,12 @@ export class MemberController {
         requesterId,
       );
 
-      return res.status(200).json({
-        success: true,
-        data: members,
-        count: members.length,
-      });
+      return sendResponse(
+        res,
+        members,
+        "Account members fetched successfully",
+        200,
+      );
     } catch (error) {
       next(error);
     }
@@ -132,14 +134,14 @@ export class MemberController {
    * Get internal members only
    */
   getInternalMembers = async (
-    req: Request,
+    req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
   ) => {
     try {
       const requesterId = req.user?.id;
       if (!requesterId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
 
       const { accountId } = req.params;
@@ -148,11 +150,12 @@ export class MemberController {
         requesterId,
       );
 
-      return res.status(200).json({
-        success: true,
-        data: members,
-        count: members.length,
-      });
+      return sendResponse(
+        res,
+        members,
+        "Internal members fetched successfully",
+        200,
+      );
     } catch (error) {
       next(error);
     }
@@ -163,14 +166,14 @@ export class MemberController {
    * Get registered members only
    */
   getRegisteredMembers = async (
-    req: Request,
+    req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
   ) => {
     try {
       const requesterId = req.user?.id;
       if (!requesterId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
 
       const { accountId } = req.params;
@@ -179,11 +182,12 @@ export class MemberController {
         requesterId,
       );
 
-      return res.status(200).json({
-        success: true,
-        data: members,
-        count: members.length,
-      });
+      return sendResponse(
+        res,
+        members,
+        "Registered members fetched successfully",
+        200,
+      );
     } catch (error) {
       next(error);
     }
@@ -193,11 +197,15 @@ export class MemberController {
    * PATCH /api/members/:id
    * Update member
    */
-  updateMember = async (req: Request, res: Response, next: NextFunction) => {
+  updateMember = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const requesterId = req.user?.id;
       if (!requesterId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
 
       const { id } = req.params;
@@ -208,11 +216,7 @@ export class MemberController {
         requesterId,
       );
 
-      return res.status(200).json({
-        success: true,
-        data: member,
-        message: "Member updated successfully",
-      });
+      return sendResponse(res, member, "Member updated successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -222,20 +226,21 @@ export class MemberController {
    * DELETE /api/members/:id
    * Delete member
    */
-  deleteMember = async (req: Request, res: Response, next: NextFunction) => {
+  deleteMember = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const requesterId = req.user?.id;
       if (!requesterId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
 
       const { id } = req.params;
       await this.memberService.deleteMember(id, requesterId);
 
-      return res.status(200).json({
-        success: true,
-        message: "Member deleted successfully",
-      });
+      return sendResponse(res, null, "Member deleted successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -246,14 +251,14 @@ export class MemberController {
    * Transfer account ownership
    */
   transferOwnership = async (
-    req: Request,
+    req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
   ) => {
     try {
       const requesterId = req.user?.id;
       if (!requesterId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
 
       const { accountId } = req.params;
@@ -264,10 +269,7 @@ export class MemberController {
         requesterId,
       );
 
-      return res.status(200).json({
-        success: true,
-        message: "Ownership transferred successfully",
-      });
+      return sendResponse(res, null, "Ownership transferred successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -278,21 +280,21 @@ export class MemberController {
    * Update member role
    */
   updateMemberRole = async (
-    req: Request,
+    req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
   ) => {
     try {
       const requesterId = req.user?.id;
       if (!requesterId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
 
       const { id } = req.params;
       const { role } = req.body;
 
       if (!role) {
-        return res.status(400).json({ error: "Role is required" });
+        throw new AppError("Role is required", 400);
       }
 
       const member = await this.memberService.updateMemberRole(
@@ -301,11 +303,7 @@ export class MemberController {
         requesterId,
       );
 
-      return res.status(200).json({
-        success: true,
-        data: member,
-        message: "Role updated successfully",
-      });
+      return sendResponse(res, member, "Role updated successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -315,11 +313,15 @@ export class MemberController {
    * POST /api/members/bulk-update-role
    * Bulk update member roles
    */
-  bulkUpdateRole = async (req: Request, res: Response, next: NextFunction) => {
+  bulkUpdateRole = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const requesterId = req.user?.id;
       if (!requesterId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
 
       const validatedData = bulkUpdateRoleSchema.parse(req.body);
@@ -328,11 +330,12 @@ export class MemberController {
         requesterId,
       );
 
-      return res.status(200).json({
-        success: true,
-        data: result,
-        message: `${result.updated} members updated successfully`,
-      });
+      return sendResponse(
+        res,
+        result,
+        `${result.updated} members updated successfully`,
+        200,
+      );
     } catch (error) {
       next(error);
     }
@@ -343,14 +346,14 @@ export class MemberController {
    * Bulk delete members
    */
   bulkDeleteMembers = async (
-    req: Request,
+    req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
   ) => {
     try {
       const requesterId = req.user?.id;
       if (!requesterId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
 
       const validatedData = bulkDeleteMembersSchema.parse(req.body);
@@ -359,11 +362,12 @@ export class MemberController {
         requesterId,
       );
 
-      return res.status(200).json({
-        success: true,
-        data: result,
-        message: `${result.deleted} members deleted successfully`,
-      });
+      return sendResponse(
+        res,
+        result,
+        `${result.deleted} members deleted successfully`,
+        200,
+      );
     } catch (error) {
       next(error);
     }
@@ -373,11 +377,15 @@ export class MemberController {
    * GET /api/accounts/:accountId/members/stats
    * Get member statistics
    */
-  getMemberStats = async (req: Request, res: Response, next: NextFunction) => {
+  getMemberStats = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const requesterId = req.user?.id;
       if (!requesterId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
 
       const { accountId } = req.params;
@@ -386,10 +394,7 @@ export class MemberController {
         requesterId,
       );
 
-      return res.status(200).json({
-        success: true,
-        data: stats,
-      });
+      return sendResponse(res, stats, "Stats fetched successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -400,14 +405,14 @@ export class MemberController {
    * Get member permissions
    */
   getMemberPermissions = async (
-    req: Request,
+    req: AuthenticatedRequest,
     res: Response,
     next: NextFunction,
   ) => {
     try {
       const requesterId = req.user?.id;
       if (!requesterId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        throw new AppError("Unauthorized", 401);
       }
 
       const { id } = req.params;
@@ -416,47 +421,14 @@ export class MemberController {
         requesterId,
       );
 
-      return res.status(200).json({
-        success: true,
-        data: permissions,
-      });
+      return sendResponse(
+        res,
+        permissions,
+        "Permissions fetched successfully",
+        200,
+      );
     } catch (error) {
       next(error);
     }
   };
 }
-
-// Error handler middleware
-export const memberErrorHandler = (
-  error: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  console.error("Member Error:", error);
-
-  if (error instanceof ZodError) {
-    return res.status(400).json({
-      success: false,
-      error: "Validation error",
-      details: error.errors.map((e) => ({
-        field: e.path.join("."),
-        message: e.message,
-      })),
-    });
-  }
-
-  if (error instanceof MemberError) {
-    return res.status(error.statusCode).json({
-      success: false,
-      error: error.message,
-      code: error.code,
-    });
-  }
-
-  return res.status(500).json({
-    success: false,
-    error: "Internal server error",
-    message: process.env.NODE_ENV === "development" ? error.message : undefined,
-  });
-};

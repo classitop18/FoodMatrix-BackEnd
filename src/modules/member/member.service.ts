@@ -58,7 +58,7 @@ export interface IMemberService {
   ): Promise<void>;
   updateMemberRole(
     memberId: string,
-    role: string,
+    role: "admin" | "super_admin" | "member",
     requesterId: string,
   ): Promise<MemberResponseDto>;
 
@@ -170,7 +170,11 @@ export class MemberService implements IMemberService {
     );
 
     // Prevent changing owner role through regular update
-    if (member.role === "owner" && data.role && data.role !== "owner") {
+    if (
+      member.role === "super_admin" &&
+      data.role &&
+      data.role !== "super_admin"
+    ) {
       throw new UnauthorizedMemberActionError(
         "change owner role. Use transfer ownership instead",
       );
@@ -201,7 +205,7 @@ export class MemberService implements IMemberService {
     );
 
     // Prevent deleting owner
-    if (member.role === "owner") {
+    if (member.role === "super_admin") {
       throw new UnauthorizedMemberActionError("delete the account owner");
     }
 
@@ -292,13 +296,13 @@ export class MemberService implements IMemberService {
     }
 
     // Swap roles
-    await this.memberRepo.update(currentOwner.id, { role: "super_admin" });
-    await this.memberRepo.update(data.newOwnerId, { role: "owner" });
+    await this.memberRepo.update(currentOwner.id, { role: "admin" });
+    await this.memberRepo.update(data.newOwnerId, { role: "super_admin" });
   }
 
   async updateMemberRole(
     memberId: string,
-    role: string,
+    role: "admin" | "super_admin" | "member",
     requesterId: string,
   ): Promise<MemberResponseDto> {
     const member = await this.memberRepo.findById(memberId, false);
@@ -313,7 +317,7 @@ export class MemberService implements IMemberService {
       "update member roles",
     );
 
-    if (member.role === "owner") {
+    if (member.role === "super_admin") {
       throw new UnauthorizedMemberActionError(
         "change owner role. Use transfer ownership instead",
       );
@@ -347,7 +351,7 @@ export class MemberService implements IMemberService {
     const owners = await Promise.all(
       data.memberIds.map((id) => this.memberRepo.findById(id, false)),
     );
-    const hasOwner = owners.some((m) => m?.role === "owner");
+    const hasOwner = owners.some((m) => m?.role === "super_admin");
     if (hasOwner) {
       throw new UnauthorizedMemberActionError("bulk update owner roles");
     }
@@ -377,7 +381,7 @@ export class MemberService implements IMemberService {
     const owners = await Promise.all(
       data.memberIds.map((id) => this.memberRepo.findById(id, false)),
     );
-    const hasOwner = owners.some((m) => m?.role === "owner");
+    const hasOwner = owners.some((m) => m?.role === "super_admin");
     if (hasOwner) {
       throw new UnauthorizedMemberActionError("bulk delete the owner");
     }
@@ -422,15 +426,15 @@ export class MemberService implements IMemberService {
     const requesterRole = requesterMember[0].role;
 
     return {
-      canEdit: ["owner", "super_admin"].includes(requesterRole),
+      canEdit: ["super_admin", "admin"].includes(requesterRole),
       canDelete:
-        ["owner", "super_admin"].includes(requesterRole) &&
-        member.role !== "owner",
-      canViewHealthProfile: ["owner", "super_admin", "member"].includes(
+        ["super_admin", "admin"].includes(requesterRole) &&
+        member.role !== "super_admin",
+      canViewHealthProfile: ["super_admin", "admin", "member"].includes(
         requesterRole,
       ),
-      canManageMembers: ["owner", "super_admin"].includes(requesterRole),
-      canTransferOwnership: requesterRole === "owner",
+      canManageMembers: ["super_admin", "admin"].includes(requesterRole),
+      canTransferOwnership: requesterRole === "super_admin",
     };
   }
 
@@ -456,7 +460,7 @@ export class MemberService implements IMemberService {
     if (members.length === 0) return false;
 
     const role = members[0].role;
-    const adminRoles = ["owner", "super_admin"];
+    const adminRoles = ["super_admin", "admin"];
 
     switch (permission) {
       case "manage_members":
@@ -483,6 +487,7 @@ export class MemberService implements IMemberService {
     }
   }
 
+   
   private mapToResponseDto(member: any): MemberResponseDto {
     return {
       id: member.id,

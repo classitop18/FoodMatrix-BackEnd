@@ -6,8 +6,9 @@ import {
   generateAuthenticationToken,
 } from "@/utils/jwt.utils.js";
 import { CONFIG } from "@/utils/env.config.js";
-import { hashString, compareHash } from "@/utils/bcrypt.utils.js";
-import { sendSuccess } from "@/utils/response.utils.js";
+import { compareHash } from "@/utils/bcrypt.utils.js";
+import { sendResponse } from "@/utils/response.utils.js";
+import { AppError } from "@/utils/app-error.utils.js";
 
 export class AuthController {
   constructor(
@@ -24,17 +25,12 @@ export class AuthController {
     req: Request,
     res: Response,
     next: NextFunction,
-  ): Promise<void> => {
+  ): Promise<any> => {
     try {
       const refreshToken = req.cookies?.refreshToken;
 
       if (!refreshToken) {
-        res.status(401).json({
-          success: false,
-          message: "Refresh token not found",
-          errorCode: "REFRESH_TOKEN_MISSING",
-        });
-        return;
+        throw new AppError("Refresh token not found", 401);
       }
 
       // Verify refresh token
@@ -44,12 +40,7 @@ export class AuthController {
       );
 
       if (!decoded || !decoded.userId || !decoded.sessionId) {
-        res.status(401).json({
-          success: false,
-          message: "Invalid refresh token",
-          errorCode: "INVALID_REFRESH_TOKEN",
-        });
-        return;
+        throw new AppError("Invalid refresh token", 401);
       }
 
       // Get session from database
@@ -58,12 +49,7 @@ export class AuthController {
       );
 
       if (!session || !session.isValid) {
-        res.status(401).json({
-          success: false,
-          message: "Session expired or invalid",
-          errorCode: "SESSION_INVALID",
-        });
-        return;
+        throw new AppError("Session expired or invalid", 401);
       }
 
       // Verify refresh token hash matches
@@ -73,12 +59,7 @@ export class AuthController {
       );
 
       if (!isValidToken) {
-        res.status(401).json({
-          success: false,
-          message: "Invalid refresh token",
-          errorCode: "INVALID_REFRESH_TOKEN",
-        });
-        return;
+        throw new AppError("Invalid refresh token", 401);
       }
 
       // Check if session is expired
@@ -88,24 +69,14 @@ export class AuthController {
           isValid: false,
         });
 
-        res.status(401).json({
-          success: false,
-          message: "Session expired",
-          errorCode: "SESSION_EXPIRED",
-        });
-        return;
+        throw new AppError("Session expired", 401);
       }
 
       // Get user
       const user = await this.userService.getUserById(decoded.userId);
 
       if (!user) {
-        res.status(401).json({
-          success: false,
-          message: "User not found",
-          errorCode: "USER_NOT_FOUND",
-        });
-        return;
+        throw new AppError("User not found", 404);
       }
 
       // Generate new access token (keep same refresh token)
@@ -120,7 +91,7 @@ export class AuthController {
         lastUsedAt: new Date(),
       });
 
-      return sendSuccess(
+      return sendResponse(
         res,
         {
           accessToken,

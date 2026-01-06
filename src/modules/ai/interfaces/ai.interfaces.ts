@@ -39,7 +39,7 @@ export interface RecipePromptBuilder {
     mealType: string,
     servings: number,
     dietaryRestrictions?: string[],
-  ): string;
+  ): Promise<string>;
 }
 
 export interface RecipeParser {

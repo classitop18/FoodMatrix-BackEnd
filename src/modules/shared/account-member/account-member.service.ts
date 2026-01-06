@@ -51,6 +51,7 @@ export class AccountMemberService implements IAccountMemberService {
    * Calculate an initial health score during account creation
    * This is a simplified version since we don't have the complete HealthProfileResponseDto yet
    */
+   
   private calculateInitialHealthScore(healthProfile: any): number {
     let score = 50; // Base score
 

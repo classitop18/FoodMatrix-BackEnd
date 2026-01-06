@@ -1,10 +1,5 @@
-import {
-  IAddressDetails,
-  ICoordinates,
-  IPlaceAutocomplete,
-  IPlaceDetails,
-} from "./types/gp.types.js";
-import axios, { AxiosInstance } from "axios";
+import { ICoordinates } from "./types/gp.types.js";
+import axios from "axios";
 
 export interface IPlacesRepository {
   autocomplete(
@@ -38,7 +33,7 @@ export interface PlaceAutocompleteResult {
 
 export class GooglePlacesRepository implements IPlacesRepository {
   private apiKey: string;
-  private baseUrl = "https://maps.googleapis.com/maps/api";
+  // private baseUrl = "https://maps.googleapis.com/maps/api";
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;

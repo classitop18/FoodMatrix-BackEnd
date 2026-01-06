@@ -1,5 +1,5 @@
 // src/modules/health-profiles/repositories/health-profile.repository.ts
-import { eq, and, sql, isNotNull } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { IHealthProfileRepository } from "./types/health-profile.types.js";
 import {
   CreateHealthProfileDto,
@@ -20,40 +20,45 @@ export class HealthProfileRepository implements IHealthProfileRepository {
     return this._db;
   }
 
+  /**
+   * Create a new health profile
+   * @param data - The health profile data to create
+   * @returns The created health profile
+   */
   async create(data: CreateHealthProfileDto): Promise<any> {
-    try {
-      // Check if member exists
-      const member = await this.db.query.members.findFirst({
-        where: eq(members.id, data.memberId),
-      });
+    // Check if member exists
+    const member = await this.db.query.members.findFirst({
+      where: eq(members.id, data.memberId),
+    });
 
-      if (!member) {
-      }
+    if (!member) {
+      throw new Error("Member not found");
+    }
 
-      // Check if health profile already exists for this member
-      const existing = await this.findByMemberId(data.memberId);
-      if (existing) {
-      }
+    // Check if health profile already exists for this member
+    const existing = await this.findByMemberId(data.memberId);
+    if (existing) {
+      throw new Error("Health profile already exists for this member");
+    }
 
-      const [profile] = await this.db
-        .insert(healthProfiles)
-        .values({
-          ...data,
-          conditions: data.conditions || [],
-          allergies: data.allergies || [],
-          dietaryRestrictions: data.dietaryRestrictions || [],
-          goals: data.goals || [],
-          preferredCuisines: data.preferredCuisines || [],
-          excludedFoods: data.excludedFoods || [],
-          includedFoods: data.includedFoods || [],
-          customExclusions: data.customExclusions || [],
-          customInclusions: data.customInclusions || [],
-          preferenceSets: data.preferenceSets || [],
-        })
-        .returning();
+    const [profile] = await this.db
+      .insert(healthProfiles)
+      .values({
+        ...data,
+        conditions: data.conditions || [],
+        allergies: data.allergies || [],
+        dietaryRestrictions: data.dietaryRestrictions || [],
+        goals: data.goals || [],
+        preferredCuisines: data.preferredCuisines || [],
+        excludedFoods: data.excludedFoods || [],
+        includedFoods: data.includedFoods || [],
+        customExclusions: data.customExclusions || [],
+        customInclusions: data.customInclusions || [],
+        preferenceSets: data.preferenceSets || [],
+      })
+      .returning();
 
-      return this.mapToDto(profile);
-    } catch (error) { }
+    return this.mapToDto(profile);
   }
 
   async findById(id: string): Promise<HealthProfileResponseDto | null> {
@@ -171,6 +176,7 @@ export class HealthProfileRepository implements IHealthProfileRepository {
   async delete(id: string): Promise<void> {
     const existing = await this.findById(id);
     if (!existing) {
+      throw new Error("Health profile not found");
     }
     await this.db.delete(healthProfiles).where(eq(healthProfiles.id, id));
   }

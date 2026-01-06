@@ -154,7 +154,7 @@ export class InvitationService {
   }
 
   // ============ ADMIN APPROVES INVITATION ============
-  async approveInvitation(data: ApproveInvitationDTO, adminId: string) {
+  async approveInvitation(data: ApproveInvitationDTO) {
     const invitation = await this.repository.findById(data.invitationId);
 
     if (!invitation) {
@@ -210,7 +210,7 @@ export class InvitationService {
   }
 
   // ============ ADMIN REJECTS INVITATION ============
-  async rejectInvitation(data: RejectInvitationDTO, adminId: string) {
+  async rejectInvitation(data: RejectInvitationDTO) {
     const invitation = await this.repository.findById(data.invitationId);
 
     if (!invitation) {
@@ -246,7 +246,7 @@ export class InvitationService {
   }
 
   // ============ RESEND INVITATION ============
-  async resendInvitation(data: ResendInvitationDTO, userId: string) {
+  async resendInvitation(data: ResendInvitationDTO) {
     const invitation = await this.repository.findById(data.invitationId);
 
     if (!invitation) {
@@ -303,7 +303,7 @@ export class InvitationService {
   }
 
   // ============ CANCEL INVITATION ============
-  async cancelInvitation(data: CancelInvitationDTO, userId: string) {
+  async cancelInvitation(data: CancelInvitationDTO) {
     const invitation = await this.repository.findById(data.invitationId);
 
     if (!invitation) {
@@ -326,7 +326,7 @@ export class InvitationService {
   }
 
   // ============ GET ALL INVITATIONS ============
-  async getInvitations(query: GetInvitationsQuery, userId: string) {
+  async getInvitations(query: GetInvitationsQuery) {
     return await this.repository.findAll(query);
   }
 

@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { AccountService } from "./account.service.js";
-import { sendSuccess } from "../../utils/response.utils.js";
+import { sendResponse } from "../../utils/response.utils.js";
 import { AuthenticatedRequest } from "@/middlewares/auth.middleware.js";
 import { CreateAccountMemberResponse } from "../shared/account-member/dto/account-member.dto.js";
+import { AppError } from "@/utils/app-error.utils.js";
 
 export class AccountController {
   constructor(private readonly accountService: AccountService) {}
@@ -15,10 +16,8 @@ export class AccountController {
     next: NextFunction,
   ) => {
     try {
-      const userId = (req as any).user.id;
+      // const userId = req.user!.id;
       const body = req.body;
-
-      console.log({ accountD: body });
 
       const primaryAdminId = req.user!.id;
 
@@ -33,11 +32,7 @@ export class AccountController {
         healthProfileId: result.healthProfileId,
       };
 
-      res.status(201).json({
-        success: true,
-        message: "Account created successfully",
-        data: response,
-      });
+      return sendResponse(res, response, "Account created successfully", 201);
     } catch (error) {
       next(error);
     }
@@ -47,11 +42,11 @@ export class AccountController {
 
   getMyAccounts = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = (req as any).user.id;
+      const userId = (req as AuthenticatedRequest).user!.id;
 
       const accounts = await this.accountService.getAccountsForUser(userId);
 
-      sendSuccess(res, accounts, "", 200);
+      return sendResponse(res, accounts, "", 200);
     } catch (error) {
       next(error);
     }
@@ -62,9 +57,7 @@ export class AccountController {
   getAccountById = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { accountId } = req.params as { accountId: string };
-      const userId = (req as any).user.id;
-
-      // await this.accountService.ensureUserIsMember(userId, accountId);
+      const userId = (req as AuthenticatedRequest).user!.id;
 
       const account = await this.accountService.getAccountById(
         accountId,
@@ -72,56 +65,21 @@ export class AccountController {
       );
 
       if (!account) {
-        return res.status(404).json({
-          success: false,
-          message: "Account not found",
-        });
+        throw new AppError("Account not found", 404);
       }
 
-      res.status(200).json({
-        success: true,
-        data: account,
-      });
+      return sendResponse(res, account, "Success", 200);
     } catch (error) {
       next(error);
     }
   };
-
-  // getAccount = async (
-  //     req: Request,
-  //     res: Response,
-  //     next: NextFunction,
-  // ) => {
-  //     try {
-  //         const { accountId } = req.params as { accountId: string };
-  //         const userId = (req as any).user.id;
-
-  //         await this.accountService.ensureUserIsMember(userId, accountId);
-
-  //         const account = await this.accountService.getAccountById(accountId);
-
-  //         if (!account) {
-  //             return res.status(404).json({
-  //                 success : false,
-  //                 message: "Account not found",
-  //             });
-  //         }
-
-  //         res.status(200).json({
-  //             success: true,
-  //             data: account,
-  //         });
-  //     } catch (error) {
-  //         next(error);
-  //     }
-  // };
 
   /* ---------------- UPDATE ACCOUNT ---------------- */
 
   updateAccount = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { accountId } = req.params as { accountId: string };
-      const userId = (req as any).user.id;
+      const userId = (req as AuthenticatedRequest).user!.id;
       const body = req.body;
       await this.accountService.ensureUserIsMember(userId, accountId);
       const updatedAccount = await this.accountService.updateAccount(
@@ -129,11 +87,12 @@ export class AccountController {
         body,
       );
 
-      res.status(200).json({
-        success: true,
-        message: "Account updated successfully",
-        data: updatedAccount,
-      });
+      return sendResponse(
+        res,
+        updatedAccount,
+        "Account updated successfully",
+        200,
+      );
     } catch (error) {
       next(error);
     }
@@ -144,16 +103,13 @@ export class AccountController {
   deleteAccount = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { accountId } = req.params as { accountId: string };
-      const userId = (req as any).user.id;
+      const userId = (req as AuthenticatedRequest).user!.id;
 
       await this.accountService.ensureUserIsMember(userId, accountId);
 
       await this.accountService.deleteAccount(accountId);
 
-      res.status(200).json({
-        success: true,
-        message: "Account deleted successfully",
-      });
+      return sendResponse(res, null, "Account deleted successfully", 200);
     } catch (error) {
       next(error);
     }

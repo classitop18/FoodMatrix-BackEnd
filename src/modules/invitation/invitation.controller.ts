@@ -1,7 +1,8 @@
-import type { NextFunction, Response } from "express";
+import type { NextFunction, Response, Request } from "express";
 import { InvitationService } from "./invitation.service.js";
 import { AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
-import { sendSuccess, sendError } from "../../utils/response.utils.js";
+import { sendResponse } from "../../utils/response.utils.js";
+import { AppError } from "@/utils/app-error.utils.js";
 import {
   createInvitationSchema,
   acceptInvitationSchema,
@@ -34,8 +35,8 @@ export class InvitationController {
         userId,
       );
 
-      return sendSuccess(res, invitation, "Invitation sent successfully", 201);
-    } catch (error: any) {
+      return sendResponse(res, invitation, "Invitation sent successfully", 201);
+    } catch (error) {
       next(error);
     }
   };
@@ -55,12 +56,12 @@ export class InvitationController {
         userEmail,
       );
 
-      return sendSuccess(
+      return sendResponse(
         res,
         invitation,
         "Invitation accepted successfully. Waiting for admin approval.",
       );
-    } catch (error: any) {
+    } catch (error) {
       next(error);
     }
   };
@@ -80,8 +81,8 @@ export class InvitationController {
         adminId,
       );
 
-      return sendSuccess(res, invitation, "Invitation approved successfully");
-    } catch (error: any) {
+      return sendResponse(res, invitation, "Invitation approved successfully");
+    } catch (error) {
       next(error);
     }
   };
@@ -101,8 +102,8 @@ export class InvitationController {
         adminId,
       );
 
-      return sendSuccess(res, invitation, "Invitation rejected successfully");
-    } catch (error: any) {
+      return sendResponse(res, invitation, "Invitation rejected successfully");
+    } catch (error) {
       next(error);
     }
   };
@@ -122,8 +123,8 @@ export class InvitationController {
         userId,
       );
 
-      return sendSuccess(res, invitation, "Invitation resent successfully");
-    } catch (error: any) {
+      return sendResponse(res, invitation, "Invitation resent successfully");
+    } catch (error) {
       next(error);
     }
   };
@@ -140,8 +141,8 @@ export class InvitationController {
 
       const result = await this.service.cancelInvitation(validatedData, userId);
 
-      return sendSuccess(res, result, result.message);
-    } catch (error: any) {
+      return sendResponse(res, result, result.message);
+    } catch (error) {
       next(error);
     }
   };
@@ -158,13 +159,13 @@ export class InvitationController {
 
       const result = await this.service.getInvitations(validatedQuery, userId);
 
-      return sendSuccess(
+      return sendResponse(
         res,
         result.data,
         "Invitations retrieved successfully",
         200,
       );
-    } catch (error: any) {
+    } catch (error) {
       next(error);
     }
   };
@@ -180,12 +181,12 @@ export class InvitationController {
 
       const invitations = await this.service.getUserInvitations(userEmail);
 
-      return sendSuccess(
+      return sendResponse(
         res,
         invitations,
         "User invitations retrieved successfully",
       );
-    } catch (error: any) {
+    } catch (error) {
       next(error);
     }
   };
@@ -201,24 +202,24 @@ export class InvitationController {
 
       const invitation = await this.service.getInvitationById(id);
 
-      return sendSuccess(res, invitation, "Invitation retrieved successfully");
-    } catch (error: any) {
+      return sendResponse(res, invitation, "Invitation retrieved successfully");
+    } catch (error) {
       next(error);
     }
   };
   // ============ VALIDATE TOKEN (PUBLIC) ============
-  validateToken = async (req: any, res: Response, next: NextFunction) => {
+  validateToken = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { token } = req.params;
 
       if (!token) {
-        return sendError(res, "Token is required", null, 400);
+        throw new AppError("Token is required", 400);
       }
 
       const result = await this.service.validateInvitationToken(token);
 
-      return sendSuccess(res, result, "Token validated successfully");
-    } catch (error: any) {
+      return sendResponse(res, result, "Token validated successfully");
+    } catch (error) {
       next(error);
     }
   };

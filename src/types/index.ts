@@ -1,18 +1,9 @@
-export type ApiResponse<T = any> = {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
   data?: T;
-  error?: any;
-};
+  error?: unknown;
+}
 
-export type SuccessResponse<T = any> = {
-  success: true;
-  message: string;
-  data: T;
-};
-
-export type ErrorResponse = {
-  success: false;
-  message: string;
-  error?: any;
-};
+export type SuccessResponse<T = unknown> = ApiResponse<T>;
+export type ErrorResponse = ApiResponse<null>;

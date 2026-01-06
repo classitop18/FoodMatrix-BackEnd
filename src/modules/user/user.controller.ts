@@ -13,17 +13,17 @@ import {
   addVerificationEmailJob,
   addPasswordResetEmailJob,
 } from "@/queues/jobs/email.jobs.js";
-import { sendSuccess } from "@/utils/response.utils.js";
+import { sendResponse } from "@/utils/response.utils.js";
 import { OTP_PURPOSES } from "../user-otps/constant/user-otp.constant.js";
 import { hashString } from "@/utils/bcrypt.utils.js";
 import {
   paginationSchema,
-  updatePasswordSchema,
   updateUserSchema,
   userFiltersSchema,
 } from "./schema/user.schema.js";
 import { ISessionService } from "../session/session.service.js";
 import { AuthenticatedRequest } from "@/middlewares/auth.middleware.js";
+import { AppError } from "@/utils/app-error.utils.js";
 
 export class UserController {
   constructor(
@@ -36,6 +36,7 @@ export class UserController {
     req: Request,
     res: Response,
     next: NextFunction,
+     
   ): Promise<ApiResponse | any> => {
     try {
       const user = await this.userService.createUser(req.body);
@@ -52,7 +53,7 @@ export class UserController {
         expiresIn: Number(CONFIG.TOKEN_EXPIRATION_MINUTES),
       });
 
-      sendSuccess(
+      return sendResponse(
         res,
         { id: user?.id },
         "User created successfully. Please verify your email.",
@@ -67,6 +68,7 @@ export class UserController {
     req: Request,
     res: Response,
     next: NextFunction,
+     
   ): Promise<ApiResponse | any> => {
     try {
       const { user } = await this.userService.loginUser(req.body);
@@ -88,7 +90,7 @@ export class UserController {
           expiresIn: Number(CONFIG.TOKEN_EXPIRATION_MINUTES),
         });
 
-        return sendSuccess(
+        return sendResponse(
           res,
           null,
           "Please verify your email to login. A new verification email has been sent.",
@@ -136,7 +138,7 @@ export class UserController {
           path: "/",
         });
 
-        return sendSuccess(
+        return sendResponse(
           res,
           { mfaRequired: true },
           "MFA required. Please verify.",
@@ -197,7 +199,7 @@ export class UserController {
         sessionId: session.id, // Optional: for reference only
       };
 
-      return sendSuccess(
+      return sendResponse(
         res,
         { ...userResponse },
         "User logged in successfully",
@@ -214,10 +216,10 @@ export class UserController {
     next: NextFunction,
   ) => {
     try {
-      const id = req?.user?.id;
+      const id = req.user?.id;
       const user = await this.userService.findUserByField(req.body, id);
 
-      return sendSuccess(
+      return sendResponse(
         res,
         { exists: !!user },
         user
@@ -225,7 +227,7 @@ export class UserController {
           : `No user found with this ${req.body.field}.`,
         200,
       );
-    } catch (error: any) {
+    } catch (error) {
       next(error);
     }
   };
@@ -235,10 +237,7 @@ export class UserController {
       const { id } = req.params;
       const user = await this.userService.getUserById(id);
 
-      res.status(200).json({
-        success: true,
-        data: user,
-      });
+      return sendResponse(res, user, "User fetched successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -251,10 +250,7 @@ export class UserController {
 
       const result = await this.userService.getUsers(filters, pagination);
 
-      res.status(200).json({
-        success: true,
-        ...result,
-      });
+      return sendResponse(res, result, "Users fetched successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -266,15 +262,13 @@ export class UserController {
     next: NextFunction,
   ) => {
     try {
-      const id = req?.user?.id;
-      const validated = updateUserSchema.parse(req.body);
-      const user = await this.userService.updateUser(id!, validated);
+      const id = req.user?.id;
+      if (!id) throw new AppError("Unauthorized", 401);
 
-      res.status(200).json({
-        success: true,
-        message: "User updated successfully",
-        data: user,
-      });
+      const validated = updateUserSchema.parse(req.body);
+      const user = await this.userService.updateUser(id, validated);
+
+      return sendResponse(res, user, "User updated successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -289,10 +283,7 @@ export class UserController {
       const { id } = req.params;
       await this.userService.deleteUser(id);
 
-      res.status(200).json({
-        success: true,
-        message: "User deleted successfully",
-      });
+      return sendResponse(res, null, "User deleted successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -305,10 +296,11 @@ export class UserController {
   ) => {
     try {
       const id = req.user?.id;
+      if (!id) throw new AppError("Unauthorized", 401);
 
-      await this.userService.changePassword(id!, req?.body);
+      await this.userService.changePassword(id, req.body);
 
-      sendSuccess(res, {}, "Password changed successfully", 200);
+      return sendResponse(res, null, "Password changed successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -320,17 +312,15 @@ export class UserController {
     next: NextFunction,
   ) => {
     try {
-      const { email } = req.body;
+      // const { email } = req.body;
       // await this.userService.sendVerificationOtp(email);
 
-      res.status(200).json({
-        success: true,
-        message: "Verification OTP sent successfully",
-      });
+      return sendResponse(res, null, "Verification OTP sent successfully", 200);
     } catch (error) {
       next(error);
     }
   };
+   
 
   verifyOtp = async (req: any, res: Response, next: NextFunction) => {
     try {
@@ -347,7 +337,7 @@ export class UserController {
       });
 
       if (!userOtp) {
-        return sendSuccess(res, null, "Inavlid or Expired otp.", 400);
+        throw new AppError("Inavlid or Expired otp.", 400);
       }
 
       const user = await this.userService.getUserById(userId);
@@ -407,7 +397,7 @@ export class UserController {
         sessionId: session.id, // Optional: for reference only
       };
 
-      return sendSuccess(
+      return sendResponse(
         res,
         { ...userResponse },
         "User logged in successfully",
@@ -418,7 +408,7 @@ export class UserController {
     }
   };
 
-  verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
+  verifyEmail = async (req: Request, res: Response) => {
     try {
       const token = req.query?.token;
       const timestamp = Date.now(); // Unique timestamp for this verification attempt
@@ -430,10 +420,11 @@ export class UserController {
       }
 
       // Verify user email using token
-      const user = await this.userService.verifyUserEmailUsingToken({ token });
+      await this.userService.verifyUserEmailUsingToken({ token });
 
       // Success - redirect with success flag and timestamp
       return res.redirect(
+         
         `${CONFIG.FRONTEND_BASE_URL}/login?verified=true&t=${timestamp}`,
       );
     } catch (error: any) {
@@ -463,10 +454,7 @@ export class UserController {
       const { id } = req.params;
       await this.userService.enableMfa(id);
 
-      res.status(200).json({
-        success: true,
-        message: "MFA enabled successfully",
-      });
+      return sendResponse(res, null, "MFA enabled successfully", 200);
     } catch (error) {
       next(error);
     }
@@ -477,20 +465,18 @@ export class UserController {
       const { id } = req.params;
       await this.userService.disableMfa(id);
 
-      res.status(200).json({
-        success: true,
-        message: "MFA disabled successfully",
-      });
+      return sendResponse(res, null, "MFA disabled successfully", 200);
     } catch (error) {
       next(error);
     }
   };
+   
 
   getActiveUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = (req as any).user?.id;
       const user = await this.userService.getUserById(id);
-      return sendSuccess(res, { ...user }, "User Fetched Successfully.", 200);
+      return sendResponse(res, { ...user }, "User Fetched Successfully.", 200);
     } catch (error) {
       next(error);
     }
@@ -498,7 +484,7 @@ export class UserController {
 
   logout = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id, sessionId } = (req as any).user;
+      const { sessionId } = (req as any).user;
       // Mark the session as invalid
       await this.sessionService.updateSession(sessionId, {
         isValid: false,
@@ -511,7 +497,7 @@ export class UserController {
         sameSite: "strict",
       });
 
-      return sendSuccess(res, null, "Logged out successfully.", 200);
+      return sendResponse(res, null, "Logged out successfully.", 200);
     } catch (error) {
       next(error);
     }
@@ -523,7 +509,7 @@ export class UserController {
 
       const user = await this.userService.getUserByEmail(email);
       if (!user) {
-        return sendSuccess(
+        return sendResponse(
           res,
           null,
           "If this email exists, reset instructions have been sent.",
@@ -583,13 +569,14 @@ export class UserController {
         refreshTokenHash: newResetToken,
       });
 
-      return sendSuccess(
+      return sendResponse(
         res,
         null,
         "Password reset link has been sent to your email.",
         200,
       );
     } catch (error) {
+       
       next(error);
     }
   };
@@ -612,6 +599,7 @@ export class UserController {
       });
 
       res.redirect(CONFIG.FRONTEND_BASE_URL + "/reset-password");
+       
     } catch (error) {
       next(error);
     }
@@ -623,10 +611,7 @@ export class UserController {
       // Verify reset token payload
       const { sessionId, userId } = req?.reset || {};
       if (!sessionId || !userId) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid or expired reset token",
-        });
+        throw new AppError("Invalid or expired reset token", 400);
       }
       // Update password
       await this.userService.resetPassword(userId, { newPassword });
@@ -637,7 +622,7 @@ export class UserController {
       // Remove reset cookie
       res.clearCookie("reset_password_token");
 
-      sendSuccess(res, {}, "Password has been changed.", 200);
+      return sendResponse(res, null, "Password has been changed.", 200);
     } catch (error) {
       next(error);
     }
@@ -648,11 +633,7 @@ export class UserController {
       const refreshToken = req.cookies?.refreshToken;
 
       if (!refreshToken) {
-        return res.status(401).json({
-          success: false,
-          message: "Refresh token not found",
-          errorCode: "REFRESH_TOKEN_MISSING",
-        });
+        throw new AppError("Refresh token not found", 401);
       }
 
       // Verify refresh token
@@ -662,11 +643,7 @@ export class UserController {
       );
 
       if (!decoded || !decoded.userId || !decoded.sessionId) {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid refresh token",
-          errorCode: "INVALID_REFRESH_TOKEN",
-        });
+        throw new AppError("Invalid refresh token", 401);
       }
 
       // Get session from database
@@ -675,11 +652,7 @@ export class UserController {
       );
 
       if (!session || !session.isValid) {
-        return res.status(401).json({
-          success: false,
-          message: "Session expired or invalid",
-          errorCode: "SESSION_INVALID",
-        });
+        throw new AppError("Session expired or invalid", 401);
       }
 
       // Verify refresh token hash matches
@@ -690,11 +663,7 @@ export class UserController {
       );
 
       if (!isValidToken) {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid refresh token",
-          errorCode: "INVALID_REFRESH_TOKEN",
-        });
+        throw new AppError("Invalid refresh token", 401);
       }
 
       // Check if session is expired
@@ -704,22 +673,14 @@ export class UserController {
           isValid: false,
         });
 
-        return res.status(401).json({
-          success: false,
-          message: "Session expired",
-          errorCode: "SESSION_EXPIRED",
-        });
+        throw new AppError("Session expired", 401);
       }
 
       // Get user
       const user = await this.userService.getUserById(decoded.userId);
 
       if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: "User not found",
-          errorCode: "USER_NOT_FOUND",
-        });
+        throw new AppError("User not found", 401);
       }
 
       // Generate new access token (keep same refresh token)
@@ -734,7 +695,7 @@ export class UserController {
         lastUsedAt: new Date(),
       });
 
-      return sendSuccess(
+      return sendResponse(
         res,
         {
           accessToken,

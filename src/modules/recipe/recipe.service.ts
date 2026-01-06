@@ -28,6 +28,7 @@ export class RecipeService {
   }
 
   // 🧑‍🍳 Create a new recipe
+   
   async createRecipe(accountId: string, data: any): Promise<Recipe> {
     const recipeData = {
       ...data,
@@ -86,7 +87,8 @@ export class RecipeService {
       );
 
       // Remove scoreChange from updates and add the calculated score
-      const { scoreChange, ...restUpdates } = updates;
+      //eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { scoreChange: _scoreChange, ...restUpdates } = updates;
       return await this.storage.updateRecipe(recipeId, {
         ...restUpdates,
         score: newScore,
@@ -208,6 +210,7 @@ export class RecipeService {
   }
 
   // 🧠 Generate AI recipes
+   
   async generateAIRecipes(payload: any, accountId: string) {
     const request: AIRecipeRequest = {
       accountId: accountId,
@@ -233,6 +236,7 @@ export class RecipeService {
     return await this.aiRecipeService.generatePersonalizedRecipes(request);
   }
 
+   
   // 🕵️‍♀️ Search/Generate Custom Recipe
   async generateAICustomRecipes(payload: any, accountId: string) {
     // payload: { customRecipe: string, mealType: string ... }

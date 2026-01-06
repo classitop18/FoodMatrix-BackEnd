@@ -11,8 +11,10 @@ export const generateJwtToken = (
   try {
     const options: SignOptions = { expiresIn };
     return jwt.sign(payload, secret, options);
-  } catch (error: any) {
-    logger.error("JWT Token Generation Error:", error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      logger.error("JWT Token Generation Error:", error.message);
+    }
     return null;
   }
 };
@@ -23,14 +25,22 @@ export const verifyJwtToken = (
 ): JwtPayload | null => {
   try {
     return jwt.verify(token, secret) as JwtPayload;
-  } catch (error: any) {
-    logger.error("JWT Token Verification Failed:", error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      logger.error("JWT Token Verification Failed:", error.message);
+    }
     return null;
   }
 };
 
+interface TokenPayload {
+  userId: string;
+  email: string;
+  sessionId: string;
+}
+
 export const generateAuthenticationToken = (
-  payload: any,
+  payload: TokenPayload,
 ): {
   accessToken: string;
   refreshToken: string;
@@ -51,8 +61,10 @@ export const generateAuthenticationToken = (
     });
 
     return { accessToken, refreshToken };
-  } catch (error: any) {
-    logger.error("Authentication Token Generation Error:", error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      logger.error("Authentication Token Generation Error:", error.message);
+    }
     throw error;
   }
 };

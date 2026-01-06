@@ -31,7 +31,7 @@ export interface IUserService {
   getVerificationOtp(email: string): Promise<number>;
   verifyUserEmailUsingOtp(data: VerifyUserDTO): Promise<UserWithoutPassword>;
   verifyUserEmailUsingToken(data: VerifyEmailDTO): Promise<UserWithoutPassword>;
-  resetPassword(id: string, data: ResetPasswordDTO): Promise<any>;
+  resetPassword(id: string, data: ResetPasswordDTO): Promise<void>;
   getUsers(
     filters?: UserFilters,
     pagination?: PaginationParams,
@@ -41,13 +41,14 @@ export interface IUserService {
   findUserByField(
     data: { field: string; value: string },
     id?: string,
-  ): Promise<any>;
+  ): Promise<User | null>;
 }
 
 export class UserService implements IUserService {
   constructor(private userRepository: IUserRepository) {}
 
   private removePasswordFromUser(user: User): UserWithoutPassword {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, otp, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
@@ -58,7 +59,7 @@ export class UserService implements IUserService {
   async findUserByField(
     data: { field: "email" | "username"; value: string },
     id?: string,
-  ) {
+  ): Promise<User | null> {
     const { field, value } = data;
     if (!field || !value) return null;
 
@@ -77,7 +78,6 @@ export class UserService implements IUserService {
         break;
 
       default:
-        console.warn(`Unsupported field: ${field}`);
         return null;
     }
 
@@ -159,7 +159,6 @@ export class UserService implements IUserService {
 
     if (data.username) {
       const existing = await this.userRepository.findByUsername(data.username);
-      console.log(existing, id, "teriui");
       if (existing && existing.id !== id) {
         throw new Error("Username already exists");
       }
@@ -288,13 +287,12 @@ export class UserService implements IUserService {
     await this.userRepository.disableMfa(id);
   }
 
-  async resetPassword(id: string, data: ResetPasswordDTO): Promise<any> {
+  async resetPassword(id: string, data: ResetPasswordDTO): Promise<void> {
     const user = await this.userRepository.findById(id);
     if (!user) {
       throw new Error("User not found");
     }
 
-    console.log("yha tk to aa gya hu", data);
     const hashedPassword = await hashString(data.newPassword);
     await this.userRepository.updatePassword(id, hashedPassword);
   }
