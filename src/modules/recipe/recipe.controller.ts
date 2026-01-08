@@ -69,6 +69,7 @@ export class RecipeController {
           : 10,
         sortBy: req.query.sortBy as string,
         sortOrder: req.query.sortOrder as "asc" | "desc",
+        userId: req.user?.id,
       };
 
       const result = await this.recipeService.getRecipes(accountId, filters);
@@ -347,6 +348,33 @@ export class RecipeController {
         accountId,
       );
       return sendResponse(res, response, "Custom recipe generated", 200);
+    } catch (err) {
+      next(err);
+    }
+  };
+  // Interact with recipe (Like, Dislike, Favorite)
+  interactWithRecipe = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      // Assuming userId is attached to request by auth middleware
+      const userId = req.user?.id;
+      if (!userId) throw new AppError("User authentication required", 401);
+
+      const { action } = req.body;
+      if (!["like", "dislike", "favorite"].includes(action)) {
+        throw new AppError("Invalid interaction action", 400);
+      }
+
+      const result = await this.recipeService.interactWithRecipe(
+        userId,
+        req.params.id,
+        action,
+      );
+
+      return sendResponse(res, result, `Recipe interaction: ${action}`, 200);
     } catch (err) {
       next(err);
     }

@@ -511,6 +511,27 @@ export const recipeIngredients = pgTable("recipe_ingredients", {
     .notNull(),
 });
 
+export const userRecipeInteractions = pgTable("user_recipe_interactions", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  recipeId: varchar("recipe_id")
+    .notNull()
+    .references(() => recipes.id, { onDelete: "cascade" }),
+  isLiked: boolean("is_liked").default(false),
+  isDisliked: boolean("is_disliked").default(false),
+  isFavorite: boolean("is_favorite").default(false),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+  updatedAt: timestamp("updated_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
 // Export Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -532,3 +553,7 @@ export type InsertRecipe = typeof recipes.$inferInsert;
 
 export type RecipeIngredient = typeof recipeIngredients.$inferSelect;
 export type InsertRecipeIngredient = typeof recipeIngredients.$inferInsert;
+
+export type UserRecipeInteraction = typeof userRecipeInteractions.$inferSelect;
+export type InsertUserRecipeInteraction =
+  typeof userRecipeInteractions.$inferInsert;

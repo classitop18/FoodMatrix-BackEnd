@@ -78,6 +78,7 @@ recipeRoutes.delete("/:id", recipeController.deleteRecipe);
 recipeRoutes.post("/:id/visibility", recipeController.toggleVisibility);
 recipeRoutes.post("/:id/deactivate", recipeController.deactivateRecipe);
 recipeRoutes.patch("/:id/status", recipeController.updateCookingStatus);
+recipeRoutes.post("/:id/interact", recipeController.interactWithRecipe);
 
 // Ingredients management within recipe
 recipeRoutes.post("/:id/ingredients", recipeController.addIngredient);

@@ -13,6 +13,7 @@ import {
   recipes,
   ingredients,
   recipeIngredients,
+  userRecipeInteractions,
   Ingredient,
   InsertRecipe,
   InsertRecipeIngredient,
@@ -43,6 +44,8 @@ export interface RecipeFilters {
   pageSize?: number;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  userId?: string;
+  viewScope?: "personal" | "global";
 }
 
 export interface RecipeStorageInterface {
@@ -63,7 +66,6 @@ export interface RecipeStorageInterface {
     status: string,
   ): Promise<Recipe | undefined>;
 
-   
   getRecipes(accountId: string, filters: RecipeFilters): Promise<any>;
   getRecipeById(recipeId: string): Promise<Recipe | undefined>;
   getRecipeWithIngredients(recipeId: string): Promise<
@@ -93,10 +95,17 @@ export interface RecipeStorageInterface {
   getRecipeIngredients(
     recipeId: string,
   ): Promise<(RecipeIngredient & { ingredient: Ingredient })[]>;
+
+  getRecipeInteractions(userId: string, recipeIds: string[]): Promise<any[]>;
+  updateRecipeInteraction(
+    userId: string,
+    recipeId: string,
+    updates: { isLiked?: boolean; isDisliked?: boolean; isFavorite?: boolean },
+  ): Promise<void>;
+  updateRecipeScore(recipeId: string, scoreDelta: number): Promise<void>;
 }
 
 export class RecipeStorage implements RecipeStorageInterface {
-   
   private _db: any = null;
 
   private get db() {
@@ -272,7 +281,7 @@ export class RecipeStorage implements RecipeStorageInterface {
     filters: RecipeFilters,
   ): Promise<{
     recipes: any[];
-     
+
     pagination: {
       page: number;
       pageSize: number;
@@ -296,32 +305,40 @@ export class RecipeStorage implements RecipeStorageInterface {
       pageSize = 10,
       sortBy = "createdAt",
       sortOrder = "desc",
+      userId,
+      viewScope = "personal", // Default to 'personal' as per user request
     } = filters;
 
     console.log({ filters });
 
     // Build dynamic WHERE conditions
-    const conditions = [
-      sql`(${recipes.accountId} = ${accountId} OR ${recipes.isPublic} = true OR ${recipes.accountId} IS NULL)`,
-    ];
+    const conditions = [];
 
-    // Cuisine filter
+    if (viewScope === "global") {
+      // Show: account recipes OR public recipes OR system recipes
+      conditions.push(
+        sql`(${recipes.accountId} = ${accountId} OR ${recipes.isPublic} = true OR ${recipes.accountId} IS NULL)`,
+      );
+    } else {
+      // Default / personal: Show ONLY account recipes
+      conditions.push(eq(recipes.accountId, accountId));
+    }
+
+    // ... (rest of filters remain same, I will reuse existing logic if possible, but I am replacing the whole block to be safe with query construction)
+
+    // Filter logic...
     if (cuisines) {
       const cuisineArray = cuisines
         .split(",")
         .map((c) => c.trim().toLowerCase());
       conditions.push(sql`LOWER(${recipes.cuisineType}) IN ${cuisineArray} `);
     }
-
-    // Meal type filter
     if (mealTypes) {
       const mealTypeArray = mealTypes
         .split(",")
         .map((m) => m.trim().toLowerCase());
       conditions.push(sql`LOWER(${recipes.mealType}) IN ${mealTypeArray} `);
     }
-
-    // Difficulty filter
     if (difficulty) {
       const difficultyArray = difficulty
         .split(",")
@@ -330,40 +347,26 @@ export class RecipeStorage implements RecipeStorageInterface {
         sql`LOWER(${recipes.difficultyLevel}) IN ${difficultyArray} `,
       );
     }
-
-    // Prep time range
-    if (minPrepTime !== undefined) {
+    if (minPrepTime !== undefined)
       conditions.push(sql`${recipes.totalTimeMinutes} >= ${minPrepTime} `);
-    }
-    if (maxPrepTime !== undefined) {
+    if (maxPrepTime !== undefined)
       conditions.push(sql`${recipes.totalTimeMinutes} <= ${maxPrepTime} `);
-    }
-
-    // Calorie range
-    if (minCalories !== undefined) {
+    if (minCalories !== undefined)
       conditions.push(sql`${recipes.calories} >= ${minCalories} `);
-    }
-    if (maxCalories !== undefined) {
+    if (maxCalories !== undefined)
       conditions.push(sql`${recipes.calories} <= ${maxCalories} `);
-    }
-
-    // Budget range (cost per serving)
-    if (minBudget !== undefined) {
+    if (minBudget !== undefined)
       conditions.push(
         sql`CAST(${recipes.estimatedCostPerServing} AS DECIMAL) >= ${minBudget} `,
       );
-    }
-    if (maxBudget !== undefined) {
+    if (maxBudget !== undefined)
       conditions.push(
         sql`CAST(${recipes.estimatedCostPerServing} AS DECIMAL) <= ${maxBudget} `,
       );
-    }
 
-    // Date filter
     if (dateFilter && dateFilter !== "all") {
       const now = new Date();
       let dateThreshold: Date;
-
       switch (dateFilter) {
         case "today":
           dateThreshold = new Date(now.setHours(0, 0, 0, 0));
@@ -380,26 +383,19 @@ export class RecipeStorage implements RecipeStorageInterface {
         default:
           dateThreshold = new Date(0);
       }
-
       conditions.push(sql`${recipes.createdAt} >= ${dateThreshold} `);
     }
 
-    // Search filter (name, description, cuisine)
     if (search) {
       const searchTerm = `%${search.trim()}%`;
       conditions.push(
-        sql`(
-          ${recipes.name} ILIKE ${searchTerm} OR 
-          ${recipes.description} ILIKE ${searchTerm} OR 
-          ${recipes.cuisineType} ILIKE ${searchTerm}
-        )`,
+        sql`(${recipes.name} ILIKE ${searchTerm} OR ${recipes.description} ILIKE ${searchTerm} OR ${recipes.cuisineType} ILIKE ${searchTerm})`,
       );
     }
 
-    // Combine all conditions
     const whereClause = and(...conditions);
 
-    // Get total count for pagination
+    // Get total count
     const countQuery = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(recipes)
@@ -408,24 +404,17 @@ export class RecipeStorage implements RecipeStorageInterface {
     const totalRecipes = Number(countQuery[0]?.count || 0);
     const totalPages = Math.ceil(totalRecipes / pageSize);
 
-    // Dynamic sorting
+    // Sorting
     const orderByClauses = [];
-
-    // 🔍 Priority Sorting for Search (Name > Cuisine > Other)
     if (search) {
       const searchTerm = `%${search.trim()}%`;
-      orderByClauses.push(sql`
-        CASE 
-          WHEN ${recipes.name} ILIKE ${searchTerm} THEN 1 
-          WHEN ${recipes.cuisineType} ILIKE ${searchTerm} THEN 2 
-          ELSE 3 
-        END ASC
-      `);
+      orderByClauses.push(
+        sql`CASE WHEN ${recipes.name} ILIKE ${searchTerm} THEN 1 WHEN ${recipes.cuisineType} ILIKE ${searchTerm} THEN 2 ELSE 3 END ASC`,
+      );
     }
 
     let primarySort;
     const sortDirection = sortOrder === "asc" ? asc : desc;
-
     switch (sortBy) {
       case "name":
         primarySort = sortDirection(recipes.name);
@@ -439,25 +428,50 @@ export class RecipeStorage implements RecipeStorageInterface {
       case "estimatedCostPerServing":
         primarySort = sortDirection(recipes.estimatedCostPerServing);
         break;
+      case "score":
+        primarySort = desc(recipes.score);
+        break; // Default score sort desc
       case "createdAt":
       default:
         primarySort = sortDirection(recipes.createdAt);
     }
-
     orderByClauses.push(primarySort);
 
-    // Get paginated recipes
+    // Query with Join
     const offset = (page - 1) * pageSize;
-    const recipesList = await this.db
-      .select()
-      .from(recipes)
+    let query = this.db
+      .select({
+        ...getTableColumns(recipes),
+        isLiked: userRecipeInteractions.isLiked,
+        isDisliked: userRecipeInteractions.isDisliked,
+        isFavorite: userRecipeInteractions.isFavorite,
+      })
+      .from(recipes);
+
+    if (userId) {
+      query = query.leftJoin(
+        userRecipeInteractions,
+        and(
+          eq(recipes.id, userRecipeInteractions.recipeId),
+          eq(userRecipeInteractions.userId, userId),
+        ),
+      );
+    } else {
+      // Dummy join or no join? If no join, fields will be missing/undefined in TS?
+      // Actually if we Select fields from userRecipeInteractions but don't join, it might error or return nulls depending on driver.
+      // Better to conditionally select. But TS types are static.
+      // Let's just join on FALSE if no userId, effectively returning nulls.
+      query = query.leftJoin(userRecipeInteractions, sql`1 = 0`);
+    }
+
+    const recipesList = await query
       .where(whereClause)
       .orderBy(...orderByClauses)
       .limit(pageSize)
       .offset(offset);
 
     // collect recipeIds from results
-     
+
     const recipeIds = recipesList.map((r: any) => r.id);
 
     // Get ingredients with ALL enhanced data
@@ -479,12 +493,12 @@ export class RecipeStorage implements RecipeStorageInterface {
       .where(inArray(recipeIngredients.recipeId, recipeIds));
 
     // 🔥 Transform recipes to AI format with parsed JSON fields
-     
+
     const recipesWithIngredients = recipesList.map((recipe: any) => {
       const recipeIngredientsList = ingredientsRows
-         
+
         .filter((i: any) => i.recipeId === recipe.id)
-         
+
         .map((ing: any) => ({
           name: ing.name || "",
           quantity: ing.quantity || "",
@@ -555,6 +569,12 @@ export class RecipeStorage implements RecipeStorageInterface {
           : undefined,
         totalRatings: recipe.totalRatings || 0,
 
+        // Interactions
+        score: recipe.score || 0,
+        isLiked: recipe.isLiked || false,
+        isDisliked: recipe.isDisliked || false,
+        isFavorite: recipe.isFavorite || false,
+
         // Ingredients in AI format
         ingredients: recipeIngredientsList,
       };
@@ -581,7 +601,7 @@ export class RecipeStorage implements RecipeStorageInterface {
   }
 
   // 🧾 Get recipe + ingredients in AI format
-   
+
   async getRecipeWithIngredients(recipeId: string): Promise<any | undefined> {
     const recipe = await this.getRecipeById(recipeId);
     if (!recipe) return undefined;
@@ -790,9 +810,96 @@ export class RecipeStorage implements RecipeStorageInterface {
       .where(eq(recipeIngredients.recipeId, recipeId));
   }
 
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async getRecentRecipesWithScores(accountId: string) {
-    return [];
+  async getRecentRecipesWithScores(accountId: string): Promise<any[]> {
+    const dateThreshold = new Date();
+    dateThreshold.setDate(dateThreshold.getDate() - 60);
+
+    const recentRecipes = await this.db
+      .select({
+        id: recipes.id,
+        name: recipes.name,
+        averageRating: recipes.averageRating,
+        updatedAt: recipes.updatedAt,
+        createdAt: recipes.createdAt,
+        timesCooked: recipes.timesCooked,
+        cuisineType: recipes.cuisineType,
+        mealType: recipes.mealType,
+      })
+      .from(recipes)
+      .where(
+        and(
+          sql`(${recipes.accountId} = ${accountId} OR ${recipes.isPublic} = true)`,
+          sql`${recipes.createdAt} >= ${dateThreshold}`,
+        ),
+      )
+      .orderBy(desc(recipes.createdAt));
+
+    return recentRecipes.map((r: any) => ({
+      recipeId: r.id,
+      recipeName: r.name,
+      score: parseFloat(r.averageRating || "0"),
+      interactions: [], // No detailed interactions table available yet
+      lastInteraction: r.updatedAt || r.createdAt,
+      timesCooked: r.timesCooked || 0,
+      cuisineType: r.cuisineType,
+      mealType: r.mealType,
+      ingredients: [],
+    }));
+  }
+
+  async getRecipeInteractions(
+    userId: string,
+    recipeIds: string[],
+  ): Promise<any[]> {
+    return this.db
+      .select()
+      .from(userRecipeInteractions)
+      .where(
+        and(
+          eq(userRecipeInteractions.userId, userId),
+          inArray(userRecipeInteractions.recipeId, recipeIds),
+        ),
+      );
+  }
+
+  async updateRecipeInteraction(
+    userId: string,
+    recipeId: string,
+    updates: { isLiked?: boolean; isDisliked?: boolean; isFavorite?: boolean },
+  ): Promise<void> {
+    const existing = await this.db
+      .select()
+      .from(userRecipeInteractions)
+      .where(
+        and(
+          eq(userRecipeInteractions.userId, userId),
+          eq(userRecipeInteractions.recipeId, recipeId),
+        ),
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      await this.db
+        .update(userRecipeInteractions)
+        .set({ ...updates, updatedAt: sql`now()` })
+        .where(eq(userRecipeInteractions.id, existing[0].id));
+    } else {
+      await this.db.insert(userRecipeInteractions).values({
+        userId,
+        recipeId,
+        ...updates,
+      });
+    }
+  }
+
+  async updateRecipeScore(recipeId: string, scoreDelta: number): Promise<void> {
+    await this.db
+      .update(recipes)
+      .set({
+        score: sql`${recipes.score} + ${scoreDelta}`,
+        updatedAt: sql`now()`,
+      })
+      .where(eq(recipes.id, recipeId));
   }
 
   async storeAIGeneratedRecipes(
@@ -822,9 +929,7 @@ export class RecipeStorage implements RecipeStorageInterface {
         prepTimeMinutes: recipe.totalTimeMinutes * 0.4, // estimated split
         cookTimeMinutes: recipe.totalTimeMinutes * 0.6,
         totalTimeMinutes: recipe.totalTimeMinutes,
-         
-         
-         
+
         difficultyLevel: recipe.difficultyLevel as any,
         mealType: recipe.mealType as any,
         cuisineType: recipe.cuisineType as any,
@@ -906,11 +1011,10 @@ export class RecipeStorage implements RecipeStorageInterface {
             .returning();
 
           ingredientId = newIng.id;
-           
         }
 
         // Insert into junction table with ALL ingredient data
-         
+
         const recipeIng: any = {
           recipeId: saved.id,
           ingredientId,

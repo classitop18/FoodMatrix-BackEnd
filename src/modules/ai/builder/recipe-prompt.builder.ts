@@ -231,7 +231,8 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
                     ${
                       request.avoidRecentRecipes?.length
                         ? `
-                    **🚫 DO NOT SUGGEST (Recent recipes - avoid repetition):**
+                    **🚫 DO NOT SUGGEST (Already generated/cooked in last 2 weeks):**
+                    The following recipes have been generated or cooked in the current or previous week. Do NOT suggest them again:
                     ${request.avoidRecentRecipes.join(", ")}
                     `
                         : ""

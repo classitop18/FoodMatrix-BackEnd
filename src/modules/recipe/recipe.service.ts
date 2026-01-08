@@ -28,7 +28,7 @@ export class RecipeService {
   }
 
   // 🧑‍🍳 Create a new recipe
-   
+
   async createRecipe(accountId: string, data: any): Promise<Recipe> {
     const recipeData = {
       ...data,
@@ -210,7 +210,7 @@ export class RecipeService {
   }
 
   // 🧠 Generate AI recipes
-   
+
   async generateAIRecipes(payload: any, accountId: string) {
     const request: AIRecipeRequest = {
       accountId: accountId,
@@ -236,7 +236,6 @@ export class RecipeService {
     return await this.aiRecipeService.generatePersonalizedRecipes(request);
   }
 
-   
   // 🕵️‍♀️ Search/Generate Custom Recipe
   async generateAICustomRecipes(payload: any, accountId: string) {
     // payload: { customRecipe: string, mealType: string ... }
@@ -248,5 +247,113 @@ export class RecipeService {
       payload.dietaryRestrictions,
       accountId,
     );
+  }
+  async interactWithRecipe(
+    userId: string,
+    recipeId: string,
+    action: "like" | "dislike" | "favorite",
+  ) {
+    // 1. Get current interaction state
+    const interactions = await this.storage.getRecipeInteractions(userId, [
+      recipeId,
+    ]);
+    const current = interactions[0] || {
+      isLiked: false,
+      isDisliked: false,
+      isFavorite: false,
+    };
+
+    let scoreDelta = 0;
+    const updates: {
+      isLiked?: boolean;
+      isDisliked?: boolean;
+      isFavorite?: boolean;
+    } = {};
+
+    switch (action) {
+      case "like":
+        if (current.isLiked) {
+          // Untoggle Like
+          scoreDelta -= 2;
+          updates.isLiked = false;
+        } else {
+          // Toggle Like
+          scoreDelta += 2;
+          updates.isLiked = true;
+
+          // Remove Dislike if present
+          if (current.isDisliked) {
+            scoreDelta += 2;
+            updates.isDisliked = false;
+          }
+          // Remove Favorite if present
+          if (current.isFavorite) {
+            scoreDelta -= 3;
+            updates.isFavorite = false;
+          }
+        }
+        break;
+
+      case "dislike":
+        if (current.isDisliked) {
+          // Untoggle Dislike
+          scoreDelta += 2;
+          updates.isDisliked = false;
+        } else {
+          // Toggle Dislike
+          scoreDelta -= 2;
+          updates.isDisliked = true;
+
+          // Remove Like if present
+          if (current.isLiked) {
+            scoreDelta -= 2;
+            updates.isLiked = false;
+          }
+          // Remove Favorite if present
+          if (current.isFavorite) {
+            scoreDelta -= 3;
+            updates.isFavorite = false;
+          }
+        }
+        break;
+
+      case "favorite":
+        if (current.isFavorite) {
+          // Untoggle Favorite (Remove +3)
+          scoreDelta -= 3;
+          updates.isFavorite = false;
+        } else {
+          // Toggle Favorite (Add +3)
+          scoreDelta += 3;
+          updates.isFavorite = true;
+
+          // Remove Like if present
+          if (current.isLiked) {
+            scoreDelta -= 2;
+            updates.isLiked = false;
+          }
+          // Remove Dislike if present
+          if (current.isDisliked) {
+            scoreDelta += 2;
+            updates.isDisliked = false;
+          }
+        }
+        break;
+    }
+
+    // 2. Update interaction in DB
+    await this.storage.updateRecipeInteraction(userId, recipeId, updates);
+
+    // 3. Update global recipe score if changed
+    if (scoreDelta !== 0) {
+      await this.storage.updateRecipeScore(recipeId, scoreDelta);
+    }
+
+    // 4. Return new state
+    return {
+      ...current,
+      ...updates,
+      scoreDelta,
+    };
   }
 }

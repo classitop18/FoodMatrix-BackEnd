@@ -75,8 +75,8 @@ export class AIRecipeService {
           .filter(
             (r) =>
               r?.lastInteraction >
-              new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-          ) // Last 7 days
+              new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+          ) // Last 14 days (current + previous week)
           .map((r) => r?.recipeName),
       };
 

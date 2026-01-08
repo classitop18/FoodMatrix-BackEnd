@@ -12,11 +12,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Paths - In dist, __dirname is already 'dist/email/', so we just need 'layouts'
-const BASE_DIR = path.join(__dirname, "email", "layouts");
-// const BASE_DIR = path.join(__dirname, "layouts");
+// const BASE_DIR = path.join(__dirname, "email", "layouts");
+const BASE_DIR = path.join(__dirname, "layouts");
 const LAYOUT_FILE = path.join(BASE_DIR, "main.hbs");
 
- 
 type TemplateContext = Record<string, any>;
 
 export interface EmailServiceOptions {
@@ -51,15 +50,12 @@ export class EmailService {
         streamTransport: true,
         newline: "unix",
         buffer: true,
-         
       } as any);
     }
   }
 
   private renderTemplate(templateName: string, context: TemplateContext) {
     const templatePath = path.join(BASE_DIR, `${templateName}.hbs`);
-
-    console.log({ templatePath });
 
     if (!fs.existsSync(templatePath)) {
       throw new Error(`Email template not found: ${templateName}`);
@@ -109,10 +105,10 @@ export class EmailService {
 
     try {
       const info = await this.transporter.sendMail(mailOptions);
-       
+
       if ((info as any).message) {
         console.log("\n📨 EMAIL (console mode):\n");
-         
+
         console.log((info as any).message.toString());
       } else {
         console.log("Email sent:", info);

@@ -137,10 +137,14 @@ export class AccountService {
   }
 
   async createAccount(data: AccountCreationInput): Promise<any> {
-    return this.accountMemberService.createAccount(
-      await this.mapAccountCreationToPayload(data),
-      data?.primaryAdminId,
-    );
+    try {
+      return this.accountMemberService.createAccount(
+        await this.mapAccountCreationToPayload(data),
+        data?.primaryAdminId,
+      );
+    } catch (error) {
+      console.log(error, "error in account creation");
+    }
   }
 
   getAccountById(accountId: string, userId: string): Promise<Account | null> {
