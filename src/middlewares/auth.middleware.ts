@@ -125,7 +125,7 @@ export const authenticate = async (
       return sendError(
         res,
         "Invalid or expired token. Please login again.",
-        null,
+        "TOKEN_EXPIRED",
         401,
       );
     }

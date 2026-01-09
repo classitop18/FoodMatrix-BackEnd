@@ -54,7 +54,6 @@ export class MealPlanService {
   }
 
   async updateMealPlan(id: string, updates: UpdateMealPlanPayload) {
-     
     const payload: any = { ...updates };
 
     if (updates.mealDate) {

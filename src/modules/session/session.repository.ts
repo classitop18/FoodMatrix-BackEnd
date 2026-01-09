@@ -22,7 +22,6 @@ export interface ISessionRepository {
 
 // ================== REPOSITORY ==================
 export class SessionRepository implements ISessionRepository {
-   
   private _db: any = null;
 
   private get db() {

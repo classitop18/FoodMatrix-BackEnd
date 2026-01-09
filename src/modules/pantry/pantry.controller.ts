@@ -163,7 +163,6 @@ export class PantryItemsController {
       // we should probably pass NULL or try to look it up if critical.
       // For now, if we can't find a memberId, we pass null to avoid FK violation with users.id
       const addedBy =
-         
         (req as unknown as SessionRequest).session?.memberId ||
         (req.user as any)?.memberId ||
         null;

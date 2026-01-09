@@ -18,7 +18,6 @@ export interface IUserOtpRepository {
 // user-otp.repository.ts
 
 export class UserOtpRepository implements IUserOtpRepository {
-   
   private _db: any = null;
 
   private get db() {

@@ -56,7 +56,6 @@ export async function seedIngredients() {
         });
         inserted++;
       }
-       
     } catch (error: any) {
       // Handle duplicate key errors gracefully
       if (error.code === "23505") {

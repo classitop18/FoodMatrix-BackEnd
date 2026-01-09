@@ -73,7 +73,6 @@ export class MealPlanController {
 
       const createdBy =
         (req as unknown as SessionRequest).session?.memberId ||
-         
         (req.user as any)?.memberId;
 
       if (!createdBy) {

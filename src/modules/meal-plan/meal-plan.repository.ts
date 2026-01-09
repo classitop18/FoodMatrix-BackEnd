@@ -9,7 +9,6 @@ import type {
 
 export class MealPlanRepository {
   private _db: any = null;
-   
 
   private get db() {
     if (!this._db) {

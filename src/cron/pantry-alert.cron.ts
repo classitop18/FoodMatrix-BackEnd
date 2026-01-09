@@ -17,7 +17,6 @@ import { logger } from "../utils/logger.utils.js";
  */
 
 class PantryAlertCron {
-   
   private _db: any = null;
 
   private get db() {

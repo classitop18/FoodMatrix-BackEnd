@@ -65,7 +65,6 @@ export interface IMemberRepository {
 export class MemberRepository implements IMemberRepository {
   private _db: any = null;
 
-   
   private get db() {
     if (!this._db) {
       this._db = getDb();
@@ -276,7 +275,6 @@ export class MemberRepository implements IMemberRepository {
     const conditions = Object.entries(filters)
       .filter(([, value]) => value !== undefined) // optional
       .map(([key, value]) => {
-         
         const column: any = members[key as keyof typeof members];
 
         if (value === null) {
@@ -440,7 +438,7 @@ export class MemberRepository implements IMemberRepository {
       totalMembers: Number(stats.total),
       registeredMembers: Number(stats.registered),
       internalMembers: Number(stats.internal),
-       
+
       membersByRole: Object.fromEntries(
         roleStats.map((r: any) => [r.role, Number(r.count)]),
       ),
@@ -464,7 +462,6 @@ export class MemberRepository implements IMemberRepository {
       .from(members)
       .where(eq(members.accountId, accountId))
       .groupBy(members.role);
-     
 
     return Object.fromEntries(
       results.map((r: any) => [r.role, Number(r.count)]),

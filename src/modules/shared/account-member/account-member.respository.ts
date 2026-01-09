@@ -22,7 +22,6 @@ export interface IAccountMemberRepository {
 
 export class AccountMemberRepository implements IAccountMemberRepository {
   private _db: any = null;
-   
 
   private get db() {
     if (!this._db) {
@@ -34,7 +33,6 @@ export class AccountMemberRepository implements IAccountMemberRepository {
   async createAccountWithMemberAndHealthProfile(
     payload: CreateAccountMemberPayload,
     primaryAdminId: string,
-     
   ) {
     return this.db.transaction(async (tx: any) => {
       // Create Account

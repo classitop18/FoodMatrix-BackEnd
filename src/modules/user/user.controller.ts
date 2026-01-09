@@ -36,7 +36,6 @@ export class UserController {
     req: Request,
     res: Response,
     next: NextFunction,
-     
   ): Promise<ApiResponse | any> => {
     try {
       const user = await this.userService.createUser(req.body);
@@ -68,7 +67,6 @@ export class UserController {
     req: Request,
     res: Response,
     next: NextFunction,
-     
   ): Promise<ApiResponse | any> => {
     try {
       const { user } = await this.userService.loginUser(req.body);
@@ -320,7 +318,6 @@ export class UserController {
       next(error);
     }
   };
-   
 
   verifyOtp = async (req: any, res: Response, next: NextFunction) => {
     try {
@@ -424,7 +421,6 @@ export class UserController {
 
       // Success - redirect with success flag and timestamp
       return res.redirect(
-         
         `${CONFIG.FRONTEND_BASE_URL}/login?verified=true&t=${timestamp}`,
       );
     } catch (error: any) {
@@ -470,7 +466,6 @@ export class UserController {
       next(error);
     }
   };
-   
 
   getActiveUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -576,7 +571,6 @@ export class UserController {
         200,
       );
     } catch (error) {
-       
       next(error);
     }
   };
@@ -599,7 +593,6 @@ export class UserController {
       });
 
       res.redirect(CONFIG.FRONTEND_BASE_URL + "/reset-password");
-       
     } catch (error) {
       next(error);
     }

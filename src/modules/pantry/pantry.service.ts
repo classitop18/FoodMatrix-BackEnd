@@ -24,7 +24,6 @@ export class PantryItemsService {
     );
 
     return {
-       
       data: data as any,
       pagination: {
         page: params.page,
@@ -47,7 +46,6 @@ export class PantryItemsService {
     await this.storage.dismissAlert(alertId);
   }
 
-   
   private sanitizeDBDate(value: any): Date | null {
     if (!value) return null;
     if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
@@ -97,7 +95,7 @@ export class PantryItemsService {
     };
 
     // Remove ephemeral fields that are not in pantryItems schema
-     
+
     delete (payload as any).ingredientName;
     // delete (payload as any).category; // category is not in CreatePantryItemPayload type definition but comes from flexible request body? No, Zod types it.
     // Actually, 'category' is in the Zod schema now but not in InsertPantryItem type.
@@ -119,7 +117,6 @@ export class PantryItemsService {
   }
 
   async updatePantryItem(id: string, updates: UpdatePantryItemPayload) {
-     
     const payload: any = { ...updates };
 
     if (updates.expirationDate !== undefined) {

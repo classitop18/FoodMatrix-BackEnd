@@ -487,7 +487,6 @@ export class MemberService implements IMemberService {
     }
   }
 
-   
   private mapToResponseDto(member: any): MemberResponseDto {
     return {
       id: member.id,
