@@ -144,6 +144,7 @@ export class AccountService {
       );
     } catch (error) {
       console.log(error, "error in account creation");
+      throw error;
     }
   }
 
