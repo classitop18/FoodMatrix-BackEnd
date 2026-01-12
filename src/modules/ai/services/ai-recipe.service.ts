@@ -595,13 +595,62 @@ export class AIRecipeService {
    * @param accountId - Optional: Account ID for personalized search
    * @returns Promise<AIGeneratedRecipe | null> - Complete recipe object or null if failed
    */
+  private calculateSimilarity(s1: string, s2: string): number {
+    const longer = s1.length > s2.length ? s1 : s2;
+    const shorter = s1.length > s2.length ? s2 : s1;
+    if (longer.length === 0) {
+      return 1.0;
+    }
+    const editDistance = (str1: string, str2: string) => {
+      const costs = [];
+      for (let i = 0; i <= str1.length; i++) {
+        let lastValue = i;
+        for (let j = 0; j <= str2.length; j++) {
+          if (i === 0) {
+            costs[j] = j;
+          } else {
+            if (j > 0) {
+              let newValue = costs[j - 1];
+              if (str1.charAt(i - 1) !== str2.charAt(j - 1)) {
+                newValue =
+                  Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+              }
+              costs[j - 1] = lastValue;
+              lastValue = newValue;
+            }
+          }
+        }
+        if (i > 0) {
+          costs[str2.length] = lastValue;
+        }
+      }
+      return costs[str2.length];
+    };
+    return (
+      (longer.length - editDistance(longer, shorter)) /
+      parseFloat(longer.length.toString())
+    );
+  }
+
+  /**
+   * Searches for a specific recipe by name and meal type
+   * First checks database for existing recipes, then falls back to AI generation
+   * Returns a fully detailed recipe with authentic instructions, nutrition, and cost analysis
+   *
+   * @param recipeName - The name of the recipe to search for
+   * @param mealType - The meal type (breakfast, lunch, dinner, snack)
+   * @param servings - Optional: Number of servings (defaults to 4)
+   * @param dietaryRestrictions - Optional: Array of dietary restrictions to apply
+   * @param accountId - Optional: Account ID for personalized search
+   * @returns Promise<AIGeneratedRecipe[]> - Array of recipes (top 3 matches or 1 AI generated)
+   */
   async searchSpecificRecipe(
     recipeName: string,
     mealType: string,
     servings: number = 4,
     dietaryRestrictions?: string[],
     accountId?: string,
-  ): Promise<AIGeneratedRecipe | null> {
+  ): Promise<AIGeneratedRecipe[]> {
     try {
       console.log("🔍 Custom Recipe Search Started:", {
         recipeName,
@@ -613,43 +662,53 @@ export class AIRecipeService {
 
       // 🎯 STEP 1: Search database first for matching recipe
       console.log("📚 Searching database for existing recipe...");
+      // Fetch broader set of candidates using simple text search
       const dbRecipes = await this.recipeStorage.searchRecipesByName(
         recipeName,
         accountId,
       );
 
-      if (dbRecipes && dbRecipes.length > 0) {
-        // Filter by meal type if specified
-        const matchingRecipe =
-          dbRecipes.find(
-            (r) => r.mealType.toLowerCase() === mealType.toLowerCase(),
-          ) || dbRecipes[0]; // Fallback to first match if meal type doesn't match
+      // Perform fuzzy matching in memory
+      const matches = dbRecipes
+        .map((r) => ({
+          recipe: r,
+          similarity: this.calculateSimilarity(
+            r.name.toLowerCase(),
+            recipeName.toLowerCase(),
+          ),
+        }))
+        .filter((match) => match.similarity >= 0.85) // 85% threshold
+        .sort((a, b) => b.similarity - a.similarity); // Sort by similarity desc
 
-        console.log("✅ Recipe found in database:", {
-          id: matchingRecipe.id,
-          name: matchingRecipe.name,
-          mealType: matchingRecipe.mealType,
-        });
-
-        // Convert database recipe to AI format
-        const aiFormattedRecipe = await this.convertDatabaseRecipeToAIFormat(
-          matchingRecipe,
-          servings,
+      if (matches.length > 0) {
+        console.log(
+          `✅ Found ${matches.length} matches in database > 85% similarity`,
         );
 
-        console.log("🎉 Recipe Successfully Retrieved from Database:", {
-          name: aiFormattedRecipe.name,
-          servings: aiFormattedRecipe.servings,
-          totalTime: aiFormattedRecipe.totalTimeMinutes,
-          healthScore: aiFormattedRecipe.healthScore,
-          costPerServing: aiFormattedRecipe.costAnalysis.costPerServing,
-        });
+        // Take top 3
+        const topMatches = matches.slice(0, 3);
 
-        return aiFormattedRecipe;
+        // Convert to AI format
+        const aiFormattedRecipes = await Promise.all(
+          topMatches.map(async (m) => {
+            return await this.convertDatabaseRecipeToAIFormat(
+              m.recipe,
+              servings,
+            );
+          }),
+        );
+
+        console.log(
+          "🎉 Returning top DB matches:",
+          aiFormattedRecipes.map((r) => r.name),
+        );
+        return aiFormattedRecipes;
       }
 
       // 🤖 STEP 2: No database match found, generate using AI
-      console.log("⚠️ Recipe not found in database, generating with AI...");
+      console.log(
+        "⚠️ Recipe not found in database (or low similarity), generating with AI...",
+      );
 
       const prompt = await this.promptBuilder.buildRecipeSearchPrompt(
         recipeName,
@@ -672,6 +731,7 @@ export class AIRecipeService {
         tokensUsed: response.usage?.totalTokens || "N/A",
       });
 
+      // Parse AI Response
       const recipe = this.parseRecipeResponse(
         response.content,
         recipeName,
@@ -680,10 +740,41 @@ export class AIRecipeService {
       );
 
       if (recipe) {
-        console.log("🎉 Recipe Successfully Generated with AI:", {
+        console.log(
+          "🎉 Recipe Successfully Generated with AI. Handling Image...",
+        );
+
+        // 🖼️ STEP 2.5: Generate Image for AI Recipe (Crucial)
+        try {
+          if (this.aiProvider.getProviderName() === "OpenAI") {
+            console.log(`🎨 Generating AI Image for: ${recipe.name}`);
+            const imagePrompt = `Professional food photography of ${recipe.name}, ${recipe.description.substring(0, 100)}, high resolution, 4k, appetizing, studio lighting, top down view`;
+
+            const generatedUrl = await this.aiProvider.generateImage({
+              prompt: imagePrompt,
+              size: "1024x1024",
+              quality: "standard",
+            });
+
+            if (generatedUrl && generatedUrl.length > 0) {
+              const localUrl = await this.downloadAndSaveImage(generatedUrl);
+              recipe.imageUrl = localUrl;
+            } else {
+              recipe.imageUrl = `https://placehold.co/1024x1024/3d326d/FFF?text=${encodeURIComponent(recipe.name)}`;
+            }
+          } else {
+            recipe.imageUrl = `https://placehold.co/1024x1024/7dab4f/FFF?text=${encodeURIComponent(recipe.name)}`;
+          }
+        } catch (imageError) {
+          console.error(
+            "⚠️ Failed to generate AI image for custom recipe:",
+            imageError,
+          );
+          recipe.imageUrl = `https://placehold.co/1024x1024/e0e0e0/333?text=${encodeURIComponent(recipe.name)}`;
+        }
+
+        console.log("✅ Image handled. Score/Cost:", {
           name: recipe.name,
-          servings: recipe.servings,
-          totalTime: recipe.totalTimeMinutes,
           healthScore: recipe.healthScore,
           costPerServing: recipe.costAnalysis.costPerServing,
         });
@@ -718,7 +809,7 @@ export class AIRecipeService {
             });
 
             // Return the stored recipe with ID
-            return storedRecipe;
+            return [storedRecipe];
           } catch (storageError) {
             console.error(
               "⚠️ Failed to store custom recipe in database:",
@@ -730,9 +821,11 @@ export class AIRecipeService {
         } else {
           console.log("⚠️ No accountId provided, skipping database storage");
         }
+
+        return [recipe];
       }
 
-      return recipe;
+      return [];
     } catch (error) {
       console.error("❌ Recipe Search Error:", error);
       const message = error instanceof Error ? error.message : "Unknown error";
