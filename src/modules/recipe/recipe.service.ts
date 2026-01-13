@@ -11,20 +11,27 @@ export type { RecipeFilters };
 
 import { AIRecipeService } from "../ai/services/ai-recipe.service.js";
 import { AIRecipeRequest } from "../ai/interfaces/ai.interfaces.js";
+import {
+  IMemberRepository,
+  MemberRepository,
+} from "../member/member.repository.js";
 
 export class RecipeService {
   private storage: RecipeStorage;
   private ingredientStorage: IngredientsRepository;
   private aiRecipeService: AIRecipeService;
+  private memberRepository: IMemberRepository;
 
   constructor(
     storage: RecipeStorage,
     ingredientStorage: IngredientsRepository,
     aiRecipeService: AIRecipeService,
+    memberRepository: IMemberRepository = new MemberRepository(),
   ) {
     this.storage = storage;
     this.ingredientStorage = ingredientStorage;
     this.aiRecipeService = aiRecipeService;
+    this.memberRepository = memberRepository;
   }
 
   // 🧑‍🍳 Create a new recipe
@@ -212,6 +219,68 @@ export class RecipeService {
   // 🧠 Generate AI recipes
 
   async generateAIRecipes(payload: any, accountId: string) {
+    // Aggregate health data from payload and target members
+    const aggregatedDietaryRestrictions = new Set<string>(
+      payload.dietaryRestrictions || [],
+    );
+    const aggregatedAllergies = new Set<string>(payload.allergies || []);
+    const aggregatedHealthGoals = new Set<string>(payload.healthGoals || []);
+    const aggregatedConditions = new Set<string>(
+      payload.healthConditions || [],
+    );
+
+    const healthProfilesList: any[] = [];
+
+    // If target members are specified, fetch their health profiles
+    if (payload.targetMembers && payload.targetMembers.length > 0) {
+      try {
+        const fetchResult =
+          await this.memberRepository.findHealthProfilesByMemberIds(
+            payload.targetMembers,
+          );
+
+        for (const profile of fetchResult) {
+          // Add to detailed list
+          healthProfilesList.push({
+            id: profile.memberId, // Check your repo result structure, mapping assumed
+            name: profile.member?.name, // If joined
+            dietaryRestrictions: profile.dietaryRestrictions || [],
+            allergies: profile.allergies || [],
+            healthConditions: profile.conditions || [],
+            healthGoals: profile.goals || [],
+          });
+
+          // Also aggregate for global safety constraints (zero tolerance)
+          if (
+            profile.dietaryRestrictions &&
+            Array.isArray(profile.dietaryRestrictions)
+          ) {
+            profile.dietaryRestrictions.forEach((dr: string) =>
+              aggregatedDietaryRestrictions.add(dr),
+            );
+          }
+          if (profile.allergies && Array.isArray(profile.allergies)) {
+            profile.allergies.forEach((alg: string) =>
+              aggregatedAllergies.add(alg),
+            );
+          }
+          // We don't necessarily need to aggregate conditions/goals globally if we have per-member profiles,
+          // but keeping them doesn't hurt as general context.
+          if (profile.goals && Array.isArray(profile.goals)) {
+            profile.goals.forEach((g: string) => aggregatedHealthGoals.add(g));
+          }
+          if (profile.conditions && Array.isArray(profile.conditions)) {
+            profile.conditions.forEach((c: string) =>
+              aggregatedConditions.add(c),
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching member health profiles:", error);
+        // Continue with payload data only if fetch fails
+      }
+    }
+
     const request: AIRecipeRequest = {
       accountId: accountId,
       mealType: payload.mealType,
@@ -222,13 +291,15 @@ export class RecipeService {
       usePantryItems: payload.usePantryItems || false,
       pantryOnly: payload.pantryOnly || false,
       maxBudgetPerServing: payload.maxBudgetPerServing,
-      dietaryRestrictions: payload.dietaryRestrictions || [],
-      allergies: payload.allergies || [],
+      dietaryRestrictions: Array.from(aggregatedDietaryRestrictions),
+      allergies: Array.from(aggregatedAllergies),
       cuisine: payload.cuisine, // Explicit single cuisine preference
       preferredCuisines: payload.preferredCuisines || payload.cuisines || [], // Handle both field names
       difficulty: payload.difficulty || "medium", // Default to medium
       maxPrepTime: payload.maxPrepTime || 60,
-      healthGoals: payload.healthGoals || [],
+      healthGoals: Array.from(aggregatedHealthGoals),
+      healthConditions: Array.from(aggregatedConditions),
+      healthProfiles: healthProfilesList,
       // ingredientsToUse: payload.ingredientsToUse || [],
       // ingredientsToExclude: payload.ingredientsToExclude || []
     };

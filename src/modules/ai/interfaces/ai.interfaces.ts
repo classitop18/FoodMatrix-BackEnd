@@ -60,48 +60,49 @@ export interface RecipeStorage {
 }
 
 // Enhanced Recipe Request with all new parameters
+export interface MemberHealthProfile {
+  id: string;
+  name?: string;
+  dietaryRestrictions: string[];
+  allergies: string[];
+  healthConditions: string[];
+  healthGoals: string[];
+}
+
 export interface AIRecipeRequest {
-  // Basic Info
+  accountId: string;
   mealType: string;
   memberCount: number;
-  servings: number; // NEW: Explicit serving size control
-  recipeCount: number; // NEW: How many recipes to generate (1-5)
-
-  // Budget & Time
-  maxBudgetPerServing: number;
-  maxPrepTime?: number;
-  difficulty?: "easy" | "medium" | "hard";
-
-  // Family Info
-  targetMembers?: string[];
+  recipeCount: number;
   isForAllMembers?: boolean;
-  familyAges?: string[];
 
-  // Cuisine & Preferences
-  cuisine?: string;
-  preferredCuisines?: string[];
+  // Preferences & Constraints
+  servings: number;
+  usePantryItems: boolean; // Prioritize pantry items
+  pantryOnly?: boolean; // STRICT constraint (only pantry)
+  maxBudgetPerServing?: number; // USD
+  cuisine?: string; // e.g. "Italian", "Mexican"
+  preferredCuisines?: string[]; // e.g. ["Italian", "Mexican"] (used if cuisine not set)
+  difficulty?: "easy" | "medium" | "hard";
+  maxPrepTime?: number; // minutes
+  dayOfWeek?: string; // Context for meal complexity
 
-  // Health Profiles
-  dietaryRestrictions?: string[];
-  allergies?: string[];
-  healthConditions?: string[];
-  healthGoals?: string[];
+  // Personalization
+  recipeHistory?: RecipeScore[]; // For learning
+  avoidRecentRecipes?: string[]; // To prevent repetition
+
+  // Health & Diet
+  dietaryRestrictions?: string[]; // Global restrictions
+  allergies?: string[]; // Global allergies
+  healthConditions?: string[]; // Global conditions
+  healthGoals?: string[]; // Global goals
+  healthProfiles?: MemberHealthProfile[]; // Per-member detailed profiles
 
   // Food Preferences
-  excludedFoods?: string[];
-  includedFoods?: string[];
+  excludedFoods?: string[]; // "I hate mushrooms"
+  includedFoods?: string[]; // "I want more kale"
   customExclusions?: string[];
   customInclusions?: string[];
-
-  // Pantry Management - NEW
-  usePantryItems: boolean; // true = prioritize pantry, false = any ingredients
-  pantryOnly?: boolean; // true = ONLY use pantry items
-
-  // AI Learning & Memory
-  accountId: string;
-  dayOfWeek?: string;
-  recipeHistory?: RecipeScore[]; // NEW: Past 2 months scores
-  avoidRecentRecipes?: string[];
 }
 
 // NEW: Recipe Scoring System

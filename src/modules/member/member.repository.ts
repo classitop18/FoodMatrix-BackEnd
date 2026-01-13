@@ -17,7 +17,12 @@ import {
   MemberWithRelations,
   PaginatedResult,
 } from "./types/member.types.js";
-import { accounts, members, users } from "../../database/schemas/schema.js";
+import {
+  accounts,
+  healthProfiles,
+  members,
+  users,
+} from "../../database/schemas/schema.js";
 import { getDb } from "../../database/db.js";
 
 export interface IMemberRepository {
@@ -60,6 +65,9 @@ export interface IMemberRepository {
   getStats(accountId: string): Promise<MemberStats>;
   count(accountId: string): Promise<number>;
   countByRole(accountId: string): Promise<Record<string, number>>;
+
+  // Health Profiles
+  findHealthProfilesByMemberIds(memberIds: string[]): Promise<any[]>;
 }
 
 export class MemberRepository implements IMemberRepository {
@@ -466,5 +474,13 @@ export class MemberRepository implements IMemberRepository {
     return Object.fromEntries(
       results.map((r: any) => [r.role, Number(r.count)]),
     );
+  }
+
+  async findHealthProfilesByMemberIds(memberIds: string[]): Promise<any[]> {
+    if (!memberIds.length) return [];
+    return await this.db
+      .select()
+      .from(healthProfiles)
+      .where(inArray(healthProfiles.memberId, memberIds));
   }
 }

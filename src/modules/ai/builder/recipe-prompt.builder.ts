@@ -543,25 +543,54 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
   private buildHealthInfo(request: AIRecipeRequest): string[] {
     const healthInfo: string[] = [];
 
-    if (request.healthConditions?.length) {
+    // Global constraints
+    if (request.allergies?.length) {
       healthInfo.push(
-        `🩺 Health Conditions: ${request.healthConditions.join(", ")} - Adapt recipe accordingly`,
+        `⚠️ ALLERGIES (ZERO TOLERANCE - GLOBAL): ${request.allergies.join(", ")} - Completely avoid`,
       );
     }
     if (request.dietaryRestrictions?.length) {
       healthInfo.push(
-        `🥗 Dietary Restrictions: ${request.dietaryRestrictions.join(", ")} - MUST comply`,
+        `🥗 Dietary Restrictions (Global): ${request.dietaryRestrictions.join(", ")} - MUST comply`,
       );
     }
-    if (request.allergies?.length) {
+
+    // Detailed Member Profiles
+    if (request.healthProfiles?.length) {
+      healthInfo.push("**👤 Specific Member Health Needs:**");
+      request.healthProfiles.forEach((profile) => {
+        const details = [];
+        if (profile.dietaryRestrictions?.length)
+          details.push(`Diet: ${profile.dietaryRestrictions.join(", ")}`);
+        if (profile.allergies?.length)
+          details.push(`Allergies: ${profile.allergies.join(", ")}`);
+        if (profile.healthConditions?.length)
+          details.push(`Conditions: ${profile.healthConditions.join(", ")}`);
+        if (profile.healthGoals?.length)
+          details.push(`Goals: ${profile.healthGoals.join(", ")}`);
+
+        if (details.length > 0) {
+          healthInfo.push(
+            `- Member ${profile.name || profile.id}: ${details.join(" | ")}`,
+          );
+        }
+      });
       healthInfo.push(
-        `⚠️ ALLERGIES (ZERO TOLERANCE): ${request.allergies.join(", ")} - Completely avoid`,
+        "👉 **INSTRUCTION:** Generate recipes that satisfy specific member needs where possible, without violating global safety constraints (allergies/restrictions).",
+        "👉 **TAGGING:** In the recipe `healthConsiderations` field, explicitly mention which condition/goal this recipe helps with (e.g., 'Low Sugar for [Member Name]').",
       );
-    }
-    if (request.healthGoals?.length) {
-      healthInfo.push(
-        `🎯 Health Goals: ${request.healthGoals.join(", ")} - Optimize for these`,
-      );
+    } else {
+      // Fallback to global if no profiles
+      if (request.healthConditions?.length) {
+        healthInfo.push(
+          `🩺 Health Conditions: ${request.healthConditions.join(", ")} - Adapt recipe accordingly`,
+        );
+      }
+      if (request.healthGoals?.length) {
+        healthInfo.push(
+          `🎯 Health Goals: ${request.healthGoals.join(", ")} - Optimize for these`,
+        );
+      }
     }
 
     return healthInfo;
