@@ -427,6 +427,28 @@ export class RecipeService {
       scoreDelta,
     };
   }
+
+  // 📅 Check if recipes exist for a specific date and meal type
+  async checkRecipesByDate(accountId: string, date: string, mealType: string) {
+    const recipes = await this.storage.getRecipesByDateAndMealType(
+      accountId,
+      date,
+      mealType,
+    );
+
+    if (recipes.length > 0) {
+      return {
+        exists: true,
+        recipe: recipes[0], // Return the most recent one
+      };
+    }
+
+    return {
+      exists: false,
+      recipe: null,
+    };
+  }
+
   // 🛍️ Get shopping list
   async getShoppingList(recipeId: string) {
     return await this.storage.retrieveShoppingList(recipeId);

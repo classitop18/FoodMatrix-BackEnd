@@ -70,6 +70,7 @@ export class RecipeController {
         sortBy: req.query.sortBy as string,
         sortOrder: req.query.sortOrder as "asc" | "desc",
         userId: req.user?.id,
+        viewScope: req.query.viewScope as "personal" | "global",
       };
 
       const result = await this.recipeService.getRecipes(accountId, filters);
@@ -375,6 +376,39 @@ export class RecipeController {
       );
 
       return sendResponse(res, result, `Recipe interaction: ${action}`, 200);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  // 📅 Check if recipes exist for a specific date and meal type
+  checkRecipesByDate = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const accountId = this.getAccountId(req);
+      if (!accountId) throw new AppError("Account ID is required", 401);
+
+      const { date, mealType } = req.query;
+
+      if (!date || !mealType) {
+        throw new AppError("Date and mealType are required", 400);
+      }
+
+      const result = await this.recipeService.checkRecipesByDate(
+        accountId,
+        date as string,
+        mealType as string,
+      );
+
+      return sendResponse(
+        res,
+        result,
+        result.exists ? "Recipe found" : "No recipe found",
+        200,
+      );
     } catch (err) {
       next(err);
     }

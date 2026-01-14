@@ -9,9 +9,12 @@ import {
   RecipeStorage,
 } from "../interfaces/ai.interfaces.js";
 import fs from "fs";
+import fsPromises from "fs/promises";
 import path from "path";
 import axios from "axios";
 import { randomUUID } from "crypto";
+import { scaleQuantityString } from "../../../utils/math.utils.js";
+import { AppError } from "../../../utils/app-error.utils.js";
 
 export class AIRecipeService {
   constructor(
@@ -33,7 +36,7 @@ export class AIRecipeService {
         "recipes",
       );
       if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
+        await fsPromises.mkdir(uploadsDir, { recursive: true });
       }
 
       const extension = "png"; // DALL-E usually returns PNG
@@ -46,7 +49,7 @@ export class AIRecipeService {
         responseType: "arraybuffer",
       });
 
-      fs.writeFileSync(filepath, response.data);
+      await fsPromises.writeFile(filepath, response.data);
 
       return `/uploads/recipes/${filename}`;
     } catch (error) {
@@ -99,7 +102,7 @@ export class AIRecipeService {
       try {
         const logsDir = path.join(process.cwd(), "logs");
         if (!fs.existsSync(logsDir)) {
-          fs.mkdirSync(logsDir, { recursive: true });
+          await fsPromises.mkdir(logsDir, { recursive: true });
         }
         const logFile = path.join(logsDir, "last_ai_prompt.log");
         const logContent = `
@@ -113,7 +116,7 @@ GENERATED PROMPT:
 ${typeof prompt === "string" ? prompt : JSON.stringify(prompt, null, 2)}
 ==========================================
 `;
-        fs.writeFileSync(logFile, logContent);
+        await fsPromises.writeFile(logFile, logContent);
         console.log(`✅ Detailed AI Prompt written to: ${logFile}`);
       } catch (err) {
         console.error("Failed to write prompt debug log:", err);
@@ -327,12 +330,7 @@ ${typeof prompt === "string" ? prompt : JSON.stringify(prompt, null, 2)}
   }
 
   private scaleQuantity(quantity: string, ratio: number): string {
-    const numMatch = quantity.match(/[\d./]+/);
-    if (!numMatch) return quantity;
-
-    const num = eval(numMatch[0]); // Parse fractions like "1/2"
-    const scaled = (num * ratio).toFixed(2);
-    return quantity.replace(/[\d./]+/, scaled);
+    return scaleQuantityString(quantity, ratio);
   }
 
   private estimateNutrition(recipe: { mealType: string }): NutritionInfo {
@@ -858,13 +856,22 @@ ${typeof prompt === "string" ? prompt : JSON.stringify(prompt, null, 2)}
       return [];
     } catch (error) {
       console.error("❌ Recipe Search Error:", error);
+
+      if (error instanceof AppError) {
+        throw error;
+      }
+
       const message = error instanceof Error ? error.message : "Unknown error";
 
       if (message.includes("timeout") || message.includes("ETIMEDOUT")) {
-        throw new Error("Recipe search timed out. Please try again.");
+        throw new AppError("Recipe search timed out. Please try again.", 408);
       }
 
-      throw new Error(`Failed to search recipe: ${message}`);
+      if (message.includes("does not appear to be a real food item")) {
+        throw new AppError(message, 400);
+      }
+
+      throw new AppError(`Failed to search recipe: ${message}`, 500);
     }
   }
 
@@ -997,6 +1004,15 @@ Follow all requirements from single recipe search for EACH variation.`;
 
       const recipe = JSON.parse(jsonMatch[0]);
 
+      // Validation Check (NEW)
+      if (recipe.isValid === false) {
+        throw new AppError(
+          recipe.invalidReason ||
+            "Recpie validation failed: Not a valid food item.",
+          400,
+        );
+      }
+
       // Validate and enhance
       return this.validateAndEnhanceRecipe(
         recipe,
@@ -1005,6 +1021,19 @@ Follow all requirements from single recipe search for EACH variation.`;
         servings,
       );
     } catch (error) {
+      // Re-throw validation errors as is
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      if (
+        error instanceof Error &&
+        (error.message.includes("Not a valid food item") ||
+          error.message.includes("does not appear to be a real food item"))
+      ) {
+        throw new AppError(error.message, 400);
+      }
+
       console.error("Failed to parse recipe:", error);
       return null;
     }

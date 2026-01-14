@@ -63,6 +63,7 @@ recipeRoutes.use(authenticate);
 recipeRoutes.get("/", recipeController.getRecipes);
 recipeRoutes.get("/search", recipeController.searchRecipes);
 recipeRoutes.post("/search/budget", recipeController.searchByBudget); // POST because complex filters
+recipeRoutes.get("/check-by-date", recipeController.checkRecipesByDate); // Check if recipe exists for date
 
 // 🤖 AI Generation
 recipeRoutes.post("/generate-ai", recipeController.generateAIRecipes);

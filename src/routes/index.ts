@@ -10,6 +10,7 @@ import pantryRoutes from "./pantry.routes.js";
 import ingredientRoutes from "./ingredient.routes.js";
 import mealPlanRoutes from "./meal-plan.routes.js";
 import recipeRoutes from "./recipe.routes.js";
+import pdfRoutes from "./pdf.routes.js";
 
 const appRouter = Router();
 
@@ -24,5 +25,6 @@ appRouter.use("/pantry", pantryRoutes);
 appRouter.use("/ingredients", ingredientRoutes);
 appRouter.use("/meal-plans", mealPlanRoutes);
 appRouter.use("/recipes", recipeRoutes);
+appRouter.use("/pdf", pdfRoutes);
 
 export default appRouter;

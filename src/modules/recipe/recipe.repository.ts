@@ -7,6 +7,8 @@ import {
   asc,
   inArray,
   getTableColumns,
+  gte,
+  lte,
 } from "drizzle-orm";
 import { getDb } from "../../database/db.js";
 import {
@@ -114,6 +116,11 @@ export interface RecipeStorageInterface {
   updateRecipeScore(recipeId: string, scoreDelta: number): Promise<void>;
   retrieveShoppingList(recipeId: string): Promise<ShoppingListItem[]>;
   retrieveMergedShoppingList(recipeIds: string[]): Promise<ShoppingListItem[]>;
+  getRecipesByDateAndMealType(
+    accountId: string,
+    date: string,
+    mealType: string,
+  ): Promise<Recipe[]>;
 }
 
 export class RecipeStorage implements RecipeStorageInterface {
@@ -335,8 +342,6 @@ export class RecipeStorage implements RecipeStorageInterface {
       conditions.push(eq(recipes.accountId, accountId));
     }
 
-    // ... (rest of filters remain same, I will reuse existing logic if possible, but I am replacing the whole block to be safe with query construction)
-
     // Filter logic...
     if (cuisines) {
       const cuisineArray = cuisines
@@ -546,16 +551,9 @@ export class RecipeStorage implements RecipeStorageInterface {
         createdAt: recipe.createdAt,
 
         // 🔥 Parsed AI-generated data
-        instructions: recipe.instructions
-          ? JSON.parse(recipe.instructions)
-          : [],
+        instructions: this.safeJsonParse(recipe.instructions, []),
         nutrition: recipe.nutrition,
         costAnalysis: recipe?.costAnalysis,
-        // nutritionalHighlights: recipe.nutritionalHighlights ? JSON.parse(recipe.nutritionalHighlights as string) : [],
-        // cookingTips: recipe.cookingTips ? JSON.parse(recipe.cookingTips as string) : [],
-        // variations: recipe.variations ? JSON.parse(recipe.variations as string) : [],
-        // healthConsiderations: recipe.healthConsiderations ? JSON.parse(recipe.healthConsiderations as string) : [],
-        // webSourceInspirations: recipe.webSourceInspirations ? JSON.parse(recipe.webSourceInspirations as string) : [],
 
         // Health and scoring
         healthScore: recipe.healthScore,
@@ -563,14 +561,6 @@ export class RecipeStorage implements RecipeStorageInterface {
           ? parseFloat(recipe.budgetEfficiency)
           : undefined,
 
-        // Pantry data from metadata
-        // pantryOptimization: aiMetadata?.pantryOptimization || [],
-        // canGenerateRecipe: aiMetadata?.canGenerateRecipe !== false,
-        // insufficientPantryReason: aiMetadata?.insufficientPantryReason,
-        // suggestedPantryAdditions: aiMetadata?.suggestedPantryAdditions || [],
-        // pantryItemsUsedCount: aiMetadata?.pantryItemsUsedCount || 0,
-
-        // AI reasoning
         aiReasoningNotes: recipe.aiReasoningNotes,
 
         // Statistics
@@ -638,15 +628,9 @@ export class RecipeStorage implements RecipeStorageInterface {
     }));
 
     // Parse JSON fields
-    const nutrition = recipe.nutrition
-      ? JSON.parse(recipe.nutrition as string)
-      : null;
-    const costAnalysis = recipe.costAnalysis
-      ? JSON.parse(recipe.costAnalysis as string)
-      : null;
-    const aiMetadata = recipe.aiGeneratedMetadata
-      ? JSON.parse(recipe.aiGeneratedMetadata as string)
-      : null;
+    const nutrition = this.safeJsonParse(recipe.nutrition, null);
+    const costAnalysis = this.safeJsonParse(recipe.costAnalysis, null);
+    const aiMetadata = this.safeJsonParse(recipe.aiGeneratedMetadata, null);
 
     console.log({ recipe });
 
@@ -667,7 +651,7 @@ export class RecipeStorage implements RecipeStorageInterface {
       createdAt: recipe.createdAt,
 
       // Parsed AI data
-      instructions: recipe.instructions ? JSON.parse(recipe.instructions) : [],
+      instructions: this.safeJsonParse(recipe.instructions, []),
       nutrition: nutrition,
       costAnalysis: costAnalysis || {
         totalCost: costAnalysis?.totalCost || 0,
@@ -678,21 +662,17 @@ export class RecipeStorage implements RecipeStorageInterface {
           ? parseFloat(recipe.budgetEfficiency)
           : 0,
       },
-      nutritionalHighlights: recipe.nutritionalHighlights
-        ? JSON.parse(recipe.nutritionalHighlights as string)
-        : [],
-      cookingTips: recipe.cookingTips
-        ? JSON.parse(recipe.cookingTips as string)
-        : [],
-      variations: recipe.variations
-        ? JSON.parse(recipe.variations as string)
-        : [],
-      healthConsiderations: recipe.healthConsiderations
-        ? JSON.parse(recipe.healthConsiderations as string)
-        : [],
-      webSourceInspirations: recipe.webSourceInspirations
-        ? JSON.parse(recipe.webSourceInspirations as string)
-        : [],
+      nutritionalHighlights: this.safeJsonParse(
+        recipe.nutritionalHighlights,
+        [],
+      ),
+      cookingTips: this.safeJsonParse(recipe.cookingTips, []),
+      variations: this.safeJsonParse(recipe.variations, []),
+      healthConsiderations: this.safeJsonParse(recipe.healthConsiderations, []),
+      webSourceInspirations: this.safeJsonParse(
+        recipe.webSourceInspirations,
+        [],
+      ),
 
       healthScore: recipe.healthScore,
       budgetEfficiency: recipe.budgetEfficiency
@@ -1215,13 +1195,9 @@ export class RecipeStorage implements RecipeStorageInterface {
     // 3. Last resort: AI Metadata (requires fetching recipe)
     const recipe = await this.getRecipeById(recipeId);
     if (recipe?.aiGeneratedMetadata) {
-      try {
-        const metadata = JSON.parse(recipe.aiGeneratedMetadata as string);
-        if (metadata.shoppingList && Array.isArray(metadata.shoppingList)) {
-          return metadata.shoppingList;
-        }
-      } catch (e) {
-        console.error("Error parsing AI metadata for shopping list", e);
+      const metadata = this.safeJsonParse(recipe.aiGeneratedMetadata, {});
+      if (metadata.shoppingList && Array.isArray(metadata.shoppingList)) {
+        return metadata.shoppingList;
       }
     }
 
@@ -1277,5 +1253,61 @@ export class RecipeStorage implements RecipeStorageInterface {
     }
 
     return Array.from(mergedMap.values());
+  }
+
+  // 📅 Get recipes by date and meal type
+  async getRecipesByDateAndMealType(
+    accountId: string,
+    date: string,
+    mealType: string,
+  ): Promise<Recipe[]> {
+    // Parse the date string and create separate date objects for start and end of day
+    const targetDate = new Date(date);
+
+    // Create start of day (00:00:00.000)
+    const startOfDay = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+
+    // Create end of day (23:59:59.999)
+    const endOfDay = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
+
+    return this.db
+      .select()
+      .from(recipes)
+      .where(
+        and(
+          eq(recipes.accountId, accountId),
+          gte(recipes.createdAt, startOfDay),
+          lte(recipes.createdAt, endOfDay),
+          eq(recipes.mealType, mealType.toLowerCase() as any),
+        ),
+      )
+      .orderBy(desc(recipes.createdAt))
+      .limit(1);
+  }
+
+  private safeJsonParse(data: any, fallback: any = []) {
+    if (!data) return fallback;
+    if (typeof data === "object") return data;
+    try {
+      return JSON.parse(data);
+    } catch {
+      return fallback;
+    }
   }
 }

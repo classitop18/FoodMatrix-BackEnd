@@ -701,6 +701,13 @@ Member ${index + 1}:
         ${dietarySection}
 
         **CRITICAL REQUIREMENTS:**
+        
+        0. **VALIDATION (MOST IMPORTANT):**
+        - First, verify if "${recipeName}" is a real, edible food item known in culinary traditions.
+        - If the name is gibberish, random characters, a non-food item, or completely made up (e.g., "skibidi toilet stew", "sdklfjsdklfjsd"), you MUST return:
+          \`{ "isValid": false, "invalidReason": "The recipe name '${recipeName}' does not appear to be a real food item." }\`
+        - Do NOT hallucinate a recipe for nonsense names.
+        - If valid, proceed with the rest of the steps.
 
         1. **Authenticity & Research:**
         - Research traditional preparation methods for "${recipeName}"
@@ -742,6 +749,7 @@ Member ${index + 1}:
 
         \`\`\`json
         {
+        "isValid": true,
         "name": "${recipeName}",
         "description": "2-3 sentence appetizing description highlighting flavors, texture, and appeal",
         "cuisineType": "specific cuisine origin",

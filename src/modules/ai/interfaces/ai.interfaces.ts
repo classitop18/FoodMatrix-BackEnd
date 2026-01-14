@@ -153,6 +153,10 @@ export interface AIGeneratedRecipe {
   pantryItemsUsedCount?: number; // Count of pantry items actually used
   imageUrl?: string; // NEW: Image URL of the recipe
   shoppingList: ShoppingListItem[]; // NEW: Shopping list for the recipe
+
+  // Validation (NEW)
+  isValid?: boolean; // Whether the recipe is a valid/real food item
+  invalidReason?: string; // Reason if isValid is false
 }
 
 export interface RecipeIngredient {
