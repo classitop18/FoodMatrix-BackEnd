@@ -508,6 +508,14 @@ ${typeof prompt === "string" ? prompt : JSON.stringify(prompt, null, 2)}
       ],
       healthConsiderations: [],
       aiReasoningNotes: "Retrieved from recipe database",
+      shoppingList: ingredients.map((ing: any) => ({
+        ingredientName: ing.name,
+        quantity:
+          servingRatio !== 1
+            ? this.scaleQuantity(ing.quantity, servingRatio)
+            : ing.quantity,
+        unit: ing.unit,
+      })),
     };
 
     return aiRecipe;
@@ -1116,6 +1124,7 @@ Follow all requirements from single recipe search for EACH variation.`;
       // AI often hallucinates specific image URLs (like Wikimedia paths that don't exist).
       // We will generate a real AI image in the post-processing step.
       imageUrl: "", // Set explicitly to empty so post-processor knows to generate one
+      shoppingList: recipe.shoppingList || [],
     };
   }
   /**

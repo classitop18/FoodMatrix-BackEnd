@@ -427,4 +427,13 @@ export class RecipeService {
       scoreDelta,
     };
   }
+  // 🛍️ Get shopping list
+  async getShoppingList(recipeId: string) {
+    return await this.storage.retrieveShoppingList(recipeId);
+  }
+
+  // 🛍️🛒 Get merged shopping list
+  async getMergedShoppingList(recipeIds: string[]) {
+    return await this.storage.retrieveMergedShoppingList(recipeIds);
+  }
 }

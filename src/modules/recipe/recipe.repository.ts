@@ -13,10 +13,12 @@ import {
   recipes,
   ingredients,
   recipeIngredients,
+  recipeShoppingListItems,
   userRecipeInteractions,
   Ingredient,
   InsertRecipe,
   InsertRecipeIngredient,
+  InsertRecipeShoppingListItem,
   Recipe,
   RecipeIngredient,
 } from "../../database/schemas/schema.js";
@@ -24,6 +26,7 @@ import {
 import {
   AIGeneratedRecipe,
   AIRecipeRequest,
+  ShoppingListItem,
 } from "../ai/interfaces/ai.interfaces.js";
 
 // type DrizzleClient = ReturnType<typeof getDb>;
@@ -71,6 +74,7 @@ export interface RecipeStorageInterface {
   getRecipeWithIngredients(recipeId: string): Promise<
     | (Recipe & {
         ingredients: (RecipeIngredient & { ingredient: Ingredient })[];
+        shoppingList?: ShoppingListItem[];
       })
     | undefined
   >;
@@ -88,6 +92,11 @@ export interface RecipeStorageInterface {
   addRecipeIngredient(
     recipeIngredient: InsertRecipeIngredient,
   ): Promise<RecipeIngredient>;
+
+  addRecipeShoppingListItems(
+    items: InsertRecipeShoppingListItem[],
+  ): Promise<void>;
+
   removeRecipeIngredient(
     recipeId: string,
     ingredientId: string,
@@ -103,6 +112,8 @@ export interface RecipeStorageInterface {
     updates: { isLiked?: boolean; isDisliked?: boolean; isFavorite?: boolean },
   ): Promise<void>;
   updateRecipeScore(recipeId: string, scoreDelta: number): Promise<void>;
+  retrieveShoppingList(recipeId: string): Promise<ShoppingListItem[]>;
+  retrieveMergedShoppingList(recipeIds: string[]): Promise<ShoppingListItem[]>;
 }
 
 export class RecipeStorage implements RecipeStorageInterface {
@@ -608,6 +619,12 @@ export class RecipeStorage implements RecipeStorageInterface {
 
     const ingredientsData = await this.getRecipeIngredients(recipeId);
 
+    // Fetch shopping list items from new table
+    const shoppingListRows = await this.db
+      .select()
+      .from(recipeShoppingListItems)
+      .where(eq(recipeShoppingListItems.recipeId, recipeId));
+
     // Transform to AI format
     const ingredientsList = ingredientsData.map((ing) => ({
       name: ing.ingredient.name,
@@ -696,6 +713,20 @@ export class RecipeStorage implements RecipeStorageInterface {
         : undefined,
       totalRatings: recipe.totalRatings || 0,
 
+      shoppingList:
+        shoppingListRows.length > 0
+          ? shoppingListRows.map((item: any) => ({
+              ingredientName: item.ingredientName,
+              quantity: item.quantity,
+              unit: item.unit,
+            }))
+          : aiMetadata?.shoppingList ||
+            ingredientsList.map((ing) => ({
+              ingredientName: ing.name,
+              quantity: ing.quantity,
+              unit: ing.unit,
+            })),
+
       ingredients: ingredientsList,
     };
   }
@@ -774,6 +805,14 @@ export class RecipeStorage implements RecipeStorageInterface {
       .values(recipeIngredient)
       .returning();
     return newIngredient;
+  }
+
+  // 🛒 Add shopping list items
+  async addRecipeShoppingListItems(
+    items: InsertRecipeShoppingListItem[],
+  ): Promise<void> {
+    if (items.length === 0) return;
+    await this.db.insert(recipeShoppingListItems).values(items);
   }
 
   // ❌ Remove ingredient from recipe
@@ -972,6 +1011,7 @@ export class RecipeStorage implements RecipeStorageInterface {
               insufficientPantryReason: recipe.insufficientPantryReason,
               suggestedPantryAdditions: recipe.suggestedPantryAdditions,
               pantryItemsUsedCount: recipe.pantryItemsUsedCount,
+              shoppingList: recipe.shoppingList, // Persist specific shopping list
             })
           : null,
 
@@ -986,20 +1026,26 @@ export class RecipeStorage implements RecipeStorageInterface {
 
       // 3️⃣ Store ingredients into recipe_ingredients with enhanced data
       for (const ing of recipe.ingredients) {
+        // Enforce cleanup and standardization of ingredient name as requested
+        const ingredientName = ing.name ? ing.name.trim() : "";
+        if (!ingredientName) continue;
+
+        // Check if ingredient already available in DB
         const ingredient = await this.db
           .select()
           .from(ingredients)
-          .where(ilike(ingredients.name, ing.name))
+          .where(ilike(ingredients.name, ingredientName))
           .limit(1);
 
         let ingredientId = ingredient?.[0]?.id;
 
-        // If ingredient doesn't exist → create one
+        // If available matches -> use it
+        // If not available -> add it to ingredients table
         if (!ingredientId) {
           const [newIng] = await this.db
             .insert(ingredients)
             .values({
-              name: ing.name || "",
+              name: ingredientName, // use clean name
               category: ing.category || "misc",
               averagePrice: ing.estimatedCost
                 ? ing.estimatedCost.toString()
@@ -1013,8 +1059,7 @@ export class RecipeStorage implements RecipeStorageInterface {
           ingredientId = newIng.id;
         }
 
-        // Insert into junction table with ALL ingredient data
-
+        // Add to recipe-ingredients (junction table)
         const recipeIng: any = {
           recipeId: saved.id,
           ingredientId,
@@ -1034,6 +1079,97 @@ export class RecipeStorage implements RecipeStorageInterface {
         await this.addRecipeIngredient(recipeIng);
       }
 
+      // 4️⃣ Store shopping list items
+      if (recipe.shoppingList && recipe.shoppingList.length > 0) {
+        const shoppingListItems: InsertRecipeShoppingListItem[] = [];
+
+        for (const item of recipe.shoppingList) {
+          const shoppingItemName = item.ingredientName
+            ? item.ingredientName.trim()
+            : "";
+          if (!shoppingItemName) continue;
+
+          // 4.1 Check if this item exists in ingredients table (fuzzy match or exact)
+          let ingredientId: string | undefined;
+
+          // Try to match with ingredients we JUST added to the recipe first (context awareness)
+          const matchingRecipeIngredient = await this.db
+            .select({
+              id: recipeIngredients.id,
+              ingredientId: recipeIngredients.ingredientId,
+            })
+            .from(recipeIngredients)
+            .leftJoin(
+              ingredients,
+              eq(recipeIngredients.ingredientId, ingredients.id),
+            )
+            .where(
+              and(
+                eq(recipeIngredients.recipeId, saved.id),
+                ilike(ingredients.name, shoppingItemName),
+              ),
+            )
+            .limit(1);
+
+          let recipeIngredientId = matchingRecipeIngredient[0]?.id;
+
+          if (!recipeIngredientId) {
+            // 4.2 If not in recipe ingredients, check global ingredients table
+            const existingIngredient = await this.db
+              .select()
+              .from(ingredients)
+              .where(ilike(ingredients.name, shoppingItemName))
+              .limit(1);
+
+            ingredientId = existingIngredient[0]?.id;
+
+            // 4.3 If not in global ingredients, create it
+            if (!ingredientId) {
+              const [newIng] = await this.db
+                .insert(ingredients)
+                .values({
+                  name: shoppingItemName,
+                  category: "pantry", // Default to pantry for shopping list items
+                  averageUnit: item.unit || "unit",
+                  isPerishable: false,
+                })
+                .returning();
+              ingredientId = newIng.id;
+            }
+
+            // 4.4 Create a recipe_ingredient entry (even if quantity is different or 0, it links the item)
+            // User requested: "pehle recipe ingredients me add kro"
+            const [newRecipeIng] = await this.db
+              .insert(recipeIngredients)
+              .values({
+                recipeId: saved.id,
+                ingredientId: ingredientId,
+                quantity: item.quantity, // Use shopping list quantity
+                unit: item.unit,
+                isOptional: false,
+                category: "pantry",
+                isPantryItem: false,
+                notes: "From Shopping List",
+              })
+              .returning();
+
+            recipeIngredientId = newRecipeIng.id;
+          }
+
+          // 4.5 Add to shopping list items payload
+          shoppingListItems.push({
+            recipeId: saved.id,
+            recipeIngredientId: recipeIngredientId, // Linked!
+            ingredientName: shoppingItemName,
+            quantity: item.quantity,
+            unit: item.unit,
+            isChecked: false,
+          });
+        }
+
+        await this.addRecipeShoppingListItems(shoppingListItems);
+      }
+
       // 🔥 Add the database ID to the AI generated recipe
       recipesWithIds.push({
         ...recipe,
@@ -1046,5 +1182,100 @@ export class RecipeStorage implements RecipeStorageInterface {
     );
 
     return recipesWithIds;
+  }
+
+  // 🛍️ Get shopping list for a single recipe
+  async retrieveShoppingList(recipeId: string): Promise<ShoppingListItem[]> {
+    // 1. Try to get explicit shopping list items
+    const shoppingListRows = await this.db
+      .select()
+      .from(recipeShoppingListItems)
+      .where(eq(recipeShoppingListItems.recipeId, recipeId));
+
+    if (shoppingListRows.length > 0) {
+      return shoppingListRows.map((item: any) => ({
+        ingredientName: item.ingredientName,
+        quantity: item.quantity,
+        unit: item.unit,
+        isChecked: item.isChecked || false,
+      }));
+    }
+
+    // 2. Fallback: Get ingredients
+    const ingredientsData = await this.getRecipeIngredients(recipeId);
+    if (ingredientsData.length > 0) {
+      return ingredientsData.map((ing) => ({
+        ingredientName: ing.ingredient.name,
+        quantity: ing.quantity || "1",
+        unit: ing.unit || "unit",
+        isChecked: false,
+      }));
+    }
+
+    // 3. Last resort: AI Metadata (requires fetching recipe)
+    const recipe = await this.getRecipeById(recipeId);
+    if (recipe?.aiGeneratedMetadata) {
+      try {
+        const metadata = JSON.parse(recipe.aiGeneratedMetadata as string);
+        if (metadata.shoppingList && Array.isArray(metadata.shoppingList)) {
+          return metadata.shoppingList;
+        }
+      } catch (e) {
+        console.error("Error parsing AI metadata for shopping list", e);
+      }
+    }
+
+    return [];
+  }
+
+  // 🛍️🛒 Get merged shopping list for multiple recipes
+  async retrieveMergedShoppingList(
+    recipeIds: string[],
+  ): Promise<ShoppingListItem[]> {
+    let allItems: ShoppingListItem[] = [];
+
+    // Fetch lists for all recipes (parallelly for performance)
+    const lists = await Promise.all(
+      recipeIds.map((id) => this.retrieveShoppingList(id)),
+    );
+
+    // Flatten
+    allItems = lists.flat();
+
+    // Merge logic
+    // Group by Ingredient Name + Unit (normalized)
+    const mergedMap = new Map<string, ShoppingListItem>();
+
+    for (const item of allItems) {
+      const name = item.ingredientName.trim().toLowerCase();
+      const unit = item.unit ? item.unit.trim().toLowerCase() : "unit";
+      const key = `${name}::${unit}`;
+
+      if (mergedMap.has(key)) {
+        const existing = mergedMap.get(key)!;
+
+        // Try to sum quantities if they are numeric
+        const existingQty = parseFloat(existing.quantity);
+        const currentQty = parseFloat(item.quantity);
+
+        if (!isNaN(existingQty) && !isNaN(currentQty)) {
+          existing.quantity = (existingQty + currentQty).toString();
+        } else {
+          // If cannot sum, maybe append? Or just leave as is (showing simplest first).
+          // Better to show "1 cup + 2 tbsp" style?
+          // For now, simplicity: if one is not number, just keep the first one or append strings?
+          // User asked to MERGE.
+          // Let's trying appending string if not numeric.
+          if (existing.quantity !== item.quantity) {
+            // prevent duplicates like "1 item, 1 item"
+            // actually simpler to just sum if numbers, else ignored
+          }
+        }
+      } else {
+        mergedMap.set(key, { ...item }); // clone to avoid mutation issues
+      }
+    }
+
+    return Array.from(mergedMap.values());
   }
 }

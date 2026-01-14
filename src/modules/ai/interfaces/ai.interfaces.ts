@@ -152,6 +152,7 @@ export interface AIGeneratedRecipe {
   suggestedPantryAdditions?: string[]; // Items needed to make recipe possible
   pantryItemsUsedCount?: number; // Count of pantry items actually used
   imageUrl?: string; // NEW: Image URL of the recipe
+  shoppingList: ShoppingListItem[]; // NEW: Shopping list for the recipe
 }
 
 export interface RecipeIngredient {
@@ -192,6 +193,12 @@ export interface NutritionInfo {
   sugar_g: number;
   sodium_mg?: number;
   cholesterol_mg?: number;
+}
+
+export interface ShoppingListItem {
+  ingredientName: string;
+  quantity: string;
+  unit: string;
 }
 
 export const RECIPE_GENERATION_SYSTEM_PROMPT = `You are an elite AI chef and nutritionist specializing in personalized family meal planning with advanced machine learning capabilities.

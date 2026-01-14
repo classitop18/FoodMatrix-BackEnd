@@ -532,6 +532,31 @@ export const userRecipeInteractions = pgTable("user_recipe_interactions", {
     .notNull(),
 });
 
+// Recipe Shopping List Items
+export const recipeShoppingListItems = pgTable("recipe_shopping_list_items", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  recipeId: varchar("recipe_id")
+    .notNull()
+    .references(() => recipes.id, { onDelete: "cascade" }),
+
+  recipeIngredientId: varchar("recipe_ingredient_id").references(
+    () => recipeIngredients.id,
+    { onDelete: "set null" },
+  ),
+
+  ingredientName: text("ingredient_name").notNull(),
+  quantity: varchar("quantity"),
+  unit: varchar("unit"),
+
+  isChecked: boolean("is_checked").default(false),
+
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
 // Export Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -557,3 +582,8 @@ export type InsertRecipeIngredient = typeof recipeIngredients.$inferInsert;
 export type UserRecipeInteraction = typeof userRecipeInteractions.$inferSelect;
 export type InsertUserRecipeInteraction =
   typeof userRecipeInteractions.$inferInsert;
+
+export type RecipeShoppingListItem =
+  typeof recipeShoppingListItems.$inferSelect;
+export type InsertRecipeShoppingListItem =
+  typeof recipeShoppingListItems.$inferInsert;

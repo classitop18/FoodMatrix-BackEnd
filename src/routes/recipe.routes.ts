@@ -70,6 +70,14 @@ recipeRoutes.post("/search-custom", recipeController.generateCustomRecipe);
 
 // CRUD
 recipeRoutes.post("/", recipeController.createRecipe);
+
+// 🛒 Shopping List
+recipeRoutes.post(
+  "/shopping-list/merge",
+  recipeController.getMergedShoppingList,
+);
+recipeRoutes.get("/:id/shopping-list", recipeController.getShoppingList);
+
 recipeRoutes.get("/:id", recipeController.getRecipeById);
 recipeRoutes.patch("/:id", recipeController.updateRecipe);
 recipeRoutes.delete("/:id", recipeController.deleteRecipe);

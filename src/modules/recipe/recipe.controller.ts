@@ -379,4 +379,44 @@ export class RecipeController {
       next(err);
     }
   };
+  // 🛍️ Get shopping list for single recipe
+  getShoppingList = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const list = await this.recipeService.getShoppingList(req.params.id);
+      return sendResponse(res, list, "Shopping list fetched", 200);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  // 🛍️ Get merged shopping list
+  getMergedShoppingList = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      // Support both body (POST) and query (GET)
+      let recipeIds: string[] = [];
+
+      if (req.body && Array.isArray(req.body.recipeIds)) {
+        recipeIds = req.body.recipeIds;
+      } else if (req.query.ids) {
+        recipeIds = (req.query.ids as string).split(",");
+      }
+
+      if (!recipeIds || recipeIds.length === 0) {
+        throw new AppError("Recipe IDs are required", 400);
+      }
+
+      const list = await this.recipeService.getMergedShoppingList(recipeIds);
+      return sendResponse(res, list, "Merged shopping list fetched", 200);
+    } catch (err) {
+      next(err);
+    }
+  };
 }

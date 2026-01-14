@@ -425,15 +425,23 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
             
             "ingredients": [  
             {
-                "name": "ingredient name",
-                "quantity": "precise amount",
+                "name": "ingredient name (singular, standard name, e.g., 'Tomato' not 'Fresh Diced Tomatoes')",
+                "quantity": "precise amount (number or fraction)",
                 "unit": "measurement (["cup","tbsp","tsp","oz","lb","gram","kg","ml","liter","piece","clove","slice","dozen","can","bunch","jar"])",
                 "isOptional": false,
-                "notes": "preparation tips or substitutions",
+                "notes": "preparation tips (e.g. 'diced', 'peeled') or substitutions",
                 "estimatedCost": <realistic dollar amount>,
                 "category": "produce|pantry|dairy|protein|seafood|meat|bakery|spices|beverages|frozen|other",
                 "isPantryItem": true|false
             }
+            ],
+
+            "shoppingList": [
+              {
+                "ingredientName": "name of ingredient to buy (standardized)",
+                "quantity": "amount to buy (converted to standard weight/volume)",
+                "unit": "standard purchasing unit (MUST use 'kg', 'g', 'lb' for solid produce like tomatoes/onions, and 'l', 'ml' for liquids. Do NOT use 'piece', 'each', or quantity counts for these items.)"
+              }
             ],
             
             "instructions": [
@@ -745,7 +753,7 @@ Member ${index + 1}:
         
         "ingredients": [
             {
-            "name": "ingredient name",
+            "name": "ingredient name (singular, standard name)",
             "quantity": "precise amount",
             "unit": "standard measurement",
             "isOptional": boolean,
@@ -753,6 +761,14 @@ Member ${index + 1}:
             "estimatedCost": <realistic USD>,
             "category": "produce|pantry|dairy|protein|seafood|meat|bakery|spices|beverages|frozen|other",
             "isPantryItem": boolean
+            }
+        ],
+
+        "shoppingList": [
+            {
+            "ingredientName": "name of ingredient to buy (standardized)",
+            "quantity": "amount to buy (converted as weight/volume)",
+            "unit": "sstandard purchasing unit (MUST use 'kg', 'g', 'lb' for solid produce, 'l', 'ml' for liquids. Do NOT use 'piece' or counts.)"
             }
         ],
         

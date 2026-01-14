@@ -109,6 +109,7 @@ export class JSONRecipeParser implements RecipeParser {
           insufficientPantryReason: recipe.insufficientPantryReason,
           suggestedPantryAdditions: recipe.suggestedPantryAdditions,
           pantryItemsUsedCount: pantryItemsUsedCount,
+          shoppingList: recipe.shoppingList || [],
         };
       })
       .slice(0, request.recipeCount);
@@ -157,6 +158,7 @@ export class JSONRecipeParser implements RecipeParser {
         cookingTips: [],
         variations: [],
         webSourceInspirations: [],
+        shoppingList: [],
       },
     ];
   }
