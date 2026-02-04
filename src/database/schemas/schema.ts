@@ -10,6 +10,7 @@ import {
   uuid,
   jsonb,
   decimal,
+  time,
 } from "drizzle-orm/pg-core";
 
 import {
@@ -553,6 +554,173 @@ export const recipeShoppingListItems = pgTable("recipe_shopping_list_items", {
   isChecked: boolean("is_checked").default(false),
 
   createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
+// Event Planning module schemas
+
+export const events = pgTable("events", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  occasionType: text("occasion_type").notNull(), // birthday, anniversary, festival, gathering, housewarming, celebration, dinner_party, other
+  eventDate: timestamp("event_date").notNull(),
+  eventTime: time("event_time"),
+  description: text("description"),
+  status: text("status").default("draft").notNull(), // draft, planned, in_progress, completed, cancelled
+  budgetType: text("budget_type").default("separate").notNull(), // separate, weekly
+  budgetAmount: decimal("budget_amount", { precision: 16, scale: 2 }),
+  adultGuests: integer("adult_guests").default(0).notNull(),
+  kidGuests: integer("kid_guests").default(0).notNull(),
+  selectedMealTypes: text("meals").array(), // breakfast, brunch, lunch, snacks, dinner, dessert, beverages
+  guestNotes: text("guest_notes"),
+  actualCost: decimal("actual_cost", { precision: 16, scale: 2 }),
+  createdBy: varchar("created_by")
+    .notNull()
+    .references(() => members.id),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+  updatedAt: timestamp("updated_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
+export const eventBudget = pgTable("event_budget", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  totalBudget: decimal("total_budget", { precision: 16, scale: 2 }).notNull(),
+  totalSpent: decimal("total_spent", { precision: 16, scale: 2 })
+    .default("0")
+    .notNull(),
+  currency: text("currency").default("INR").notNull(),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
+export const eventParticipants = pgTable("event_participants", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  memberId: varchar("member_id")
+    .notNull()
+    .references(() => members.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
+// Event Meals - for each meal type in an event
+export const eventMeals = pgTable("event_meals", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  mealType: text("meal_type").notNull(), // breakfast, brunch, lunch, snacks, dinner, dessert, beverages
+  scheduledTime: time("scheduled_time"),
+  estimatedCost: decimal("estimated_cost", { precision: 16, scale: 2 }),
+  actualCost: decimal("actual_cost", { precision: 16, scale: 2 }),
+  status: text("status").default("planned").notNull(), // planned, prepared, served, cancelled
+  notes: text("notes"),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
+// Event Recipes - recipes added to each meal
+export const eventRecipes = pgTable("event_recipes", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  eventMealId: varchar("event_meal_id")
+    .notNull()
+    .references(() => eventMeals.id, { onDelete: "cascade" }),
+  recipeId: varchar("recipe_id")
+    .notNull()
+    .references(() => recipes.id),
+  servings: integer("servings").notNull(),
+  scalingFactor: decimal("scaling_factor", { precision: 8, scale: 4 })
+    .default("1")
+    .notNull(),
+  estimatedCost: decimal("estimated_cost", { precision: 16, scale: 2 }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
+// Event Shopping Lists
+export const eventShoppingLists = pgTable("event_shopping_lists", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  status: text("status").default("draft").notNull(), // draft, pending_approval, approved, purchased
+  approvedBy: varchar("approved_by").references(() => members.id),
+  approvedAt: timestamp("approved_at"),
+  totalEstimated: decimal("total_estimated", { precision: 16, scale: 2 }),
+  totalActual: decimal("total_actual", { precision: 16, scale: 2 }),
+  receiptUrl: text("receipt_url"),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
+// Event Shopping Items
+export const eventShoppingItems = pgTable("event_shopping_items", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  shoppingListId: varchar("shopping_list_id")
+    .notNull()
+    .references(() => eventShoppingLists.id, { onDelete: "cascade" }),
+  ingredientId: varchar("ingredient_id").references(() => ingredients.id),
+  ingredientName: text("ingredient_name").notNull(),
+  quantity: decimal("quantity", { precision: 16, scale: 4 }).notNull(),
+  unit: text("unit").notNull(),
+  estimatedPrice: decimal("estimated_price", { precision: 16, scale: 2 }),
+  actualPrice: decimal("actual_price", { precision: 16, scale: 2 }),
+  isPurchased: boolean("is_purchased").default(false).notNull(),
+  category: text("category"),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
+// Event Member Logs - for health tracking after event
+export const eventMemberLogs = pgTable("event_member_logs", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  memberId: varchar("member_id")
+    .notNull()
+    .references(() => members.id, { onDelete: "cascade" }),
+  consumedRecipeIds: text("consumed_recipe_ids")
+    .array()
+    .default(sql`'{}'::text[]`),
+  caloriesConsumed: integer("calories_consumed"),
+  nutritionData: jsonb("nutrition_data"),
+  loggedAt: timestamp("logged_at")
     .default(sql`now()`)
     .notNull(),
 });

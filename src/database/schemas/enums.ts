@@ -90,6 +90,7 @@ export const healthGoalEnum = pgEnum("health_goal", [
   "lower_cholesterol",
   "reduce_sodium",
   "general_wellness",
+
   "healthy_family_eating",
 ]);
 export const cookingSkillEnum = pgEnum("cooking_skill", [

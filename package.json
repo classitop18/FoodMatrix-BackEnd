@@ -13,7 +13,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsup",
     "start": "node dist/index.js",
-    "lint": "eslint . --ext .ts",
+    "lint": "eslint .",
     "format": "prettier --write .",
     "db:generate": "npm run build && drizzle-kit generate",
     "db:push": "npm run build && drizzle-kit push",

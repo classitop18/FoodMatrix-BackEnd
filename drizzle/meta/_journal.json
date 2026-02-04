@@ -71,6 +71,20 @@
       "when": 1767171225433,
       "tag": "0009_far_vampiro",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1770096597856,
+      "tag": "0010_mean_korg",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1770111222663,
+      "tag": "0011_vengeful_sabretooth",
+      "breakpoints": true
     }
   ]
 }
