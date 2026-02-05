@@ -53,6 +53,7 @@ export interface RecipeStorage {
   ): Promise<AIGeneratedRecipe[]>;
   getRecentRecipesWithScores(
     accountId: string,
+    cuisine?: string,
     days?: number,
   ): Promise<RecipeScore[]>;
   searchRecipesByName(query: string, accountId?: string): Promise<any[]>;
@@ -232,3 +233,78 @@ export const RECIPE_GENERATION_SYSTEM_PROMPT = `You are an elite AI chef and nut
 - ALWAYS explain your reasoning for recipe selection
 
 **Your Goal:** Create recipes that families love to cook repeatedly while meeting their health, budget, and preference requirements.`;
+
+/**
+ * Meal types supported for event planning
+ * NOTE: Must match MealType from event/types/event.types.ts
+ */
+export type MealType =
+  | "breakfast"
+  | "brunch"
+  | "lunch"
+  | "snacks"
+  | "dinner"
+  | "dessert"
+  | "beverages";
+
+/**
+ * Event Recipe Generation Request
+ * Contains all data needed to generate event-specific recipes
+ */
+export interface EventRecipePromptRequest {
+  /** Unique event identifier */
+  eventId: string;
+  /** Human-readable event name */
+  eventName: string;
+  /** Type of occasion (birthday, wedding, festival, etc.) */
+  occasionType: string;
+  /** Scheduled date for the event */
+  eventDate: Date;
+  /** Type of meal being generated */
+  mealType: MealType;
+  /** Number of recipes to generate */
+  recipeCount: number;
+  /** Total servings needed */
+  servings: number;
+  /** Budget allocated for this meal (in local currency) */
+  budget: number;
+  /** Optional: Maximum budget per serving */
+  maxBudgetPerServing?: number;
+  /** Required cuisines - recipes MUST be from these cuisines */
+  preferredCuisines?: string[];
+  /** Optional: Custom search query for specific dishes */
+  customSearch?: string;
+  /** Health profiles of all participants */
+  healthProfiles: MemberHealthProfile[];
+  /** Number of family members participating */
+  participantCount: number;
+  /** Number of adult guests */
+  adultGuests: number;
+  /** Number of child guests */
+  kidGuests: number;
+  /** Recipe names to avoid (recently used) */
+  recentEventMealNames: string[];
+  /** Account ID for pantry lookup */
+  accountId: string;
+  /** Whether to use pantry items */
+  usePantryItems?: boolean;
+}
+
+/**
+ * Validation result for request data
+ */
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+/**
+ * Normalized pantry item for prompt inclusion
+ */
+export interface NormalizedPantryItem {
+  name: string;
+  quantity: number;
+  unit: string;
+  category: string;
+}

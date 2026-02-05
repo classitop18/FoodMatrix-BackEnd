@@ -216,19 +216,16 @@ export class RecipeService {
     return await this.storage.getRecipeIngredients(recipeId);
   }
 
-  // 🧠 Generate AI recipes
+  // Generate AI recipes
 
   async generateAIRecipes(payload: any, accountId: string) {
-    // Aggregate health data from payload and target members
-    const aggregatedDietaryRestrictions = new Set<string>(
-      payload.dietaryRestrictions || [],
-    );
+    // Aggregate health data from payload and target member
+    const aggregatedDietaryRestrictions = new Set<string>([]);
     const aggregatedAllergies = new Set<string>(payload.allergies || []);
     const aggregatedHealthGoals = new Set<string>(payload.healthGoals || []);
     const aggregatedConditions = new Set<string>(
       payload.healthConditions || [],
     );
-
     const healthProfilesList: any[] = [];
 
     // If target members are specified, fetch their health profiles
@@ -300,8 +297,6 @@ export class RecipeService {
       healthGoals: Array.from(aggregatedHealthGoals),
       healthConditions: Array.from(aggregatedConditions),
       healthProfiles: healthProfilesList,
-      // ingredientsToUse: payload.ingredientsToUse || [],
-      // ingredientsToExclude: payload.ingredientsToExclude || []
     };
 
     return await this.aiRecipeService.generatePersonalizedRecipes(request);

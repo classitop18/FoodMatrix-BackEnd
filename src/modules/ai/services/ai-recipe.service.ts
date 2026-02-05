@@ -65,9 +65,10 @@ export class AIRecipeService {
       // Validate request
       this.validateRequest(request);
 
-      // Load user's recipe history with scores (last 2 months)
+      // Load user's recipe history with scores (last 1 months)
       const recipeHistory = await this.recipeStorage.getRecentRecipesWithScores(
         request.accountId,
+        request.cuisine,
       );
 
       // Enhance request with historical data

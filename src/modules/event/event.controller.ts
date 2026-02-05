@@ -587,10 +587,12 @@ export class EventController {
 
       const validatedData = eventRecipeGenerationSchema.parse(req.body);
 
+      console.log({ validatedData });
+      // return sendResponse(res, validatedData, "Validated data received", 200);
+
       const recipes = await this.eventAIService.generateEventRecipes({
         eventId,
         accountId,
-        requesterId: userId,
         mealType: validatedData.mealType as MealType,
         recipeCount: validatedData.recipeCount,
         budget: validatedData.budget,

@@ -82,7 +82,10 @@ export interface RecipeStorageInterface {
   >;
 
   getRecentRecipes(accountId: string, limit?: number): Promise<Recipe[]>;
-  getRecentRecipesWithScores(accountId: string): Promise<Recipe[]>;
+  getRecentRecipesWithScores(
+    accountId: string,
+    cuisineType: string,
+  ): Promise<Recipe[]>;
   searchRecipesByName(query: string, accountId?: string): Promise<Recipe[]>;
   searchRecipesByBudget(
     accountId: string,
@@ -829,17 +832,17 @@ export class RecipeStorage implements RecipeStorageInterface {
       .where(eq(recipeIngredients.recipeId, recipeId));
   }
 
-  async getRecentRecipesWithScores(accountId: string): Promise<any[]> {
+  async getRecentRecipesWithScores(
+    accountId: string,
+    cuisineType: string,
+  ): Promise<any[]> {
     const dateThreshold = new Date();
-    dateThreshold.setDate(dateThreshold.getDate() - 60);
+    dateThreshold.setDate(dateThreshold.getDate() - 30);
 
     const recentRecipes = await this.db
       .select({
-        id: recipes.id,
         name: recipes.name,
         averageRating: recipes.averageRating,
-        updatedAt: recipes.updatedAt,
-        createdAt: recipes.createdAt,
         timesCooked: recipes.timesCooked,
         cuisineType: recipes.cuisineType,
         mealType: recipes.mealType,
@@ -849,12 +852,12 @@ export class RecipeStorage implements RecipeStorageInterface {
         and(
           sql`(${recipes.accountId} = ${accountId} OR ${recipes.isPublic} = true)`,
           sql`${recipes.createdAt} >= ${dateThreshold}`,
+          sql`${recipes.cuisineType} = ${cuisineType}`,
         ),
       )
       .orderBy(desc(recipes.createdAt));
 
     return recentRecipes.map((r: any) => ({
-      recipeId: r.id,
       recipeName: r.name,
       score: parseFloat(r.averageRating || "0"),
       interactions: [], // No detailed interactions table available yet
@@ -862,7 +865,6 @@ export class RecipeStorage implements RecipeStorageInterface {
       timesCooked: r.timesCooked || 0,
       cuisineType: r.cuisineType,
       mealType: r.mealType,
-      ingredients: [],
     }));
   }
 

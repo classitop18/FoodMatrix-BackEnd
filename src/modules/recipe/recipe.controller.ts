@@ -314,7 +314,7 @@ export class RecipeController {
     }
   };
 
-  // 🧠 Generate AI recipes (ChatGPT / GPT-5)
+  //Generate AI recipes
   generateAIRecipes = async (
     req: AuthenticatedRequest,
     res: Response,

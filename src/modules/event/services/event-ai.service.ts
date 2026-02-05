@@ -3,7 +3,10 @@ import {
   MemberHealthProfile,
   AIGeneratedRecipe,
 } from "../../ai/interfaces/ai.interfaces.js";
-import { EventRecipePromptBuilder } from "../builder/event-recipe-prompt.builder.js";
+import {
+  EventRecipePromptBuilder,
+  EVENT_RECIPE_SYSTEM_PROMPT,
+} from "../../ai/builder/event-recipe-prompt.builder.js";
 import {
   RecipeParser,
   RecipeStorage,
@@ -19,6 +22,11 @@ import { AnthropicProvider } from "../../ai/providers/anthropic.provider.js";
 import { OpenAIProvider } from "../../ai/providers/openai.provider.js";
 import { JSONRecipeParser } from "../../ai/parser/json-recipe.parser.js";
 import { RecipeStorage as RecipeStorageImpl } from "../../recipe/recipe.repository.js";
+import fs from "fs";
+import fsPromises from "fs/promises";
+import path from "path";
+import axios from "axios";
+import { randomUUID } from "crypto";
 
 /**
  * Budget suggestion request interface
@@ -59,7 +67,7 @@ export interface BudgetSuggestionResponse {
 export interface EventRecipeGenerationRequest {
   eventId: string;
   accountId: string;
-  requesterId: string;
+  requesterId?: string;
   mealType: MealType;
   recipeCount?: number;
   budget?: number; // Budget for this specific meal type
@@ -108,6 +116,82 @@ export class EventAIService {
 
     // Initialize recipe storage
     this.recipeStorage = new RecipeStorageImpl();
+  }
+
+  /**
+   * Download and save AI-generated image locally
+   */
+  private async downloadAndSaveImage(url: string): Promise<string> {
+    try {
+      const uploadsDir = path.join(
+        process.cwd(),
+        "public",
+        "uploads",
+        "recipes",
+      );
+      if (!fs.existsSync(uploadsDir)) {
+        await fsPromises.mkdir(uploadsDir, { recursive: true });
+      }
+
+      const extension = "png"; // DALL-E usually returns PNG
+      const filename = `${randomUUID()}.${extension}`;
+      const filepath = path.join(uploadsDir, filename);
+
+      const response = await axios({
+        url,
+        method: "GET",
+        responseType: "arraybuffer",
+      });
+
+      await fsPromises.writeFile(filepath, response.data);
+
+      return `/uploads/recipes/${filename}`;
+    } catch (error) {
+      console.error("Failed to download image:", error);
+      return url; // Fallback to original URL
+    }
+  }
+
+  /**
+   * Generate AI image for a recipe
+   */
+  private async generateRecipeImage(
+    recipe: AIGeneratedRecipe,
+  ): Promise<string> {
+    try {
+      // Only generate images with OpenAI provider
+      if (this.aiProvider.getProviderName() === "OpenAI") {
+        console.log(`🎨 Generating AI Image for Event Recipe: ${recipe.name}`);
+        const imagePrompt = `Professional food photography of ${recipe.name}, ${recipe.description?.substring(0, 100) || "delicious dish"}, high resolution, 4k, appetizing, studio lighting, top down view`;
+
+        const generatedUrl = await this.aiProvider.generateImage({
+          prompt: imagePrompt,
+          size: "1024x1024",
+          quality: "standard",
+        });
+
+        if (generatedUrl && generatedUrl.length > 0) {
+          // Download and save locally
+          const localUrl = await this.downloadAndSaveImage(generatedUrl);
+          console.log(`✅ Image saved locally: ${localUrl}`);
+          return localUrl;
+        } else {
+          console.warn(
+            `⚠️ DALL-E returned empty URL for ${recipe.name}, using fallback`,
+          );
+          return `https://placehold.co/1024x1024/3d326d/FFF?text=${encodeURIComponent(recipe.name)}`;
+        }
+      } else {
+        // Fallback for non-OpenAI providers
+        return `https://placehold.co/1024x1024/7dab4f/FFF?text=${encodeURIComponent(recipe.name)}`;
+      }
+    } catch (imageError) {
+      console.error(
+        `⚠️ Failed to generate AI image for ${recipe.name}, falling back to placeholder`,
+        imageError,
+      );
+      return `https://placehold.co/1024x1024/e0e0e0/333?text=${encodeURIComponent(recipe.name)}`;
+    }
   }
 
   /**
@@ -209,7 +293,6 @@ export class EventAIService {
     const {
       eventId,
       accountId,
-
       mealType,
       recipeCount = 3,
       budget,
@@ -233,6 +316,7 @@ export class EventAIService {
         : participants.map((p: any) => p.memberId);
 
     let healthProfiles: MemberHealthProfile[] = [];
+
     if (considerHealthProfiles && memberIds.length > 0) {
       healthProfiles = await this.fetchHealthProfiles(memberIds);
     }
@@ -269,6 +353,8 @@ export class EventAIService {
       accountId,
     });
 
+    console.log({ prompt });
+
     // Call AI for recipe generation
     const aiResponse = await this.aiProvider.createCompletion({
       prompt,
@@ -276,17 +362,31 @@ export class EventAIService {
       maxTokens: this.calculateMaxTokens(recipeCount),
       temperature: 0.7,
     });
+    console.log("aiResponse:", aiResponse);
 
     // Parse recipes from AI response
     const parsedRecipes = this.parseRecipeResponse(
       aiResponse.content,
       mealType,
-      recipeCount,
+    );
+
+    // Generate AI images for each recipe (parallel processing)
+    console.log(
+      `🖼️ Generating images for ${parsedRecipes.length} event recipes...`,
+    );
+    const recipesWithImages = await Promise.all(
+      parsedRecipes.map(async (recipe) => {
+        const imageUrl = await this.generateRecipeImage(recipe);
+        return {
+          ...recipe,
+          imageUrl,
+        };
+      }),
     );
 
     // Post-process and store recipes
     const storedRecipes = await this.recipeStorage.storeAIGeneratedRecipes(
-      parsedRecipes,
+      recipesWithImages,
       {
         accountId,
         mealType,
@@ -581,28 +681,3 @@ Rules:
 3. Consider health restrictions increase ingredient costs
 4. Provide practical, actionable recommendations
 5. Never exceed the total budget`;
-
-/**
- * System prompt for event recipe generation
- */
-const EVENT_RECIPE_SYSTEM_PROMPT = `You are an elite AI chef specializing in event meal planning with expertise in:
-
-- Large-scale cooking and portion management
-- Budget optimization for events
-- Dietary accommodation for multiple people
-- Cultural and occasion-appropriate menu selection
-- Balancing variety with practical execution
-
-Core Principles:
-1. Safety First: Zero tolerance for allergens
-2. Budget Conscious: Stay within allocated budget
-3. Practicality: Recipes must be feasible for home cooks
-4. Variety: Avoid duplicate recipes from recent events
-5. Occasion Appropriate: Match the event's tone and style
-
-Critical Output Rules:
-- ALWAYS return valid JSON array
-- NEVER omit nutrition data
-- ALWAYS respect dietary restrictions
-- ALWAYS provide accurate cost estimates
-- NEVER suggest recipes from the "avoid" list`;

@@ -59,13 +59,13 @@ recipeRoutes.get("/ping", (req, res) => res.send("pong")); // Debug route (Publi
 // All routes (or most) require authentication
 recipeRoutes.use(authenticate);
 
-// 🔍 Search & Listings
+//  Search & Listings
 recipeRoutes.get("/", recipeController.getRecipes);
 recipeRoutes.get("/search", recipeController.searchRecipes);
 recipeRoutes.post("/search/budget", recipeController.searchByBudget); // POST because complex filters
 recipeRoutes.get("/check-by-date", recipeController.checkRecipesByDate); // Check if recipe exists for date
 
-// 🤖 AI Generation
+//  AI Generation
 recipeRoutes.post("/generate-ai", recipeController.generateAIRecipes);
 recipeRoutes.post("/search-custom", recipeController.generateCustomRecipe);
 

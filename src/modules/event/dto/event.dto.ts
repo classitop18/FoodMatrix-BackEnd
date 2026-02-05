@@ -131,7 +131,12 @@ export type UpdateEventMealDto = z.infer<typeof updateEventMealSchema>;
 // Add Recipe to Meal DTO
 export const addRecipeToMealSchema = z.object({
   recipeId: z.string(),
-  servings: z.number().int().positive().optional(),
+
+  servings: z.preprocess(
+    (val) => (val !== undefined ? Math.round(Number(val)) : undefined),
+    z.number().positive().optional(),
+  ),
+
   notes: z.string().optional(),
 });
 
@@ -311,9 +316,7 @@ export interface PaginatedEventsResponseDto {
 }
 
 // Budget Suggestion DTO
-export const budgetSuggestionSchema = z.object({
-  // No body required - uses event ID from URL params
-});
+export const budgetSuggestionSchema = z.object({});
 
 export type BudgetSuggestionDto = z.infer<typeof budgetSuggestionSchema>;
 
