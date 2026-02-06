@@ -10,6 +10,7 @@ import {
   eventMemberLogs,
   members,
   recipes,
+  eventExtraItems,
 } from "../../database/schemas/schema.js";
 import { getDb } from "../../database/db.js";
 import {
@@ -24,6 +25,7 @@ import {
   PaginatedResult,
   EventStats,
   SERVING_MULTIPLIERS,
+  EventExtraItem,
 } from "./types/event.types.js";
 import {
   CreateEventDto,
@@ -34,6 +36,8 @@ import {
   CreateShoppingListDto,
   UpdateShoppingListDto,
   LogMemberConsumptionDto,
+  CreateEventExtraItemDto,
+  UpdateEventExtraItemDto,
 } from "./dto/event.dto.js";
 
 export interface IEventRepository {
@@ -115,6 +119,18 @@ export interface IEventRepository {
   // Stats & Analytics
   getStats(accountId: string): Promise<EventStats>;
   getUpcomingEvents(accountId: string, limit?: number): Promise<Event[]>;
+
+  // Event Extra Items
+  addExtraItem(
+    eventId: string,
+    data: CreateEventExtraItemDto,
+  ): Promise<EventExtraItem>;
+  updateExtraItem(
+    itemId: string,
+    data: UpdateEventExtraItemDto,
+  ): Promise<EventExtraItem>;
+  deleteExtraItem(itemId: string): Promise<void>;
+  getExtraItemsByEventId(eventId: string): Promise<EventExtraItem[]>;
 }
 
 export class EventRepository implements IEventRepository {
@@ -219,6 +235,7 @@ export class EventRepository implements IEventRepository {
       budget: budget || null,
       meals,
       shoppingList,
+      extraItems: await this.getExtraItemsByEventId(id),
     };
   }
 
@@ -756,5 +773,61 @@ export class EventRepository implements IEventRepository {
       )
       .orderBy(asc(events.eventDate))
       .limit(limit);
+  }
+
+  // Event Extra Items
+  async addExtraItem(
+    eventId: string,
+    data: CreateEventExtraItemDto,
+  ): Promise<EventExtraItem> {
+    const [result] = await this.db
+      .insert(eventExtraItems)
+      .values({
+        eventId,
+        name: data.name,
+        quantity: data.quantity.toString(),
+        unit: data.unit,
+        category: data.category || null,
+        estimatedCost: data.estimatedCost?.toString() || null,
+        actualCost: data.actualCost?.toString() || null,
+        notes: data.notes || null,
+      })
+      .returning();
+    return result;
+  }
+
+  async updateExtraItem(
+    itemId: string,
+    data: UpdateEventExtraItemDto,
+  ): Promise<EventExtraItem> {
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.quantity !== undefined)
+      updateData.quantity = data.quantity.toString();
+    if (data.unit !== undefined) updateData.unit = data.unit;
+    if (data.category !== undefined) updateData.category = data.category;
+    if (data.estimatedCost !== undefined)
+      updateData.estimatedCost = data.estimatedCost.toString();
+    if (data.actualCost !== undefined)
+      updateData.actualCost = data.actualCost.toString();
+    if (data.notes !== undefined) updateData.notes = data.notes;
+
+    const [updated] = await this.db
+      .update(eventExtraItems)
+      .set(updateData)
+      .where(eq(eventExtraItems.id, itemId))
+      .returning();
+    return updated;
+  }
+
+  async deleteExtraItem(itemId: string): Promise<void> {
+    await this.db.delete(eventExtraItems).where(eq(eventExtraItems.id, itemId));
+  }
+
+  async getExtraItemsByEventId(eventId: string): Promise<EventExtraItem[]> {
+    return await this.db
+      .select()
+      .from(eventExtraItems)
+      .where(eq(eventExtraItems.eventId, eventId));
   }
 }

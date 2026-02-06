@@ -20,6 +20,12 @@ router.delete("/:id", eventController.deleteEvent);
 router.get("/:id/suggest-budget", eventController.suggestBudget);
 router.post("/:id/generate-recipes", eventController.generateEventRecipes);
 
+// ===== Event Extra Items =====
+router.post("/:id/items", eventController.addExtraItem);
+router.get("/:id/items", eventController.getExtraItems);
+router.put("/:id/items/:itemId", eventController.updateExtraItem);
+router.delete("/:id/items/:itemId", eventController.deleteExtraItem);
+
 // ===== Event Meals =====
 router.post("/:id/meals", eventController.addMealToEvent);
 router.get("/:id/meals", eventController.getEventMeals);

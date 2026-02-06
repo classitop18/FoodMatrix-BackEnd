@@ -14,6 +14,7 @@ export interface Event {
   kidGuests: number;
   guestNotes?: string;
   actualCost?: number;
+  selectedMealTypes?: string[];
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -55,12 +56,27 @@ export type ShoppingListStatus =
   | "approved"
   | "purchased";
 
+// Event Extra Item
+export interface EventExtraItem {
+  id: string;
+  eventId: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  category?: string;
+  estimatedCost?: number;
+  actualCost?: number;
+  notes?: string;
+  createdAt: Date;
+}
+
 // Event with Relations
 export interface EventWithRelations extends Event {
   meals?: EventMeal[];
   participants?: EventParticipant[];
   budget?: EventBudget;
   shoppingList?: EventShoppingList;
+  extraItems?: EventExtraItem[];
   creator?: any;
 }
 

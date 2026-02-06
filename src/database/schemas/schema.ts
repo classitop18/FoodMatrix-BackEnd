@@ -623,6 +623,26 @@ export const eventParticipants = pgTable("event_participants", {
     .notNull(),
 });
 
+export const eventExtraItems = pgTable("event_extra_items", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  quantity: decimal("quantity", { precision: 16, scale: 4 }).notNull(),
+  unit: text("unit").notNull(),
+
+  category: text("category"), // snacks | beverages
+  estimatedCost: decimal("estimated_cost", { precision: 16, scale: 2 }),
+  actualCost: decimal("actual_cost", { precision: 16, scale: 2 }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
 // Event Meals - for each meal type in an event
 export const eventMeals = pgTable("event_meals", {
   id: varchar("id")

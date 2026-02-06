@@ -10,6 +10,8 @@ import {
   generateMenuSchema,
   logMemberConsumptionSchema,
   eventRecipeGenerationSchema,
+  createEventExtraItemSchema,
+  updateEventExtraItemSchema,
 } from "./dto/event.dto.js";
 import { sendResponse } from "@/utils/response.utils.js";
 import { AuthenticatedRequest } from "@/middlewares/auth.middleware.js";
@@ -150,6 +152,102 @@ export class EventController {
       const events = await this.eventService.getEvents(query, userId);
 
       sendResponse(res, events);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ===== Event Extra Items =====
+  addExtraItem = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const userId = req.user?.id;
+      const { id: eventId } = req.params;
+
+      if (!userId) {
+        throw new AppError("Unauthorized", 401);
+      }
+
+      const validatedData = createEventExtraItemSchema.parse(req.body);
+      const item = await this.eventService.addExtraItem(
+        eventId,
+        validatedData,
+        userId,
+      );
+
+      sendResponse(res, item, "Extra item added", 201);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateExtraItem = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const userId = req.user?.id;
+      const { id: eventId, itemId } = req.params;
+
+      if (!userId) {
+        throw new AppError("Unauthorized", 401);
+      }
+
+      const validatedData = updateEventExtraItemSchema.parse(req.body);
+      const item = await this.eventService.updateExtraItem(
+        eventId,
+        itemId,
+        validatedData,
+        userId,
+      );
+
+      sendResponse(res, item, "Extra item updated");
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteExtraItem = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const userId = req.user?.id;
+      const { id: eventId, itemId } = req.params;
+
+      if (!userId) {
+        throw new AppError("Unauthorized", 401);
+      }
+
+      await this.eventService.deleteExtraItem(eventId, itemId, userId);
+
+      sendResponse(res, null, "Extra item deleted");
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getExtraItems = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const userId = req.user?.id;
+      const { id: eventId } = req.params;
+
+      if (!userId) {
+        throw new AppError("Unauthorized", 401);
+      }
+
+      const items = await this.eventService.getExtraItems(eventId, userId);
+
+      sendResponse(res, items);
     } catch (error) {
       next(error);
     }

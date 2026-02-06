@@ -11,6 +11,9 @@ import {
   PaginatedEventsResponseDto,
   CostAnalysisDto,
   GetEventsQueryDto,
+  CreateEventExtraItemDto,
+  UpdateEventExtraItemDto,
+  EventExtraItemResponseDto,
 } from "./dto/event.dto.js";
 import { IEventRepository, EventRepository } from "./event.repository.js";
 import {
@@ -21,6 +24,7 @@ import {
   InvalidEventDataError,
   SERVING_MULTIPLIERS,
   EventStats,
+  EventExtraItem,
 } from "./types/event.types.js";
 import {
   IMemberRepository,
@@ -45,6 +49,28 @@ export interface IEventService {
     query: GetEventsQueryDto,
     requesterId: string,
   ): Promise<PaginatedEventsResponseDto>;
+
+  // Event Extra Items
+  addExtraItem(
+    eventId: string,
+    data: CreateEventExtraItemDto,
+    requesterId: string,
+  ): Promise<EventExtraItemResponseDto>;
+  updateExtraItem(
+    eventId: string,
+    itemId: string,
+    data: UpdateEventExtraItemDto,
+    requesterId: string,
+  ): Promise<EventExtraItemResponseDto>;
+  deleteExtraItem(
+    eventId: string,
+    itemId: string,
+    requesterId: string,
+  ): Promise<void>;
+  getExtraItems(
+    eventId: string,
+    requesterId: string,
+  ): Promise<EventExtraItemResponseDto[]>;
 
   // Event Meals
   addMealToEvent(
@@ -284,6 +310,26 @@ export class EventService implements IEventService {
             })),
           }
         : undefined,
+      extraItems: event.extraItems?.map((item) => this.mapExtraItemToDto(item)),
+    };
+  }
+
+  private mapExtraItemToDto(item: EventExtraItem): EventExtraItemResponseDto {
+    return {
+      id: item.id,
+      eventId: item.eventId,
+      name: item.name,
+      quantity: parseFloat(item.quantity as any),
+      unit: item.unit,
+      category: item.category || undefined,
+      estimatedCost: item.estimatedCost
+        ? parseFloat(item.estimatedCost as any)
+        : undefined,
+      actualCost: item.actualCost
+        ? parseFloat(item.actualCost as any)
+        : undefined,
+      notes: item.notes || undefined,
+      createdAt: item.createdAt,
     };
   }
 
@@ -860,5 +906,85 @@ export class EventService implements IEventService {
       "view event stats",
     );
     return await this.eventRepo.getStats(accountId);
+  }
+
+  // Event Extra Items
+  async addExtraItem(
+    eventId: string,
+    data: CreateEventExtraItemDto,
+    requesterId: string,
+  ): Promise<EventExtraItemResponseDto> {
+    const event = await this.eventRepo.findById(eventId, false);
+    if (!event) {
+      throw new EventNotFoundError(eventId);
+    }
+
+    await this.validateAdminAccess(
+      requesterId,
+      event.accountId,
+      "add extra items",
+    );
+
+    const item = await this.eventRepo.addExtraItem(eventId, data);
+    return this.mapExtraItemToDto(item);
+  }
+
+  async updateExtraItem(
+    eventId: string,
+    itemId: string,
+    data: UpdateEventExtraItemDto,
+    requesterId: string,
+  ): Promise<EventExtraItemResponseDto> {
+    const event = await this.eventRepo.findById(eventId, false);
+    if (!event) {
+      throw new EventNotFoundError(eventId);
+    }
+
+    await this.validateAdminAccess(
+      requesterId,
+      event.accountId,
+      "update extra items",
+    );
+
+    const updatedItem = await this.eventRepo.updateExtraItem(itemId, data);
+    return this.mapExtraItemToDto(updatedItem);
+  }
+
+  async deleteExtraItem(
+    eventId: string,
+    itemId: string,
+    requesterId: string,
+  ): Promise<void> {
+    const event = await this.eventRepo.findById(eventId, false);
+    if (!event) {
+      throw new EventNotFoundError(eventId);
+    }
+
+    await this.validateAdminAccess(
+      requesterId,
+      event.accountId,
+      "delete extra items",
+    );
+
+    await this.eventRepo.deleteExtraItem(itemId);
+  }
+
+  async getExtraItems(
+    eventId: string,
+    requesterId: string,
+  ): Promise<EventExtraItemResponseDto[]> {
+    const event = await this.eventRepo.findById(eventId, false);
+    if (!event) {
+      throw new EventNotFoundError(eventId);
+    }
+
+    await this.validateAccountAccess(
+      requesterId,
+      event.accountId,
+      "view extra items",
+    );
+
+    const items = await this.eventRepo.getExtraItemsByEventId(eventId);
+    return items.map((item) => this.mapExtraItemToDto(item));
   }
 }

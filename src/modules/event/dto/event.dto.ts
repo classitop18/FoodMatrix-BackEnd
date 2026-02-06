@@ -197,6 +197,36 @@ export type LogMemberConsumptionDto = z.infer<
   typeof logMemberConsumptionSchema
 >;
 
+// Create Event Extra Item DTO
+export const createEventExtraItemSchema = z.object({
+  name: z.string().min(1),
+  quantity: z.number().positive(),
+  unit: z.string().min(1),
+  category: z.string().optional(),
+  estimatedCost: z.number().optional(),
+  actualCost: z.number().optional(),
+  notes: z.string().optional(),
+});
+
+export type CreateEventExtraItemDto = z.infer<
+  typeof createEventExtraItemSchema
+>;
+
+// Update Event Extra Item DTO
+export const updateEventExtraItemSchema = z.object({
+  name: z.string().min(1).optional(),
+  quantity: z.number().positive().optional(),
+  unit: z.string().min(1).optional(),
+  category: z.string().optional(),
+  estimatedCost: z.number().optional(),
+  actualCost: z.number().optional(),
+  notes: z.string().optional(),
+});
+
+export type UpdateEventExtraItemDto = z.infer<
+  typeof updateEventExtraItemSchema
+>;
+
 // Response DTOs
 export interface EventResponseDto {
   id: string;
@@ -223,6 +253,7 @@ export interface EventResponseDto {
   participants?: EventParticipantResponseDto[];
   budget?: EventBudgetResponseDto;
   shoppingList?: EventShoppingListResponseDto;
+  extraItems?: EventExtraItemResponseDto[];
   costAnalysis?: CostAnalysisDto;
 }
 
@@ -247,6 +278,19 @@ export interface EventRecipeResponseDto {
   estimatedCost?: number;
   notes?: string;
   recipe?: any;
+}
+
+export interface EventExtraItemResponseDto {
+  id: string;
+  eventId: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  category?: string;
+  estimatedCost?: number;
+  actualCost?: number;
+  notes?: string;
+  createdAt: Date;
 }
 
 export interface EventParticipantResponseDto {
