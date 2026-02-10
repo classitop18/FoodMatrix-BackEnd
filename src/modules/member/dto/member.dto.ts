@@ -53,6 +53,7 @@ export const getMembersQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(10),
   sortBy: z.enum(["createdAt", "name", "role"]).default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
+  includeHealthProfile: z.coerce.boolean().optional(),
 });
 
 export type GetMembersQueryDto = z.infer<typeof getMembersQuerySchema>;
@@ -86,6 +87,16 @@ export const memberResponseSchema = z.object({
       accountType: z.string(),
     })
     .optional(),
+  healthProfile: z
+    .object({
+      id: z.string().uuid(),
+      dietaryRestrictions: z.array(z.string()).optional(),
+      allergies: z.array(z.string()).optional(),
+      healthConditions: z.array(z.string()).optional(),
+      // Add other fields as needed for the UI
+    })
+    .optional()
+    .nullable(),
 });
 
 export type MemberResponseDto = z.infer<typeof memberResponseSchema>;

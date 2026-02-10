@@ -35,6 +35,7 @@ export interface BudgetSuggestionRequest {
   eventId: string;
   accountId: string;
   requesterId: string;
+  mealTypes?: MealType[];
 }
 
 /**
@@ -200,7 +201,7 @@ export class EventAIService {
   async suggestBudgetAllocation(
     request: BudgetSuggestionRequest,
   ): Promise<BudgetSuggestionResponse> {
-    const { eventId } = request;
+    const { eventId, mealTypes: requestedMealTypes } = request;
 
     // Fetch event with all relations
     const event = await this.eventRepo.findById(eventId, true);
@@ -208,10 +209,21 @@ export class EventAIService {
       throw new AppError("Event not found", 404);
     }
 
-    // Get meal types from event
-    const mealTypes = (event as any).selectedMealTypes || [];
+    // Get meal types from request OR event
+    const rawMealTypes =
+      requestedMealTypes || (event as any).selectedMealTypes || [];
+
+    // Filter to only include Breakfast, Lunch, and Dinner (User Request)
+    const validTypes = ["breakfast", "lunch", "dinner"];
+    const mealTypes = rawMealTypes.filter((mt: any) =>
+      validTypes.includes(mt.toLowerCase()),
+    );
+
     if (mealTypes.length === 0) {
-      throw new AppError("No meal types selected for this event", 400);
+      throw new AppError(
+        "No valid meal types (Breakfast, Lunch, Dinner) available for budget allocation",
+        400,
+      );
     }
 
     // Get total budget
@@ -226,7 +238,7 @@ export class EventAIService {
       throw new AppError("No budget set for this event", 400);
     }
 
-    const currency = budget?.currency || "INR";
+    const currency = budget?.currency || "USD";
 
     // Get participant count for context
     const participants = (event as any).participants || [];
@@ -254,6 +266,8 @@ export class EventAIService {
       healthProfiles: healthProfilesData,
     });
 
+    console.log("🚀 Prompt:", prompt);
+
     // Call AI for budget suggestions
     const aiResponse = await this.aiProvider.createCompletion({
       prompt,
@@ -268,6 +282,39 @@ export class EventAIService {
       mealTypes,
       totalBudget,
     );
+
+    // Save allocations to event meals in DB
+    try {
+      const existingMeals = await this.eventRepo.getMealsByEventId(eventId);
+
+      for (const allocation of allocations.allocations) {
+        const existingMeal = existingMeals.find(
+          (m) => m.mealType === allocation.mealType,
+        );
+
+        if (existingMeal) {
+          // Update existing meal estimated cost
+          await this.eventRepo.updateMeal(existingMeal.id, {
+            estimatedCost: allocation.suggestedBudget,
+          });
+        } else {
+          // Create new meal
+          const newMeal = await this.eventRepo.createMeal(eventId, {
+            mealType: allocation.mealType,
+          });
+          // Update immediately with estimatedCost
+          await this.eventRepo.updateMeal(newMeal.id, {
+            estimatedCost: allocation.suggestedBudget,
+          });
+        }
+      }
+      console.log(
+        `✅ Saved budget allocations for ${allocations.allocations.length} meals`,
+      );
+    } catch (dbError) {
+      console.error("⚠️ Failed to save budget allocations to DB:", dbError);
+      // Continue without failing the request, as return value is still useful
+    }
 
     return {
       eventId,
@@ -519,12 +566,12 @@ ${
 }
 
 **ALLOCATION RULES:**
-1. Dinner typically gets highest allocation (35-45%)
-2. Lunch gets second highest (25-35%)
-3. Breakfast gets moderate allocation (15-25%)
-4. Snacks, desserts, beverages get remaining
-5. Consider health restrictions may increase costs
-6. Ensure total allocation equals 100%
+1. Distribute 100% of the budget ONLY among the listed meal types.
+2. Dinner typically gets highest allocation (40-50%)
+3. Lunch gets second highest (30-40%)
+4. Breakfast gets moderate allocation (20-30%)
+5. Do NOT reserve budget for snacks or beverages.
+6. Consider health restrictions may increase costs.
 
 **OUTPUT FORMAT (JSON only):**
 \`\`\`json
@@ -662,6 +709,60 @@ ${
     const tokensPerRecipe = 1500;
     return Math.min(baseTokens + recipeCount * tokensPerRecipe, 8000);
   }
+
+  /**
+   * Merge ingredients using AI
+   */
+  async mergeIngredients(ingredients: any[]): Promise<any[]> {
+    if (!ingredients || ingredients.length === 0) return [];
+
+    console.log(`🤖 AI Merging ${ingredients.length} ingredients...`);
+
+    const prompt = `Merge these ingredients into a consolidated shopping list:
+
+    ${JSON.stringify(
+      ingredients.map((i) => ({
+        name: i.name,
+        quantity: i.quantity,
+        unit: i.unit,
+        category: i.category,
+      })),
+      null,
+      2,
+    )}
+
+    Return a JSON array with merged items.`;
+
+    try {
+      const aiResponse = await this.aiProvider.createCompletion({
+        prompt,
+        systemPrompt: MERGE_INGREDIENTS_SYSTEM_PROMPT,
+        maxTokens: 4000,
+        temperature: 0.3, // Lower temperature for more deterministic merging
+      });
+
+      let content = aiResponse.content;
+      // Remove markdown code blocks if present
+      if (content.includes("```json")) {
+        content = content.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+      }
+      if (content.includes("```")) {
+        content = content.replace(/```\s*/g, "");
+      }
+
+      const merged = JSON.parse(content);
+
+      if (!Array.isArray(merged)) {
+        console.warn("AI returned non-array for merge, returning original");
+        return ingredients;
+      }
+
+      return merged;
+    } catch (error) {
+      console.error("AI Merge failed:", error);
+      return ingredients; // Fallback to original
+    }
+  }
 }
 
 /**
@@ -681,3 +782,25 @@ Rules:
 3. Consider health restrictions increase ingredient costs
 4. Provide practical, actionable recommendations
 5. Never exceed the total budget`;
+
+const MERGE_INGREDIENTS_SYSTEM_PROMPT = `You are a smart grocery list optimizer and culinary expert.
+
+Your task is to merge a list of ingredients into a consolidated shopping list and estimate their costs.
+
+**Rules:**
+1. **Merge Identical Items**: Combine ingredients that are effectively the same product.
+   - Example: "Chopped Onions", "Red Onion", "White Onion" -> Merge to "Onions" (unless specifically distinct usage implies specific purchase, but favor merging for shopping list).
+   - "Minced Garlic", "Garlic Cloves" -> Merge to "Garlic".
+2. **Standardize Names**: Use the most common, generic name for the merged item (e.g., "All-Purpose Flour" instead of "AP Flour").
+3. **Format Units**: Keep units consistent. If merging "cups" and "spoons", try to approximate to a common unit if sensible, or list separately if conversion is ambiguous. Ideally, merge into standard metric (g, ml) or common kitchen units (cup, tbsp, piece).
+4. **Sum Quantities**: Add up the quantities for merged items.
+5. **Categorize**: Ensuring each item has a correct category (Vegetables, Fruits, Meat, Dairy, Pantry, Spices, Bakery, Beverages, Others).
+6. **Estimate Cost**: Estimate the approximate cost in USD for the **TOTAL quantity** of the merged item.
+   - Use average US market prices.
+   - Example: If 2kg of Chicken Breast, estimate cost for 2kg.
+   - Be realistic.
+7. **Output JSON Only**: Return a valid JSON array of objects.
+
+**Input Format:** JSON Array of { name, quantity, unit, category }
+**Output Format:** JSON Array of { name, quantity, unit, category, estimatedCost: number, originalItems: string[] }
+`;

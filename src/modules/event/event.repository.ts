@@ -108,6 +108,7 @@ export interface IEventRepository {
     itemId: string,
     data: Partial<EventShoppingItem>,
   ): Promise<void>;
+  clearShoppingListItems(shoppingListId: string): Promise<void>;
 
   // Member Logs
   logMemberConsumption(
@@ -125,6 +126,10 @@ export interface IEventRepository {
     eventId: string,
     data: CreateEventExtraItemDto,
   ): Promise<EventExtraItem>;
+  addExtraItems(
+    eventId: string,
+    data: CreateEventExtraItemDto[],
+  ): Promise<EventExtraItem[]>;
   updateExtraItem(
     itemId: string,
     data: UpdateEventExtraItemDto,
@@ -707,6 +712,12 @@ export class EventRepository implements IEventRepository {
       .where(eq(eventShoppingItems.id, itemId));
   }
 
+  async clearShoppingListItems(shoppingListId: string): Promise<void> {
+    await this.db
+      .delete(eventShoppingItems)
+      .where(eq(eventShoppingItems.shoppingListId, shoppingListId));
+  }
+
   // Member Logs
   async logMemberConsumption(
     eventId: string,
@@ -793,6 +804,32 @@ export class EventRepository implements IEventRepository {
         notes: data.notes || null,
       })
       .returning();
+
+    return result;
+  }
+
+  async addExtraItems(
+    eventId: string,
+    data: CreateEventExtraItemDto[],
+  ): Promise<EventExtraItem[]> {
+    if (data.length === 0) return [];
+
+    const values = data.map((item) => ({
+      eventId,
+      name: item.name,
+      quantity: item.quantity.toString(),
+      unit: item.unit,
+      category: item.category || null,
+      estimatedCost: item.estimatedCost?.toString() || null,
+      actualCost: item.actualCost?.toString() || null,
+      notes: item.notes || null,
+    }));
+
+    const result = await this.db
+      .insert(eventExtraItems)
+      .values(values)
+      .returning();
+
     return result;
   }
 

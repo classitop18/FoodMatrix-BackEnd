@@ -30,6 +30,10 @@ import {
   IMemberRepository,
   MemberRepository,
 } from "../member/member.repository.js";
+import {
+  RecipeStorageInterface,
+  RecipeStorage,
+} from "../recipe/recipe.repository.js";
 
 export interface IEventService {
   // Event CRUD
@@ -56,6 +60,11 @@ export interface IEventService {
     data: CreateEventExtraItemDto,
     requesterId: string,
   ): Promise<EventExtraItemResponseDto>;
+  addExtraItems(
+    eventId: string,
+    data: CreateEventExtraItemDto[],
+    requesterId: string,
+  ): Promise<EventExtraItemResponseDto[]>;
   updateExtraItem(
     eventId: string,
     itemId: string,
@@ -151,6 +160,7 @@ export class EventService implements IEventService {
   constructor(
     private readonly eventRepo: IEventRepository = new EventRepository(),
     private readonly memberRepo: IMemberRepository = new MemberRepository(),
+    private readonly recipeRepo: RecipeStorageInterface = new RecipeStorage(),
   ) {}
 
   // Calculate total servings for an event
@@ -703,11 +713,107 @@ export class EventService implements IEventService {
 
     if (!shoppingList) {
       shoppingList = await this.eventRepo.createShoppingList(eventId);
+    } else {
+      // Clear existing items to regenerate
+      await this.eventRepo.clearShoppingListItems(shoppingList.id);
     }
 
-    // TODO: Aggregate ingredients from all event recipes and add to shopping list
+    // 1. Map to hold merged items
+    // Key: name::unit
+    const mergedItems = new Map<
+      string,
+      {
+        ingredientName: string;
+        quantity: number;
+        unit: string;
+        estimatedPrice: number;
+        category: string;
+      }
+    >();
 
-    return shoppingList;
+    const normalizeKey = (name: string, unit: string) =>
+      `${name.trim().toLowerCase()}::${unit.trim().toLowerCase()}`;
+
+    // 2. Aggregate ingredients from all event recipes
+    const meals = await this.eventRepo.getMealsByEventId(eventId);
+
+    for (const meal of meals) {
+      const recipes = await this.eventRepo.getRecipesByMealId(meal.id);
+
+      for (const eventRecipe of recipes) {
+        // Get full ingredient details from recipe repository
+        const recipeIngredients = await this.recipeRepo.getRecipeIngredients(
+          eventRecipe.recipeId,
+        );
+
+        const scalingFactor = parseFloat(eventRecipe.scalingFactor as any) || 1;
+
+        for (const ing of recipeIngredients) {
+          if (!ing.ingredient || !ing.ingredient.name) continue;
+
+          const key = normalizeKey(ing.ingredient.name, ing.unit || "unit");
+          const quantity =
+            (parseFloat(ing.quantity as any) || 0) * scalingFactor;
+          const estimatedCost =
+            (parseFloat(ing.estimatedCost as any) || 0) * scalingFactor;
+
+          if (mergedItems.has(key)) {
+            const existing = mergedItems.get(key)!;
+            existing.quantity += quantity;
+            existing.estimatedPrice += estimatedCost;
+            // distinct categories? Keep first one usually
+          } else {
+            mergedItems.set(key, {
+              ingredientName: ing.ingredient.name,
+              quantity,
+              unit: ing.unit || "unit",
+              estimatedPrice: estimatedCost,
+              category: ing.category || "pantry",
+            });
+          }
+        }
+      }
+    }
+
+    // 3. Aggregate extra items (manual additions)
+    const extraItems = await this.eventRepo.getExtraItemsByEventId(eventId);
+
+    for (const item of extraItems) {
+      if (!item.name) continue;
+
+      const key = normalizeKey(item.name, item.unit || "unit");
+      const quantity = parseFloat(item.quantity as any) || 0;
+      const estimatedCost = parseFloat(item.estimatedCost as any) || 0;
+
+      if (mergedItems.has(key)) {
+        const existing = mergedItems.get(key)!;
+        existing.quantity += quantity;
+        existing.estimatedPrice += estimatedCost;
+      } else {
+        mergedItems.set(key, {
+          ingredientName: item.name,
+          quantity,
+          unit: item.unit || "unit",
+          estimatedPrice: estimatedCost,
+          category: item.category || "others",
+        });
+      }
+    }
+
+    // 4. Save to database
+    for (const item of mergedItems.values()) {
+      await this.eventRepo.addShoppingItem(shoppingList.id, {
+        ingredientName: item.ingredientName,
+        quantity: item.quantity, // Will be stringified in repo
+        unit: item.unit,
+        estimatedPrice: item.estimatedPrice,
+        category: item.category,
+        isPurchased: false,
+      });
+    }
+
+    // Return updated list
+    return await this.eventRepo.getShoppingListByEventId(eventId);
   }
 
   async getEventShoppingList(
@@ -927,6 +1033,26 @@ export class EventService implements IEventService {
 
     const item = await this.eventRepo.addExtraItem(eventId, data);
     return this.mapExtraItemToDto(item);
+  }
+
+  async addExtraItems(
+    eventId: string,
+    data: CreateEventExtraItemDto[],
+    requesterId: string,
+  ): Promise<EventExtraItemResponseDto[]> {
+    const event = await this.eventRepo.findById(eventId, false);
+    if (!event) {
+      throw new EventNotFoundError(eventId);
+    }
+
+    await this.validateAdminAccess(
+      requesterId,
+      event.accountId,
+      "add extra items to events",
+    );
+
+    const results = await this.eventRepo.addExtraItems(eventId, data);
+    return results.map((item) => this.mapExtraItemToDto(item));
   }
 
   async updateExtraItem(

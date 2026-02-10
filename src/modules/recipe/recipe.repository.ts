@@ -834,10 +834,21 @@ export class RecipeStorage implements RecipeStorageInterface {
 
   async getRecentRecipesWithScores(
     accountId: string,
-    cuisineType: string,
+    cuisineType?: string,
   ): Promise<any[]> {
     const dateThreshold = new Date();
     dateThreshold.setDate(dateThreshold.getDate() - 30);
+
+    // Build WHERE conditions dynamically
+    const conditions = [
+      sql`(${recipes.accountId} = ${accountId} OR ${recipes.isPublic} = true)`,
+      sql`${recipes.createdAt} >= ${dateThreshold}`,
+    ];
+
+    // Only add cuisine filter if cuisineType is provided and not empty
+    if (cuisineType && cuisineType.trim() !== "") {
+      conditions.push(sql`${recipes.cuisineType} = ${cuisineType}`);
+    }
 
     const recentRecipes = await this.db
       .select({
@@ -848,13 +859,7 @@ export class RecipeStorage implements RecipeStorageInterface {
         mealType: recipes.mealType,
       })
       .from(recipes)
-      .where(
-        and(
-          sql`(${recipes.accountId} = ${accountId} OR ${recipes.isPublic} = true)`,
-          sql`${recipes.createdAt} >= ${dateThreshold}`,
-          sql`${recipes.cuisineType} = ${cuisineType}`,
-        ),
-      )
+      .where(and(...conditions))
       .orderBy(desc(recipes.createdAt));
 
     return recentRecipes.map((r: any) => ({

@@ -98,6 +98,7 @@ export interface MemberSortOptions {
 
 export interface MemberQueryOptions
   extends MemberFilterOptions, MemberSortOptions {
+  includeHealthProfile?: boolean;
   page: number;
   limit: number;
 }

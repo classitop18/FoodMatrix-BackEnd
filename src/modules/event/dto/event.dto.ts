@@ -27,7 +27,6 @@ export const BudgetTypeEnum = z.enum(["separate", "weekly"]);
 // Meal Type Enum
 export const MealTypeEnum = z.enum([
   "breakfast",
-  "brunch",
   "lunch",
   "snacks",
   "dinner",
@@ -210,6 +209,13 @@ export const createEventExtraItemSchema = z.object({
 
 export type CreateEventExtraItemDto = z.infer<
   typeof createEventExtraItemSchema
+>;
+
+// Bulk Create Event Extra Items DTO
+export const createEventExtraItemsSchema = z.array(createEventExtraItemSchema);
+
+export type CreateEventExtraItemsDto = z.infer<
+  typeof createEventExtraItemsSchema
 >;
 
 // Update Event Extra Item DTO

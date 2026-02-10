@@ -11,6 +11,7 @@ import {
   logMemberConsumptionSchema,
   eventRecipeGenerationSchema,
   createEventExtraItemSchema,
+  createEventExtraItemsSchema,
   updateEventExtraItemSchema,
 } from "./dto/event.dto.js";
 import { sendResponse } from "@/utils/response.utils.js";
@@ -179,6 +180,32 @@ export class EventController {
       );
 
       sendResponse(res, item, "Extra item added", 201);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  addExtraItems = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const userId = req.user?.id;
+      const { id: eventId } = req.params;
+
+      if (!userId) {
+        throw new AppError("Unauthorized", 401);
+      }
+
+      const validatedData = createEventExtraItemsSchema.parse(req.body);
+      const items = await this.eventService.addExtraItems(
+        eventId,
+        validatedData,
+        userId,
+      );
+
+      sendResponse(res, items, "Extra items added", 201);
     } catch (error) {
       next(error);
     }
@@ -644,6 +671,7 @@ export class EventController {
       const userId = req.user?.id;
       const accountId = req.headers["x-account-id"] as string;
       const { id: eventId } = req.params;
+      const { mealTypes } = req.body;
 
       if (!userId) {
         throw new AppError("Unauthorized", 401);
@@ -657,6 +685,7 @@ export class EventController {
           eventId,
           accountId,
           requesterId: userId,
+          mealTypes,
         });
 
       sendResponse(res, budgetSuggestion, "Budget allocation suggested by AI");
@@ -701,6 +730,31 @@ export class EventController {
       });
 
       sendResponse(res, recipes, "Event recipes generated successfully", 201);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ===== AI-Powered Ingredient Merge =====
+  mergeIngredients = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const userId = req.user?.id;
+      const { ingredients } = req.body; // Expect { ingredients: [] }
+
+      if (!userId) {
+        throw new AppError("Unauthorized", 401);
+      }
+
+      if (!Array.isArray(ingredients)) {
+        throw new AppError("Ingredients must be an array", 400);
+      }
+
+      const merged = await this.eventAIService.mergeIngredients(ingredients);
+      sendResponse(res, merged, "Ingredients merged by AI");
     } catch (error) {
       next(error);
     }

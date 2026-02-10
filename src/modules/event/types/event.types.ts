@@ -41,7 +41,6 @@ export type BudgetType = "separate" | "weekly";
 
 export type MealType =
   | "breakfast"
-  | "brunch"
   | "lunch"
   | "snacks"
   | "dinner"

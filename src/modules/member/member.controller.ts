@@ -10,7 +10,7 @@ import {
 import { sendResponse } from "@/utils/response.utils.js";
 import { AuthenticatedRequest } from "@/middlewares/auth.middleware.js";
 import { AppError } from "@/utils/app-error.utils.js";
-import { GetMembersQuery } from "./types/member.types.js";
+import { MemberQueryOptions } from "./types/member.types.js";
 
 export class MemberController {
   constructor(
@@ -80,16 +80,17 @@ export class MemberController {
       const userId = req.user!.id;
 
       // Manually construct query object or assume service handles partials
-      const query: GetMembersQuery = {
+      const query: MemberQueryOptions = {
         accountId: req.query.accountId as string,
         page: req.query.page ? Number(req.query.page) : 1,
         limit: req.query.limit ? Number(req.query.limit) : 10,
         sortBy:
           (req.query.sortBy as "createdAt" | "name" | "role") || "createdAt",
         sortOrder: (req.query.sortOrder as "asc" | "desc") || "desc",
+        includeHealthProfile: req.query.includeHealthProfile === "true", // Handle string boolean
       };
 
-      const result = await this.memberService.getMembers(query, userId);
+      const result = await this.memberService.getMembers(query as any, userId);
 
       return sendResponse(res, result, "Members fetched successfully", 200);
     } catch (error) {

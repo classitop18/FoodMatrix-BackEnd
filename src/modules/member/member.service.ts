@@ -515,6 +515,14 @@ export class MemberService implements IMemberService {
             accountType: member.account.accountType,
           }
         : undefined,
+      healthProfile: member.healthProfile
+        ? {
+            id: member.healthProfile.id,
+            dietaryRestrictions: member.healthProfile.dietaryRestrictions,
+            allergies: member.healthProfile.allergies,
+            healthConditions: member.healthProfile.healthConditions,
+          }
+        : undefined,
     };
   }
 }

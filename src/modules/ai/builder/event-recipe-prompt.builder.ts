@@ -191,11 +191,14 @@ export class EventRecipePromptBuilder {
       console.warn("Event Recipe Prompt Warnings:", validation.warnings);
     }
 
+    const isCustomSearch =
+      !!request.customSearch && request.customSearch.trim().length > 0;
+
     // Build all prompt sections
     const sections = await Promise.all([
       this.buildEventContextSection(request),
-      this.buildHealthProfilesSection(request.healthProfiles),
-      this.buildBudgetSection(request),
+      this.buildHealthProfilesSection(request.healthProfiles, isCustomSearch),
+      this.buildBudgetSection(request, isCustomSearch),
       request.usePantryItems
         ? this.buildPantrySection(request.accountId)
         : Promise.resolve(""),
@@ -203,7 +206,7 @@ export class EventRecipePromptBuilder {
       request.customSearch
         ? this.buildCustomSearchSection(request.customSearch)
         : "",
-      this.buildOutputFormatSection(request),
+      this.buildOutputFormatSection(request, isCustomSearch),
     ]);
 
     // Filter empty sections and join
@@ -388,6 +391,7 @@ The cuisineType field in each recipe MUST be: "${cuisines[0]}"`;
    */
   private buildHealthProfilesSection(
     healthProfiles: MemberHealthProfile[],
+    isCustomSearch: boolean = false,
   ): string {
     if (!healthProfiles || healthProfiles.length === 0) {
       return `**🏥 HEALTH CONSIDERATIONS:**
@@ -397,6 +401,26 @@ Consider common allergens and provide alternatives where possible.`;
 
     // Aggregate all restrictions for safety
     const aggregatedData = this.aggregateHealthData(healthProfiles);
+
+    if (isCustomSearch) {
+      return `**🏥 HEALTH CONSIDERATIONS (ADVISORY ONLY):**
+
+**⚠️ KNOWN ALLERGIES (User has overridden safety checks for this specific request):**
+${this.formatListOrNone(aggregatedData.allergies, "No specific allergies")}
+
+**🥗 DIETARY RESTRICTIONS (User has overridden checks):**
+${this.formatListOrNone(aggregatedData.dietaryRestrictions, "No specific restrictions")}
+
+**🩺 HEALTH CONDITIONS (Adapt where possible):**
+${this.formatListOrNone(aggregatedData.healthConditions, "No specific conditions")}
+
+**🎯 HEALTH GOALS:**
+${this.formatListOrNone(aggregatedData.healthGoals, "General wellness")}
+
+**CRITICAL INSTRUCTION:** 
+Safety checks are OVERRIDDEN by the user's specific request. 
+Generate the requested recipe regardless of conflicts, but NOTE any major health conflicts in the 'healthConsiderations' field.`;
+    }
 
     return `**🏥 HEALTH CONSIDERATIONS (CRITICAL - MUST FOLLOW):**
 
@@ -497,7 +521,10 @@ If any allergy cannot be avoided while maintaining authenticity, do NOT suggest 
    *
    * Creates budget constraints with strict enforcement rules.
    */
-  private buildBudgetSection(request: EventRecipePromptRequest): string {
+  private buildBudgetSection(
+    request: EventRecipePromptRequest,
+    isCustomSearch: boolean = false,
+  ): string {
     if (request.budget <= 0) {
       return `**💰 BUDGET:**
 No specific budget constraint. Focus on value for money while maintaining quality.
@@ -506,6 +533,17 @@ Prioritize cost-effective ingredients without sacrificing taste.`;
 
     const perServingBudget =
       request.maxBudgetPerServing || request.budget / request.servings;
+
+    if (isCustomSearch) {
+      return `**💰 BUDGET TARGETS:**
+
+- **Meal Budget Allocated:** ₹${request.budget.toFixed(2)}
+- **Per Serving Budget:** ₹${perServingBudget.toFixed(2)}
+
+**BUDGET GUIDELINES:**
+1. Try to stay close to ₹${request.budget}, but if the specific requested recipe requires more, PRIROITIZE the recipe quality.
+2. Report expected cost honestly found in the market.`;
+    }
 
     return `**💰 BUDGET CONSTRAINTS (STRICT):**
 
@@ -613,15 +651,22 @@ ${formattedNames}
   private buildCustomSearchSection(customSearch: string): string {
     const sanitizedSearch = customSearch.trim().slice(0, 200); // Limit length
 
-    return `**🔍 SPECIFIC RECIPE REQUEST:**
+    return `**🔍 SPECIFIC RECIPE REQUEST (STRICT):**
 
 The user has specifically requested: "${sanitizedSearch}"
 
 **INSTRUCTION:** 
-- Generate recipe(s) matching or closely related to this request
-- Maintain authenticity while adapting to health/budget constraints
-- If the exact dish cannot be made safely (allergens), suggest closest safe alternatives
-- Prioritize this request over other suggestions`;
+- You MUST generate the recipe requested by the user.
+- **IGNORE ALL HEALTH/DIETARY RESTRICTIONS** for this specific request. The user is aware and wants this specific dish regardless of allergies or diet.
+- If the request is a generic description (e.g., "chicken with rice", "roasted fish"), generate a high-quality, authentic version of that dish.
+- If the requested recipe name is complete nonsense or random characters (e.g., "asdfgh"), return an empty array \`[]\`.
+- Do NOT return an empty array if there is a health conflict. Generate the recipe details faithfully to the dish name.
+
+**MANDATORY SAFETY ANALYSIS:**
+Since you are overriding safety checks, you MUST perform a detailed analysis:
+1. Identify exactly which health profiles (from the list above) this recipe conflicts with.
+2. Fill the "suitabilityAnalysis" field with clear warnings.
+3. Add a "Use at your own risk" disclaimer in "healthConsiderations" if severe allergies or conditions are present.`;
   }
 
   /**
@@ -629,7 +674,10 @@ The user has specifically requested: "${sanitizedSearch}"
    *
    * Creates detailed JSON schema for AI output with all required fields.
    */
-  private buildOutputFormatSection(request: EventRecipePromptRequest): string {
+  private buildOutputFormatSection(
+    request: EventRecipePromptRequest,
+    isCustomSearch: boolean = false,
+  ): string {
     const validCuisines = (request.preferredCuisines || []).filter(
       (c) => c && c.trim().length > 0,
     );
@@ -638,6 +686,26 @@ The user has specifically requested: "${sanitizedSearch}"
       validCuisines.length > 0
         ? `\n✅ **ALL recipes are authentic ${validCuisines.join(" or ")} cuisine (MANDATORY)**`
         : "";
+
+    // ADJUSTED CHECKLIST SECTION
+    let checklist = `
+**FINAL CHECKLIST (All MUST be satisfied):**
+✅ Exactly ${request.recipeCount} recipe(s)
+✅ Each for ${request.servings} servings
+✅ All ingredients have valid categories
+✅ Complete nutrition data (no zeros or placeholders)
+✅ Valid JSON format (no markdown, no extra text outside JSON)`;
+
+    if (isCustomSearch) {
+      checklist += `
+✅ Requested dish "${request.customSearch}" generated successfully`;
+    } else {
+      checklist += `
+✅ Budget constraints met (total ≤ ₹${request.budget || "N/A"})
+✅ All allergens completely avoided
+✅ No duplicates from recent events
+✅ Occasion-appropriate for ${request.occasionType}${cuisineChecklistItem}`;
+    }
 
     return `**📤 OUTPUT FORMAT (JSON ONLY - No additional text):**
 
@@ -688,6 +756,12 @@ Return a JSON array with EXACTLY ${request.recipeCount} recipe object(s):
             "pantryItemsSavings": <optional>
         },
         
+        "suitabilityAnalysis": {
+            "suitableFor": ["Low Carb", "High Protein"],
+            "notSuitableFor": ["Nut Allergy", "Diabetic"],
+            "riskNote": "Specific warning if any health conflicts exist"
+        },
+        
         "nutrition": {
             "calories": <per serving>,
             "protein_g": <per serving>,
@@ -709,17 +783,7 @@ Return a JSON array with EXACTLY ${request.recipeCount} recipe object(s):
     }
 ]
 \`\`\`
-
-**FINAL CHECKLIST (All MUST be satisfied):**
-✅ Exactly ${request.recipeCount} recipe(s)
-✅ Each for ${request.servings} servings
-✅ All ingredients have valid categories
-✅ Complete nutrition data (no zeros or placeholders)
-✅ Budget constraints met (total ≤ ₹${request.budget || "N/A"})
-✅ All allergens completely avoided
-✅ No duplicates from recent events
-✅ Occasion-appropriate for ${request.occasionType}${cuisineChecklistItem}
-✅ Valid JSON format (no markdown, no extra text outside JSON)`;
+${checklist}`;
   }
 }
 

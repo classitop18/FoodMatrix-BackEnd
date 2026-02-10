@@ -12,15 +12,20 @@ router.use(authenticate);
 router.post("/", eventController.createEvent);
 router.get("/", eventController.getEvents);
 router.get("/stats", eventController.getAccountEventStats);
+
+// ===== AI Helper Routes =====
+router.post("/ai/merge-ingredients", eventController.mergeIngredients);
+
 router.get("/:id", eventController.getEventById);
 router.put("/:id", eventController.updateEvent);
 router.delete("/:id", eventController.deleteEvent);
 
 // ===== AI-Powered Features =====
-router.get("/:id/suggest-budget", eventController.suggestBudget);
+router.post("/:id/suggest-budget", eventController.suggestBudget);
 router.post("/:id/generate-recipes", eventController.generateEventRecipes);
 
 // ===== Event Extra Items =====
+router.post("/:id/items/bulk", eventController.addExtraItems);
 router.post("/:id/items", eventController.addExtraItem);
 router.get("/:id/items", eventController.getExtraItems);
 router.put("/:id/items/:itemId", eventController.updateExtraItem);

@@ -240,7 +240,6 @@ export const RECIPE_GENERATION_SYSTEM_PROMPT = `You are an elite AI chef and nut
  */
 export type MealType =
   | "breakfast"
-  | "brunch"
   | "lunch"
   | "snacks"
   | "dinner"

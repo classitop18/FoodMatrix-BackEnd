@@ -184,6 +184,7 @@ export class MemberRepository implements IMemberRepository {
       role,
       isInternal,
       search,
+      includeHealthProfile, // Add this
     } = options;
     const offset = (page - 1) * limit;
 
@@ -221,41 +222,57 @@ export class MemberRepository implements IMemberRepository {
           : members.createdAt;
     const orderBy = sortOrder === "asc" ? asc(sortColumn) : desc(sortColumn);
 
+    let queryBase = this.db
+      .select({
+        id: members.id,
+        accountId: members.accountId,
+        userId: members.userId,
+        role: members.role,
+        name: members.name,
+        age: members.age,
+        sex: members.sex,
+        createdAt: members.createdAt,
+        user: {
+          id: users.id,
+          email: users.email,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          avatar: users.avatar,
+          phone: users.phone,
+        },
+        account: {
+          id: accounts.id,
+          accountNumber: accounts.accountNumber,
+          accountName: accounts.accountName,
+          accountType: accounts.accountType,
+          primaryAdminId: accounts.primaryAdminId,
+        },
+        // Conditional selection for healthProfile
+        ...(includeHealthProfile
+          ? {
+              healthProfile: {
+                id: healthProfiles.id,
+                dietaryRestrictions: healthProfiles.dietaryRestrictions,
+                allergies: healthProfiles.allergies,
+                healthConditions: healthProfiles.conditions,
+              },
+            }
+          : {}),
+      })
+      .from(members)
+      .leftJoin(users, eq(members.userId, users.id))
+      .leftJoin(accounts, eq(members.accountId, accounts.id));
+
+    if (includeHealthProfile) {
+      queryBase = queryBase.leftJoin(
+        healthProfiles,
+        eq(members.id, healthProfiles.memberId),
+      );
+    }
+
     const [data, [{ count }]] = await Promise.all([
-      this.db
-        .select({
-          id: members.id,
-          accountId: members.accountId,
-          userId: members.userId,
-          role: members.role,
-          name: members.name,
-          age: members.age,
-          sex: members.sex,
-          createdAt: members.createdAt,
-          user: {
-            id: users.id,
-            email: users.email,
-            username: users.username,
-            firstName: users.firstName,
-            lastName: users.lastName,
-            avatar: users.avatar,
-            phone: users.phone,
-          },
-          account: {
-            id: accounts.id,
-            accountNumber: accounts.accountNumber,
-            accountName: accounts.accountName,
-            accountType: accounts.accountType,
-            primaryAdminId: accounts.primaryAdminId,
-          },
-        })
-        .from(members)
-        .leftJoin(users, eq(members.userId, users.id))
-        .leftJoin(accounts, eq(members.accountId, accounts.id))
-        .where(whereClause)
-        .orderBy(orderBy)
-        .limit(limit)
-        .offset(offset),
+      queryBase.where(whereClause).orderBy(orderBy).limit(limit).offset(offset),
       this.db
         .select({ count: sql<number>`count(*)` })
         .from(members)
