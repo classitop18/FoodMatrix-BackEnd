@@ -11,6 +11,7 @@ import {
   members,
   recipes,
   eventExtraItems,
+  eventGenerationState,
 } from "../../database/schemas/schema.js";
 import { getDb } from "../../database/db.js";
 import {
@@ -26,6 +27,7 @@ import {
   EventStats,
   SERVING_MULTIPLIERS,
   EventExtraItem,
+  EventGenerationState,
 } from "./types/event.types.js";
 import {
   CreateEventDto,
@@ -136,6 +138,14 @@ export interface IEventRepository {
   ): Promise<EventExtraItem>;
   deleteExtraItem(itemId: string): Promise<void>;
   getExtraItemsByEventId(eventId: string): Promise<EventExtraItem[]>;
+
+  // Event Generation State
+  getGenerationState(eventId: string): Promise<EventGenerationState | null>;
+  saveGenerationState(
+    eventId: string,
+    stateData: any,
+    lastStep?: string,
+  ): Promise<void>;
 }
 
 export class EventRepository implements IEventRepository {
@@ -866,5 +876,43 @@ export class EventRepository implements IEventRepository {
       .select()
       .from(eventExtraItems)
       .where(eq(eventExtraItems.eventId, eventId));
+  }
+
+  // Event Generation State
+  async getGenerationState(
+    eventId: string,
+  ): Promise<EventGenerationState | null> {
+    const [state] = await this.db
+      .select()
+      .from(eventGenerationState)
+      .where(eq(eventGenerationState.eventId, eventId))
+      .limit(1);
+
+    return state || null;
+  }
+
+  async saveGenerationState(
+    eventId: string,
+    stateData: any,
+    lastStep?: string,
+  ): Promise<void> {
+    const existing = await this.getGenerationState(eventId);
+
+    if (existing) {
+      await this.db
+        .update(eventGenerationState)
+        .set({
+          stateData,
+          lastStep: lastStep || existing.lastStep,
+          updatedAt: new Date(),
+        })
+        .where(eq(eventGenerationState.eventId, eventId));
+    } else {
+      await this.db.insert(eventGenerationState).values({
+        eventId,
+        stateData,
+        lastStep: lastStep || null,
+      });
+    }
   }
 }

@@ -132,7 +132,7 @@ Critical Output Rules:
 - ALWAYS return valid JSON array - no markdown, no explanations
 - NEVER omit nutrition data - it is mandatory for health tracking
 - ALWAYS respect dietary restrictions - safety is non-negotiable
-- ALWAYS provide accurate cost estimates - use realistic 2025 prices
+- ALWAYS provide accurate cost estimates - use realistic 2025 USA prices (USD)
 - NEVER suggest recipes from the "avoid" list
 - **STRICTLY follow cuisine requirements** - if "Indian" cuisine is required, ONLY suggest authentic Indian dishes`;
 
@@ -537,28 +537,29 @@ Prioritize cost-effective ingredients without sacrificing taste.`;
     if (isCustomSearch) {
       return `**💰 BUDGET TARGETS:**
 
-- **Meal Budget Allocated:** ₹${request.budget.toFixed(2)}
-- **Per Serving Budget:** ₹${perServingBudget.toFixed(2)}
+- **Meal Budget Allocated:** $${request.budget.toFixed(2)}
+- **Per Serving Budget:** $${perServingBudget.toFixed(2)}
 
 **BUDGET GUIDELINES:**
-1. Try to stay close to ₹${request.budget}, but if the specific requested recipe requires more, PRIROITIZE the recipe quality.
-2. Report expected cost honestly found in the market.`;
+1. Try to stay close to $${request.budget}, but if the specific requested recipe requires more, PRIROITIZE the recipe quality.
+2. Report expected cost honestly found in the USA market.`;
     }
 
     return `**💰 BUDGET CONSTRAINTS (STRICT):**
 
-- **Meal Budget Allocated:** ₹${request.budget.toFixed(2)} (Total for ${request.mealType})
-- **Per Serving Budget:** ₹${perServingBudget.toFixed(2)}
+- **Meal Budget Allocated:** $${request.budget.toFixed(2)} (Total for ${request.mealType})
+- **Per Serving Budget:** $${perServingBudget.toFixed(2)}
 - **Total Servings:** ${request.servings}
 
 **BUDGET RULES (MANDATORY):**
-1. Total recipe cost MUST NOT exceed ₹${request.budget}
-2. Use realistic 2025 grocery prices (Indian market for INR)
-3. Calculate accurate cost per ingredient
+1. Total recipe cost MUST NOT exceed $${request.budget}
+2. Use realistic 2025 grocery prices (USA market for USD)
+3. Calculate accurate cost per ingredient based on USA standard pricing
 4. Report exact cost breakdown in costAnalysis
-5. Cost per serving must not exceed ₹${perServingBudget.toFixed(2)}
+5. Cost per serving must not exceed $${perServingBudget.toFixed(2)}
 6. Prioritize budget efficiency without sacrificing quality
-7. Consider bulk buying for large servings`;
+7. Consider bulk buying for large servings
+8. **CRITICAL:** The 'totalCost' field MUST be the exact sum of all 'estimatedCost' fields in the 'ingredients' array. Do not estimate the total independently. Sum the ingredients.`;
   }
 
   /**
@@ -701,7 +702,7 @@ Since you are overriding safety checks, you MUST perform a detailed analysis:
 ✅ Requested dish "${request.customSearch}" generated successfully`;
     } else {
       checklist += `
-✅ Budget constraints met (total ≤ ₹${request.budget || "N/A"})
+✅ Budget constraints met (total ≤ $${request.budget || "N/A"})
 ✅ All allergens completely avoided
 ✅ No duplicates from recent events
 ✅ Occasion-appropriate for ${request.occasionType}${cuisineChecklistItem}`;
@@ -730,7 +731,7 @@ Return a JSON array with EXACTLY ${request.recipeCount} recipe object(s):
                 "unit": "standard unit",
                 "isOptional": false,
                 "notes": "preparation notes",
-                "estimatedCost": <number in INR>,
+                "estimatedCost": <number in USD, realistic USA 2025 price>,
                 "category": "${VALID_INGREDIENT_CATEGORIES.join("|")}",
                 "isPantryItem": false
             }
@@ -750,7 +751,7 @@ Return a JSON array with EXACTLY ${request.recipeCount} recipe object(s):
         ],
         
         "costAnalysis": {
-            "totalCost": <sum in INR>,
+            "totalCost": <sum of all 'estimatedCost' fields in USD>,
             "costPerServing": <totalCost / servings>,
             "budgetEfficiency": <0.0-1.0>,
             "pantryItemsSavings": <optional>

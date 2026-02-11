@@ -759,4 +759,52 @@ export class EventController {
       next(error);
     }
   };
+
+  // ===== Generation State Persistence =====
+  getGenerationState = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const userId = req.user?.id;
+      const { id: eventId } = req.params;
+
+      if (!userId) {
+        throw new AppError("Unauthorized", 401);
+      }
+
+      const state = await this.eventService.getGenerationState(eventId, userId);
+      sendResponse(res, state);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  saveGenerationState = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const userId = req.user?.id;
+      const { id: eventId } = req.params;
+      const { stateData, lastStep } = req.body;
+
+      if (!userId) {
+        throw new AppError("Unauthorized", 401);
+      }
+
+      await this.eventService.saveGenerationState(
+        eventId,
+        stateData,
+        userId,
+        lastStep,
+      );
+
+      sendResponse(res, null, "Generation state saved");
+    } catch (error) {
+      next(error);
+    }
+  };
 }

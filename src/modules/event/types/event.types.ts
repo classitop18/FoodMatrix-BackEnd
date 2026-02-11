@@ -244,3 +244,13 @@ export class EventBudgetExceededError extends Error {
     this.name = "EventBudgetExceededError";
   }
 }
+
+// Event Generation State
+export interface EventGenerationState {
+  id: string;
+  eventId: string;
+  stateData: any;
+  lastStep?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}

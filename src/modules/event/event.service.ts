@@ -154,6 +154,15 @@ export interface IEventService {
     accountId: string,
     requesterId: string,
   ): Promise<EventStats>;
+
+  // Event Generation State
+  getGenerationState(eventId: string, requesterId: string): Promise<any>;
+  saveGenerationState(
+    eventId: string,
+    stateData: any,
+    requesterId: string,
+    lastStep?: string,
+  ): Promise<void>;
 }
 
 export class EventService implements IEventService {
@@ -1112,5 +1121,42 @@ export class EventService implements IEventService {
 
     const items = await this.eventRepo.getExtraItemsByEventId(eventId);
     return items.map((item) => this.mapExtraItemToDto(item));
+  }
+
+  // Event Generation State
+  async getGenerationState(eventId: string, requesterId: string): Promise<any> {
+    const event = await this.eventRepo.findById(eventId, false);
+    if (!event) {
+      throw new EventNotFoundError(eventId);
+    }
+
+    await this.validateAccountAccess(
+      requesterId,
+      event.accountId,
+      "view generation state",
+    );
+
+    const state = await this.eventRepo.getGenerationState(eventId);
+    return state;
+  }
+
+  async saveGenerationState(
+    eventId: string,
+    stateData: any,
+    requesterId: string,
+    lastStep?: string,
+  ): Promise<void> {
+    const event = await this.eventRepo.findById(eventId, false);
+    if (!event) {
+      throw new EventNotFoundError(eventId);
+    }
+
+    await this.validateAdminAccess(
+      requesterId,
+      event.accountId,
+      "save generation state",
+    );
+
+    await this.eventRepo.saveGenerationState(eventId, stateData, lastStep);
   }
 }

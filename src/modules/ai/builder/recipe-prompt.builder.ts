@@ -354,7 +354,8 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
 
                 1. **Budget Compliance:**
                 - NEVER exceed the per-serving budget
-                - Use realistic 2025 grocery prices
+                - Use realistic 2025 grocery prices (USA market for USD)
+                - **CRITICAL:** The 'totalCost' field MUST be the exact sum of all 'estimatedCost' fields in the 'ingredients' array.
                 - If pantry items used, calculate savings
 
                 2. **Health Safety:**
@@ -430,7 +431,7 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
                 "unit": "measurement (["cup","tbsp","tsp","oz","lb","gram","kg","ml","liter","piece","clove","slice","dozen","can","bunch","jar"])",
                 "isOptional": false,
                 "notes": "preparation tips (e.g. 'diced', 'peeled') or substitutions",
-                "estimatedCost": <realistic dollar amount>,
+                "estimatedCost": <realistic USD amount based on USA 2025 prices>,
                 "category": "produce|pantry|dairy|protein|seafood|meat|bakery|spices|beverages|frozen|other",
                 "isPantryItem": true|false
             }
@@ -451,7 +452,7 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
             ],
             
             "costAnalysis": {
-            "totalCost": <sum of all ingredient costs>,
+            "totalCost": <sum of all 'estimatedCost' fields in ingredients>,
             "costPerServing": <totalCost / servings>,
             "budgetEfficiency": <0.0-1.0 scale>,
             "pantryItemsSavings": <optional: money saved using pantry>
@@ -734,9 +735,8 @@ Member ${index + 1}:
         4. **Realistic Cost Analysis:**
         - Use 2025 USA grocery prices
         - Calculate based on actual quantities needed (not full package prices)
-        - Consider seasonal availability
-        - Account for regional price variations
-        - Show cost per serving clearly
+        - **CRITICAL:** The total cost MUST be the exact sum of all ingredient costs. Do not estimate it separately.
+        - Show cost per serving clearly (Total Cost / Servings)
 
         5. **Ingredient Details:**
         - List ALL ingredients with precise measurements

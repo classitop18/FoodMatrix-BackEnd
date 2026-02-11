@@ -745,6 +745,29 @@ export const eventMemberLogs = pgTable("event_member_logs", {
     .notNull(),
 });
 
+// Event Generation State - stores snapshot of wizard state for future editing/reference
+export const eventGenerationState = pgTable("event_generation_state", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+
+  // JSON blob to store the entire wizard state
+  // Includes: step, budgetStrategy, totalBudget, mealBudgets, mealRecipes, activeMealTab, globalCuisine, considerHealthProfile, selectedHealthMembers
+  stateData: jsonb("state_data").notNull(),
+
+  lastStep: varchar("last_step"), // helpful for quick resume
+
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+  updatedAt: timestamp("updated_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
 // Export Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -775,3 +798,7 @@ export type RecipeShoppingListItem =
   typeof recipeShoppingListItems.$inferSelect;
 export type InsertRecipeShoppingListItem =
   typeof recipeShoppingListItems.$inferInsert;
+
+export type EventGenerationState = typeof eventGenerationState.$inferSelect;
+export type InsertEventGenerationState =
+  typeof eventGenerationState.$inferInsert;

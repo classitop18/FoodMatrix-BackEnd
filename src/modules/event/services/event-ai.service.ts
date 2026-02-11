@@ -781,7 +781,8 @@ Rules:
 2. Percentages must sum to 100
 3. Consider health restrictions increase ingredient costs
 4. Provide practical, actionable recommendations
-5. Never exceed the total budget`;
+5. Never exceed the total budget
+6. Use USA market standards for cost estimation logic (USD currency)`;
 
 const MERGE_INGREDIENTS_SYSTEM_PROMPT = `You are a smart grocery list optimizer and culinary expert.
 
@@ -796,9 +797,9 @@ Your task is to merge a list of ingredients into a consolidated shopping list an
 4. **Sum Quantities**: Add up the quantities for merged items.
 5. **Categorize**: Ensuring each item has a correct category (Vegetables, Fruits, Meat, Dairy, Pantry, Spices, Bakery, Beverages, Others).
 6. **Estimate Cost**: Estimate the approximate cost in USD for the **TOTAL quantity** of the merged item.
-   - Use average US market prices.
-   - Example: If 2kg of Chicken Breast, estimate cost for 2kg.
-   - Be realistic.
+   - Use average US market prices (2025).
+   - Example: If 2kg of Chicken Breast, estimate cost for 2kg at standard retail price.
+   - Do NOT underestimate; include buffer for price variations.
 7. **Output JSON Only**: Return a valid JSON array of objects.
 
 **Input Format:** JSON Array of { name, quantity, unit, category }
