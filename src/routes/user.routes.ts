@@ -22,6 +22,7 @@ import {
   verifyEmailSchema,
 } from "@/validators/auth.validators.js";
 import { Router } from "express";
+import { upload } from "@/utils/file-upload.utils.js";
 
 const router = Router();
 
@@ -96,5 +97,11 @@ router.put(
 // ;
 // router.post("/:id/enable-mfa", userController.enableMfa);
 // router.post("/:id/disable-mfa", userController.disableMfa);
+
+router.post(
+  "/upload-avatar",
+  [authenticate, upload.single("avatar")],
+  userController.uploadAvatar,
+);
 
 export default router;

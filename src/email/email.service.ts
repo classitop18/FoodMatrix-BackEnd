@@ -12,8 +12,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Paths - In dist, __dirname is already 'dist/email/', so we just need 'layouts'
-const BASE_DIR = path.join(__dirname, "email", "layouts");
-// const BASE_DIR = path.join(__dirname, "layouts");
+const BASE_DIR = path.join(__dirname, "layouts");
+
 const LAYOUT_FILE = path.join(BASE_DIR, "main.hbs");
 
 type TemplateContext = Record<string, any>;

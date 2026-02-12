@@ -3,6 +3,7 @@ import { requirePermission } from "@/middlewares/authorization.middleware.js";
 import { PERMISSIONS } from "@/common/permissions.config.js";
 import { MemberController } from "@/modules/member/member.controller.js";
 import { Router } from "express";
+import { upload } from "@/utils/file-upload.utils.js";
 
 const router = Router();
 const memberController = new MemberController();
@@ -54,6 +55,12 @@ router.patch(
   "/:id",
   requirePermission(PERMISSIONS.MEMBER_UPDATE),
   memberController.updateMember,
+);
+
+router.post(
+  "/:id/avatar",
+  [requirePermission(PERMISSIONS.MEMBER_UPDATE), upload.single("avatar")],
+  memberController.uploadMemberAvatar,
 );
 
 /**

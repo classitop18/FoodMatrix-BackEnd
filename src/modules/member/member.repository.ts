@@ -112,6 +112,7 @@ export class MemberRepository implements IMemberRepository {
         name: members.name,
         age: members.age,
         sex: members.sex,
+        avatar: members.avatar,
         createdAt: members.createdAt,
         user: {
           id: users.id,
@@ -231,6 +232,7 @@ export class MemberRepository implements IMemberRepository {
         name: members.name,
         age: members.age,
         sex: members.sex,
+        avatar: members.avatar,
         createdAt: members.createdAt,
         user: {
           id: users.id,
@@ -335,6 +337,7 @@ export class MemberRepository implements IMemberRepository {
         name: members.name,
         age: members.age,
         sex: members.sex,
+        avatar: members.avatar,
         createdAt: members.createdAt,
         user: {
           id: users.id,
@@ -372,6 +375,7 @@ export class MemberRepository implements IMemberRepository {
         name: members.name,
         age: members.age,
         sex: members.sex,
+        avatar: members.avatar,
         createdAt: members.createdAt,
         user: {
           id: users.id,

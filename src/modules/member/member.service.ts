@@ -496,6 +496,7 @@ export class MemberService implements IMemberService {
       name: member.name,
       age: member.age,
       sex: member.sex,
+      avatar: member.avatar,
       createdAt: member.createdAt,
       user: member.user
         ? {

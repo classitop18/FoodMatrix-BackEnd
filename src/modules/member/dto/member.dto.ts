@@ -13,6 +13,7 @@ export const createMemberSchema = z
     name: z.string().min(1, "Name is required for internal members").optional(),
     age: z.number().int().min(0).max(150).optional().nullable(),
     sex: Sex.optional().nullable(),
+    avatar: z.string().optional().nullable(),
   })
   .refine(
     (data) => {
@@ -38,6 +39,7 @@ export const updateMemberSchema = z
     name: z.string().min(1).optional(),
     age: z.number().int().min(0).max(150).optional().nullable(),
     sex: Sex.optional().nullable(),
+    avatar: z.string().optional().nullable(),
   })
   .strict();
 
@@ -67,6 +69,7 @@ export const memberResponseSchema = z.object({
   name: z.string().nullable(),
   age: z.number().nullable(),
   sex: Sex.nullable(),
+  avatar: z.string().nullable().optional(),
   createdAt: z.date(),
   // Populated fields (optional)
   user: z

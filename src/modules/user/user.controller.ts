@@ -706,4 +706,28 @@ export class UserController {
       next(error);
     }
   };
+
+  uploadAvatar = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const id = req.user?.id;
+      if (!id) throw new AppError("Unauthorized", 401);
+
+      if (!req.file) {
+        throw new AppError("No file uploaded", 400);
+      }
+
+      const filename = req.file.filename;
+      const avatarUrl = `/uploads/${filename}`;
+
+      const user = await this.userService.updateUser(id, { avatar: avatarUrl });
+
+      return sendResponse(res, user, "Avatar uploaded successfully", 200);
+    } catch (error) {
+      next(error);
+    }
+  };
 }

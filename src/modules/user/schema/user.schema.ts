@@ -39,8 +39,9 @@ export const updateUserSchema = z.object({
   phone: z
     .string()
     .regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number")
+    .or(z.literal(""))
     .optional(),
-  avatar: z.string().url("Invalid avatar URL").optional(),
+  avatar: z.string().optional(),
   addressLine1: z.string().max(255).optional(),
   addressLine2: z.string().max(255).optional(),
   city: z.string().max(100).optional(),

@@ -193,6 +193,7 @@ export class HealthProfileRepository implements IHealthProfileRepository {
       height: profile.height,
       weight: profile.weight,
       activityLevel: profile.activityLevel,
+      sex: profile.sex,
       conditions: profile.conditions || [],
       allergies: profile.allergies || [],
       dietaryRestrictions: profile.dietaryRestrictions || [],

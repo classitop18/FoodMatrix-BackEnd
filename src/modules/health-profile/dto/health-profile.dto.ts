@@ -46,6 +46,7 @@ export const createHealthProfileSchema = z.object({
   height: z.number().positive().optional(),
   weight: z.number().positive().optional(),
   activityLevel: z.enum(activityLevelEnum.enumValues).optional(),
+  sex: z.enum(["male", "female", "other"]).optional(),
 
   // Medical Conditions & Health Issues
   conditions: z.array(z.enum(healthConditionEnum.enumValues)).optional(),
@@ -108,6 +109,7 @@ export interface HealthProfileResponseDto {
   height?: number;
   weight?: number;
   activityLevel?: string;
+  sex?: string;
 
   // Medical Conditions & Health Issues
   conditions: string[];

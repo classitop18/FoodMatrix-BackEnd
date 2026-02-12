@@ -220,6 +220,7 @@ export const members = pgTable("members", {
   name: text("name"), // For internal members only
   age: integer("age"),
   sex: sexEnum("sex"),
+  avatar: text("avatar"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
@@ -238,6 +239,7 @@ export const healthProfiles = pgTable("health_profiles", {
   height: decimal("height", { precision: 5, scale: 2 }), // in inches
   weight: decimal("weight", { precision: 5, scale: 2 }), // in pounds
   activityLevel: activityLevelEnum("activity_level"),
+  sex: sexEnum("sex"),
 
   // Medical Conditions & Health Issues
   conditions: healthConditionEnum("conditions")

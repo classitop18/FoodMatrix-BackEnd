@@ -432,4 +432,40 @@ export class MemberController {
       next(error);
     }
   };
+
+  /**
+   * POST /api/members/:id/avatar
+   * Upload member avatar
+   */
+  uploadMemberAvatar = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const requesterId = req.user?.id;
+      if (!requesterId) {
+        throw new AppError("Unauthorized", 401);
+      }
+
+      const { id } = req.params;
+
+      if (!req.file) {
+        throw new AppError("No file uploaded", 400);
+      }
+
+      const filename = req.file.filename;
+      const avatarUrl = `/uploads/${filename}`;
+
+      const member = await this.memberService.updateMember(
+        id,
+        { avatar: avatarUrl },
+        requesterId,
+      );
+
+      return sendResponse(res, member, "Avatar uploaded successfully", 200);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
