@@ -83,14 +83,11 @@ export class UserController {
           refreshTokenHash: newRefreshTokenHash,
         });
 
-        const isSecure =
-          CONFIG.NODE_ENV === "production" &&
-          process.env.ALLOW_INSECURE_COOKIES !== "true";
-
         res.cookie("refreshToken", refreshToken, {
           httpOnly: true,
-          secure: isSecure,
-          sameSite: isSecure ? "strict" : "lax", // Lax needed for http
+          // secure: CONFIG.NODE_ENV === "production",
+          secure: false,
+          sameSite: "strict",
           maxAge:
             Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES || 10080) *
             60 *
