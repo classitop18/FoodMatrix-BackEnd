@@ -38,7 +38,74 @@ export class UserController {
     next: NextFunction,
   ): Promise<ApiResponse | any> => {
     try {
-      const user = await this.userService.createUser(req.body);
+      const { user, isAutoVerified } = await this.userService.createUser(
+        req.body,
+      );
+
+      if (isAutoVerified) {
+        // Auto-login logic
+        const userAgent = req.headers["user-agent"];
+        const ip = req.ip;
+
+        // Create session
+        const tempRefreshToken =
+          (await generateJwtToken(
+            { userId: user.id, sessionId: "temp" },
+            Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES),
+            CONFIG.REFRESH_TOKEN_SECRET!,
+          )) || "";
+
+        const refreshTokenHash = await hashString(tempRefreshToken);
+
+        const expiresAt = new Date(
+          Date.now() +
+            Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
+        );
+
+        const session = await this.sessionService.createSession({
+          userId: user.id,
+          refreshTokenHash,
+          userAgent: userAgent || null,
+          ip: ip || null,
+          isValid: true,
+          expiresAt,
+        });
+
+        const { accessToken, refreshToken } = generateAuthenticationToken({
+          userId: user.id,
+          email: user.email,
+          sessionId: session.id,
+        });
+
+        const newRefreshTokenHash = await hashString(refreshToken);
+
+        await this.sessionService.updateSession(session.id, {
+          refreshTokenHash: newRefreshTokenHash,
+        });
+
+        res.cookie("refreshToken", refreshToken, {
+          httpOnly: true,
+          secure: CONFIG.NODE_ENV === "production",
+          sameSite: "strict",
+          maxAge:
+            Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES || 10080) *
+            60 *
+            1000,
+        });
+
+        const userResponse = {
+          ...user,
+          accessToken,
+          sessionId: session.id,
+        };
+
+        return sendResponse(
+          res,
+          { ...userResponse },
+          "User created and logged in successfully.",
+          201,
+        );
+      }
 
       const token = await generateJwtToken(
         { userId: user.id },
@@ -417,11 +484,59 @@ export class UserController {
       }
 
       // Verify user email using token
-      await this.userService.verifyUserEmailUsingToken({ token });
+      const user = await this.userService.verifyUserEmailUsingToken({ token });
 
-      // Success - redirect with success flag and timestamp
+      // Auto-login after verification
+      const userAgent = req.headers["user-agent"];
+      const ip = req.ip;
+
+      // Create session
+      const tempRefreshToken =
+        (await generateJwtToken(
+          { userId: user.id, sessionId: "temp" },
+          Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES),
+          CONFIG.REFRESH_TOKEN_SECRET!,
+        )) || "";
+
+      const refreshTokenHash = await hashString(tempRefreshToken);
+
+      const expiresAt = new Date(
+        Date.now() +
+          Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES) * 60 * 1000,
+      );
+
+      const session = await this.sessionService.createSession({
+        userId: user.id,
+        refreshTokenHash,
+        userAgent: userAgent || null,
+        ip: ip || null,
+        isValid: true,
+        expiresAt,
+      });
+
+      const { refreshToken } = generateAuthenticationToken({
+        userId: user.id,
+        email: user.email,
+        sessionId: session.id,
+      });
+
+      const newRefreshTokenHash = await hashString(refreshToken);
+
+      await this.sessionService.updateSession(session.id, {
+        refreshTokenHash: newRefreshTokenHash,
+      });
+
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: CONFIG.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge:
+          Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES || 10080) * 60 * 1000,
+      });
+
+      // Success - redirect to dashboard with success flag
       return res.redirect(
-        `${CONFIG.FRONTEND_BASE_URL}/login?verified=true&t=${timestamp}`,
+        `${CONFIG.FRONTEND_BASE_URL}/dashboard?verified=true&t=${timestamp}`,
       );
     } catch (error: any) {
       const timestamp = Date.now();

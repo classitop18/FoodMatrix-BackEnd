@@ -12,6 +12,7 @@ export interface CreateUserDTO {
   firstName: string;
   lastName?: string;
   phone?: string;
+  invitationToken?: string;
 }
 
 export interface UpdateUserDTO {

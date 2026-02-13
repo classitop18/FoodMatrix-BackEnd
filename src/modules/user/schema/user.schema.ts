@@ -22,6 +22,7 @@ export const createUserSchema = z.object({
     ),
   firstName: z.string().min(1, "First name is required").max(50),
   lastName: z.string().max(50).optional(),
+  invitationToken: z.string().optional(),
 });
 
 export const updateUserSchema = z.object({

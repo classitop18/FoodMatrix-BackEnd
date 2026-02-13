@@ -16,9 +16,12 @@ import { IUserRepository } from "./user.repository.js";
 import { compareHash, hashString } from "@/utils/bcrypt.utils.js";
 import { CONFIG } from "@/utils/env.config.js";
 import { verifyJwtToken } from "@/utils/jwt.utils.js";
+import { AppError } from "@/utils/app-error.utils.js";
 
 export interface IUserService {
-  createUser(data: CreateUserDTO): Promise<UserWithoutPassword>;
+  createUser(
+    data: CreateUserDTO,
+  ): Promise<{ user: UserWithoutPassword; isAutoVerified: boolean }>;
   loginUser(data: {
     emailOrUsername: string;
     password: string;
@@ -91,7 +94,9 @@ export class UserService implements IUserService {
     return null;
   }
 
-  async createUser(data: CreateUserDTO): Promise<UserWithoutPassword> {
+  async createUser(
+    data: CreateUserDTO,
+  ): Promise<{ user: UserWithoutPassword; isAutoVerified: boolean }> {
     const existingEmail = await this.userRepository.findByEmail(data.email);
     if (existingEmail) {
       throw new Error("Email already exists");
@@ -106,9 +111,78 @@ export class UserService implements IUserService {
       }
     }
 
+    let isAutoVerified = false;
+
+    // Validate invitation token if present
+    if (data.invitationToken) {
+      const { InvitationService } =
+        await import("../invitation/invitation.service.js");
+      const invitationService = new InvitationService();
+      try {
+        const invitationDetails =
+          await invitationService.validateInvitationToken(data.invitationToken);
+
+        if (
+          invitationDetails.email.toLowerCase().trim() ===
+          data.email.toLowerCase().trim()
+        ) {
+          isAutoVerified = true;
+        } else {
+          console.warn(
+            `Invitation email mismatch: ${invitationDetails.email} vs ${data.email}`,
+          );
+          // Make this a critical error so the user knows why auto-verify failed
+          throw new Error("Invitation email does not match registration email");
+        }
+      } catch (error) {
+        console.error("Invitation validation failed:", error);
+        // If the user explicitly provided a token, and it failed, we SHOULD throw
+        // to let them know something is wrong, rather than silently continuing.
+        // Or if we continue, we must inform them.
+        throw error; // Let's throw to be safe and visible.
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(data.password, 12);
-    const user = await this.userRepository.create(data, hashedPassword);
-    return this.removePasswordFromUser(user);
+
+    // Create user with verified status if invitation was valid
+    const user = await this.userRepository.create(
+      {
+        ...data,
+      },
+      hashedPassword,
+    );
+
+    // If auto-verified, update the user status immediately (or ensure create accepts isVerified)
+    // The repository.create method might not accept isVerified in the DTO if it's strict.
+    // Let's check repository.create or just update it after.
+    // Actually, looking at the schema, isVerified is default false.
+    // We can update it immediately if we can't pass it to create.
+
+    if (isAutoVerified) {
+      await this.userRepository.verifyUser(user.id);
+
+      // Accept the invitation
+      try {
+        const { InvitationService } =
+          await import("../invitation/invitation.service.js");
+        const invitationService = new InvitationService();
+        await invitationService.acceptInvitation(
+          { token: data.invitationToken! },
+          user.email,
+        );
+        console.log(`Invitation accepted for user ${user.email}`);
+      } catch (error) {
+        console.error("Failed to accept invitation after creation:", error);
+        // We don't throw here to avoid rolling back user creation,
+        // but this is a critical failure for the "seamless" flow.
+      }
+    }
+
+    return {
+      user: this.removePasswordFromUser(user),
+      isAutoVerified,
+    };
   }
 
   async loginUser(data: {
@@ -122,11 +196,11 @@ export class UserService implements IUserService {
       user = await this.userRepository.findByUsername(data.emailOrUsername);
     }
     if (!user) {
-      throw new Error("Invalid email/username or password");
+      throw new AppError("Invalid email/username or password", 401);
     }
     const isPasswordValid = await compareHash(data.password, user.password);
     if (!isPasswordValid) {
-      throw new Error("Invalid email or password");
+      throw new AppError("Invalid email or password", 401);
     }
     return {
       user: this.removePasswordFromUser(user),
