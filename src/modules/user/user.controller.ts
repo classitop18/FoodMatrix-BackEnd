@@ -201,7 +201,8 @@ export class UserController {
 
         res.cookie("mfa_temp_session", tempSessionId, {
           httpOnly: true,
-          secure: CONFIG.NODE_ENV === "production",
+          // secure: CONFIG.NODE_ENV === "production",
+          secure: false,
           sameSite: "strict",
           maxAge: 10 * 60 * 1000,
           path: "/",
@@ -256,7 +257,8 @@ export class UserController {
 
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true, // JavaScript cannot access
-        secure: CONFIG.NODE_ENV === "production", // HTTPS only in production
+        // secure: CONFIG.NODE_ENV === "production", // HTTPS only in production
+        secure: false,
         sameSite: "strict", // CSRF protection
         maxAge:
           Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES || 10080) * 60 * 1000, // 7 days in milliseconds
@@ -536,7 +538,8 @@ export class UserController {
 
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: isSecure,
+        // secure: isSecure,
+        secure: false,
         sameSite: isSecure ? "strict" : "lax",
         maxAge:
           Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES || 10080) * 60 * 1000,
@@ -615,7 +618,8 @@ export class UserController {
       // Clear refresh token
       res.clearCookie("refreshToken", {
         httpOnly: true,
-        secure: isSecure,
+        // secure: isSecure,
+        secure: false,
         sameSite: isSecure ? "strict" : "lax",
       });
 
@@ -714,7 +718,8 @@ export class UserController {
 
       res.cookie("reset_password_token", token, {
         httpOnly: true, // JavaScript cannot access
-        secure: CONFIG.NODE_ENV === "production", // HTTPS only in production
+        // secure: CONFIG.NODE_ENV === "production", // HTTPS only in production
+        secure: false,
         sameSite: "strict", // CSRF protection
         maxAge: Number(CONFIG.PASSWORD_RESET_EXPIRATION_MINUTES) * 60 * 1000, // 7 days in milliseconds
       });
