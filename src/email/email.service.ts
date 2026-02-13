@@ -13,6 +13,7 @@ const __dirname = path.dirname(__filename);
 
 // Paths - In dist, __dirname is already 'dist/email/', so we just need 'layouts'
 const BASE_DIR = path.join(__dirname, "email", "layouts");
+// const BASE_DIR = path.join(__dirname, "layouts");
 console.log("Email templates directory:", BASE_DIR);
 
 const LAYOUT_FILE = path.join(BASE_DIR, "main.hbs");
@@ -56,7 +57,9 @@ export class EmailService {
   }
 
   private renderTemplate(templateName: string, context: TemplateContext) {
+    console.log("Email templates directory:", BASE_DIR);
     const templatePath = path.join(BASE_DIR, `${templateName}.hbs`);
+    console.log("Email templates directory:", BASE_DIR, { templatePath });
 
     if (!fs.existsSync(templatePath)) {
       throw new Error(`Email template not found: ${templateName}`);
