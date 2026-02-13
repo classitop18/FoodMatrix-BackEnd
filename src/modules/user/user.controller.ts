@@ -83,10 +83,14 @@ export class UserController {
           refreshTokenHash: newRefreshTokenHash,
         });
 
+        const isSecure =
+          CONFIG.NODE_ENV === "production" &&
+          process.env.ALLOW_INSECURE_COOKIES !== "true";
+
         res.cookie("refreshToken", refreshToken, {
           httpOnly: true,
-          secure: CONFIG.NODE_ENV === "production",
-          sameSite: "strict",
+          secure: isSecure,
+          sameSite: isSecure ? "strict" : "lax", // Lax needed for http
           maxAge:
             Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES || 10080) *
             60 *
@@ -526,10 +530,14 @@ export class UserController {
         refreshTokenHash: newRefreshTokenHash,
       });
 
+      const isSecure =
+        CONFIG.NODE_ENV === "production" &&
+        process.env.ALLOW_INSECURE_COOKIES !== "true";
+
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: CONFIG.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: isSecure,
+        sameSite: isSecure ? "strict" : "lax",
         maxAge:
           Number(CONFIG.REFRESH_TOKEN_EXPIRATION_MINUTES || 10080) * 60 * 1000,
       });
@@ -600,11 +608,15 @@ export class UserController {
         isValid: false,
       });
 
+      const isSecure =
+        CONFIG.NODE_ENV === "production" &&
+        process.env.ALLOW_INSECURE_COOKIES !== "true";
+
       // Clear refresh token
       res.clearCookie("refreshToken", {
         httpOnly: true,
-        secure: CONFIG.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: isSecure,
+        sameSite: isSecure ? "strict" : "lax",
       });
 
       return sendResponse(res, null, "Logged out successfully.", 200);
