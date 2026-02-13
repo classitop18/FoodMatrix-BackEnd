@@ -350,39 +350,43 @@ export class InvitationService {
 
   // ============ VALIDATE INVITATION TOKEN (PUBLIC) ============
   async validateInvitationToken(token: string) {
-    const invitation = await this.repository.findByToken(token);
+    try {
+      const invitation = await this.repository.findByToken(token);
 
-    if (!invitation) {
-      throw Object.assign(new Error("Invitation not found"), {
-        statusCode: 404,
-      });
+      if (!invitation) {
+        throw Object.assign(new Error("Invitation not found"), {
+          statusCode: 404,
+        });
+      }
+
+      // Check if invitation is valid
+      if (invitation.status !== "pending") {
+        throw Object.assign(
+          new Error(`Invitation has already been ${invitation.status}`),
+          { statusCode: 400 },
+        );
+      }
+
+      // Check if expired
+      if (new Date() > new Date(invitation.expiresAt)) {
+        await this.repository.updateStatus(invitation.id, "expired");
+        throw Object.assign(new Error("Invitation has expired"), {
+          statusCode: 400,
+        });
+      }
+
+      // Check if user exists
+      const user = await this.userRepository.findByEmail(invitation.email);
+
+      return {
+        email: invitation.email,
+        exists: !!user,
+        invitationId: invitation.id,
+        accountId: invitation.accountId,
+        role: invitation.role,
+      };
+    } catch (error) {
+      console.log(error, "jjjjjjjjjjjjjjjjjjjjjjjjj");
     }
-
-    // Check if invitation is valid
-    if (invitation.status !== "pending") {
-      throw Object.assign(
-        new Error(`Invitation has already been ${invitation.status}`),
-        { statusCode: 400 },
-      );
-    }
-
-    // Check if expired
-    if (new Date() > new Date(invitation.expiresAt)) {
-      await this.repository.updateStatus(invitation.id, "expired");
-      throw Object.assign(new Error("Invitation has expired"), {
-        statusCode: 400,
-      });
-    }
-
-    // Check if user exists
-    const user = await this.userRepository.findByEmail(invitation.email);
-
-    return {
-      email: invitation.email,
-      exists: !!user,
-      invitationId: invitation.id,
-      accountId: invitation.accountId,
-      role: invitation.role,
-    };
   }
 }
