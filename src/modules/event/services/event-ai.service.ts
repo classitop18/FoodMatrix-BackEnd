@@ -797,9 +797,13 @@ Your task is to merge a list of ingredients into a consolidated shopping list an
 4. **Sum Quantities**: Add up the quantities for merged items.
 5. **Categorize**: Ensuring each item has a correct category (Vegetables, Fruits, Meat, Dairy, Pantry, Spices, Bakery, Beverages, Others).
 6. **Estimate Cost**: Estimate the approximate cost in USD for the **TOTAL quantity** of the merged item.
-   - Use average US market prices (2025).
-   - Example: If 2kg of Chicken Breast, estimate cost for 2kg at standard retail price.
-   - Do NOT underestimate; include buffer for price variations.
+   - Use current US market prices (2025/2026).
+   - **Price Sensitivity Strategy:** Act as a budget-conscious shopper. 
+     - Assume "Store Brand" or "Great Value" pricing for generic items (e.g., flour, sugar, canned goods) unless a premium brand is specified.
+     - Look for bulk savings for large quantities.
+     - Avoid premium organic/specialty pricing unless explicitly implied by the ingredient name (e.g., "Organic Kale").
+   - Example: If 2kg of Chicken Breast, use the price of a standard value pack, not the most expensive organic air-chilled option.
+   - Provide a realistic urgency cost (don't underestimate, but aim for the "smart shopper" price).
 7. **Output JSON Only**: Return a valid JSON array of objects.
 
 **Input Format:** JSON Array of { name, quantity, unit, category }

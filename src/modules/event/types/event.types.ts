@@ -120,6 +120,7 @@ export interface EventBudget {
   eventId: string;
   totalBudget: number;
   totalSpent: number;
+  allocations?: Record<string, number>;
   currency: string;
   createdAt: Date;
 }

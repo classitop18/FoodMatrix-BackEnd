@@ -605,6 +605,45 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
     return healthInfo;
   }
 
+  /**
+   * Builds a prompt to estimate costs for a list of ingredients
+   */
+  async buildIngredientCostPrompt(
+    ingredients: { name: string; quantity: number; unit: string }[],
+  ): Promise<string> {
+    const itemsList = ingredients
+      .map((i) => `- ${i.name} (${i.quantity} ${i.unit})`)
+      .join("\n");
+
+    return `Estimate the cost for the following ingredients based on 2025/2026 USA grocery prices, assuming a **budget-conscious but realistic shopper**:
+
+${itemsList}
+
+**Pricing Strategy:**
+- Use **"Store Brand"** or **"Value"** pricing for generic items (e.g., flour, sugar, canned goods, spices).
+- Assume standard non-organic produce unless specified otherwise.
+- Look for family-pack pricing for meats if the quantity is large.
+- Avoid premium or specialty store pricing (e.g., Whole Foods) on basic items; use mainstream grocery store averages (e.g., Kroger, Walmart, Aldi).
+
+**OUTPUT FORMAT (JSON ONLY):**
+Return a JSON array of objects, one for each ingredient, with the following structure:
+\`\`\`json
+[
+  {
+    "name": "ingredient name",
+    "estimatedCost": <number in USD>,
+    "unit": "unit used for estimation"
+  }
+]
+\`\`\`
+
+**RULES:**
+1. Provide realistic **budget-friendly** estimates for the EXACT quantity specified.
+2. If the quantity is small (e.g., "pinch"), estimate a proportional cost from a standard package.
+3. Return ONLY valid JSON.
+`;
+  }
+
   private buildFoodPreferences(request: AIRecipeRequest): string[] {
     const prefs: string[] = [];
 
@@ -733,7 +772,8 @@ Member ${index + 1}:
         - Include sodium and cholesterol for health-conscious users
 
         4. **Realistic Cost Analysis:**
-        - Use 2025 USA grocery prices
+        - Use 2025/2026 USA grocery prices
+        - **Pricing Strategy:** Act as a budget-conscious shopper (Store Brand/Value pricing for generics).
         - Calculate based on actual quantities needed (not full package prices)
         - **CRITICAL:** The total cost MUST be the exact sum of all ingredient costs. Do not estimate it separately.
         - Show cost per serving clearly (Total Cost / Servings)
@@ -766,7 +806,7 @@ Member ${index + 1}:
             "unit": "standard measurement",
             "isOptional": boolean,
             "notes": "prep notes or substitutions",
-            "estimatedCost": <realistic USD>,
+            "estimatedCost": <realistic USD, budget-conscious>,
             "category": "produce|pantry|dairy|protein|seafood|meat|bakery|spices|beverages|frozen|other",
             "isPantryItem": boolean
             }

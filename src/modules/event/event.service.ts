@@ -34,6 +34,9 @@ import {
   RecipeStorageInterface,
   RecipeStorage,
 } from "../recipe/recipe.repository.js";
+import { AIRecipeService } from "../ai/services/ai-recipe.service.js";
+import { AIRecipeServiceFactory } from "../ai/ai-recipe-service.factory.js";
+import { PantryItemsStorage } from "../pantry/pantry.repository.js";
 
 export interface IEventService {
   // Event CRUD
@@ -172,6 +175,18 @@ export class EventService implements IEventService {
     private readonly recipeRepo: RecipeStorageInterface = new RecipeStorage(),
   ) {}
 
+  private aiRecipeService: AIRecipeService | null = null;
+
+  private getAIService(): AIRecipeService {
+    if (!this.aiRecipeService) {
+      this.aiRecipeService = AIRecipeServiceFactory.create("openai", {
+        pantryStorage: new PantryItemsStorage(),
+        recipeStorage: this.recipeRepo as RecipeStorage,
+      });
+    }
+    return this.aiRecipeService;
+  }
+
   // Calculate total servings for an event
   private calculateTotalServings(
     memberCount: number,
@@ -292,6 +307,9 @@ export class EventService implements IEventService {
             eventId: event.budget.eventId,
             totalBudget: parseFloat(event.budget.totalBudget as any),
             totalSpent: parseFloat(event.budget.totalSpent as any),
+            allocations: event.budget.allocations as
+              | Record<string, number>
+              | undefined,
             currency: event.budget.currency,
             createdAt: event.budget.createdAt,
           }
@@ -787,12 +805,58 @@ export class EventService implements IEventService {
     // 3. Aggregate extra items (manual additions)
     const extraItems = await this.eventRepo.getExtraItemsByEventId(eventId);
 
+    // AI Cost Estimation for Extra Items
+    const itemsToEstimate: { name: string; quantity: number; unit: string }[] =
+      [];
+    for (const item of extraItems) {
+      if (
+        (!item.estimatedCost || parseFloat(item.estimatedCost as any) === 0) &&
+        item.name
+      ) {
+        itemsToEstimate.push({
+          name: item.name,
+          quantity: parseFloat(item.quantity as any) || 1,
+          unit: item.unit || "unit",
+        });
+      }
+    }
+
+    console.log(
+      "Items to Estimate Costs:",
+      JSON.stringify(itemsToEstimate, null, 2),
+    );
+
+    let estimatedCosts: Record<string, number> = {};
+    if (itemsToEstimate.length > 0) {
+      try {
+        const aiService = this.getAIService();
+        estimatedCosts =
+          await aiService.estimateIngredientCosts(itemsToEstimate);
+        console.log(
+          "AI Estimated Costs Result:",
+          JSON.stringify(estimatedCosts, null, 2),
+        );
+      } catch (e) {
+        console.error("Failed to estimate costs for extra items", e);
+      }
+    }
+
     for (const item of extraItems) {
       if (!item.name) continue;
 
       const key = normalizeKey(item.name, item.unit || "unit");
       const quantity = parseFloat(item.quantity as any) || 0;
-      const estimatedCost = parseFloat(item.estimatedCost as any) || 0;
+      let estimatedCost = parseFloat(item.estimatedCost as any) || 0;
+
+      // Use AI estimate if explicit cost is missing
+      if (estimatedCost === 0 && estimatedCosts[item.name.toLowerCase()]) {
+        estimatedCost = estimatedCosts[item.name.toLowerCase()];
+        console.log(`Applying AI cost for ${item.name}: ${estimatedCost}`);
+      } else if (estimatedCost === 0) {
+        console.log(
+          `No AI cost found for ${item.name} (Key: ${item.name.toLowerCase()})`,
+        );
+      }
 
       if (mergedItems.has(key)) {
         const existing = mergedItems.get(key)!;

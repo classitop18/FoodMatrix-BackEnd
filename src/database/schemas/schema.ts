@@ -604,6 +604,7 @@ export const eventBudget = pgTable("event_budget", {
   totalSpent: decimal("total_spent", { precision: 16, scale: 2 })
     .default("0")
     .notNull(),
+  allocations: jsonb("allocations"), // Store meal-specific budget limits { [mealType]: number }
   currency: text("currency").default("INR").notNull(),
   createdAt: timestamp("created_at")
     .default(sql`now()`)

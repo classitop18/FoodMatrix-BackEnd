@@ -132,7 +132,8 @@ Critical Output Rules:
 - ALWAYS return valid JSON array - no markdown, no explanations
 - NEVER omit nutrition data - it is mandatory for health tracking
 - ALWAYS respect dietary restrictions - safety is non-negotiable
-- ALWAYS provide accurate cost estimates - use realistic 2025 USA prices (USD)
+- ALWAYS provide accurate cost estimates - use realistic 2025/2026 USA prices (USD)
+- **Use budget-conscious pricing:** Assume store brands/value packs unless premium is required
 - NEVER suggest recipes from the "avoid" list
 - **STRICTLY follow cuisine requirements** - if "Indian" cuisine is required, ONLY suggest authentic Indian dishes`;
 
@@ -559,7 +560,12 @@ Prioritize cost-effective ingredients without sacrificing taste.`;
 5. Cost per serving must not exceed $${perServingBudget.toFixed(2)}
 6. Prioritize budget efficiency without sacrificing quality
 7. Consider bulk buying for large servings
-8. **CRITICAL:** The 'totalCost' field MUST be the exact sum of all 'estimatedCost' fields in the 'ingredients' array. Do not estimate the total independently. Sum the ingredients.`;
+8. **Pricing Strategy:**
+   - Use "Store Brand" pricing for generics (flour, sugar, canned goods)
+   - Assume standard non-organic produce
+   - Use family-pack pricing for meats where applicable
+   - Avoid premium store pricing (e.g. Whole Foods); use standard market averages
+9. **CRITICAL:** The 'totalCost' field MUST be the exact sum of all 'estimatedCost' fields in the 'ingredients' array. Do not estimate the total independently. Sum the ingredients.`;
   }
 
   /**

@@ -1185,4 +1185,46 @@ Follow all requirements from single recipe search for EACH variation.`;
 
     return "International";
   }
+
+  /**
+   * Estimates costs for a list of ingredients using AI
+   */
+  async estimateIngredientCosts(
+    ingredients: { name: string; quantity: number; unit: string }[],
+  ): Promise<Record<string, number>> {
+    if (ingredients.length === 0) return {};
+
+    try {
+      const prompt =
+        await this.promptBuilder.buildIngredientCostPrompt(ingredients);
+
+      const response = await this.aiProvider.createCompletion({
+        prompt,
+        systemPrompt:
+          "You are a helpful culinary assistant and expert grocery pricer.",
+        maxTokens: 1000,
+        temperature: 0.3, // Low temperature for more deterministic pricing
+      });
+
+      const jsonMatch = response.content.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        console.warn("No JSON found in cost estimation response");
+        return {};
+      }
+
+      const estimates = JSON.parse(jsonMatch[0]);
+      const costMap: Record<string, number> = {};
+
+      estimates.forEach((item: any) => {
+        if (item.name && typeof item.estimatedCost === "number") {
+          costMap[item.name.toLowerCase()] = item.estimatedCost;
+        }
+      });
+
+      return costMap;
+    } catch (error) {
+      console.error("Failed to estimate ingredient costs:", error);
+      return {};
+    }
+  }
 }

@@ -289,6 +289,47 @@ export class EventRepository implements IEventRepository {
       await this.setParticipants(id, data.selectedMemberIds);
     }
 
+    // Update budget allocations if provided
+    if (data.allocations !== undefined) {
+      // Check if budget exists
+      const [existingBudget] = await this.db
+        .select()
+        .from(eventBudget)
+        .where(eq(eventBudget.eventId, id))
+        .limit(1);
+
+      if (existingBudget) {
+        await this.db
+          .update(eventBudget)
+          .set({ allocations: data.allocations })
+          .where(eq(eventBudget.eventId, id));
+      } else if (
+        data.budgetType === "separate" ||
+        updated.budgetType === "separate"
+      ) {
+        // Create budget if it doesn't exist but should
+        await this.db.insert(eventBudget).values({
+          eventId: id,
+          totalBudget: (
+            data.budgetAmount ||
+            updated.budgetAmount ||
+            0
+          ).toString(),
+          totalSpent: "0",
+          currency: data.currency || "INR",
+          allocations: data.allocations,
+        });
+      }
+    }
+
+    // Sync budget amount if changed
+    if (data.budgetAmount !== undefined) {
+      await this.db
+        .update(eventBudget)
+        .set({ totalBudget: data.budgetAmount.toString() })
+        .where(eq(eventBudget.eventId, id));
+    }
+
     return updated;
   }
 

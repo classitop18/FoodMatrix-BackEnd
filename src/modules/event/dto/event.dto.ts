@@ -84,6 +84,8 @@ export const updateEventSchema = z.object({
   selectedMemberIds: z.array(z.string()).optional(),
   guestNotes: z.string().optional(),
   actualCost: z.number().optional(),
+  allocations: z.record(z.string(), z.number()).optional(),
+  currency: z.string().optional(),
 });
 
 export type UpdateEventDto = z.infer<typeof updateEventSchema>;
@@ -312,6 +314,7 @@ export interface EventBudgetResponseDto {
   eventId: string;
   totalBudget: number;
   totalSpent: number;
+  allocations?: Record<string, number>;
   currency: string;
   createdAt: Date;
 }
