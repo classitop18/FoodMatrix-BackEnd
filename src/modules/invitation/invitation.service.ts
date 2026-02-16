@@ -350,43 +350,33 @@ export class InvitationService {
 
   // ============ VALIDATE INVITATION TOKEN (PUBLIC) ============
   async validateInvitationToken(token: string) {
-    try {
-      const invitation = await this.repository.findByToken(token);
+    const invitation = await this.repository.findByToken(token);
 
-      if (!invitation) {
-        throw Object.assign(new Error("Invitation not found"), {
-          statusCode: 404,
-        });
-      }
-
-      // Check if invitation is valid
-      if (invitation.status !== "pending") {
-        throw Object.assign(
-          new Error(`Invitation has already been ${invitation.status}`),
-          { statusCode: 400 },
-        );
-      }
-
-      // Check if expired
-      if (new Date() > new Date(invitation.expiresAt)) {
-        await this.repository.updateStatus(invitation.id, "expired");
-        throw Object.assign(new Error("Invitation has expired"), {
-          statusCode: 400,
-        });
-      }
-
-      // Check if user exists
-      const user = await this.userRepository.findByEmail(invitation.email);
-
-      return {
-        email: invitation.email,
-        exists: !!user,
-        invitationId: invitation.id,
-        accountId: invitation.accountId,
-        role: invitation.role,
-      };
-    } catch (error) {
-      console.log(error, "jjjjjjjjjjjjjjjjjjjjjjjjj");
+    if (!invitation) {
+      throw Object.assign(new Error("Invitation not found"), {
+        statusCode: 404,
+      });
     }
+
+    // Check if expired
+    if (new Date() > new Date(invitation.expiresAt)) {
+      await this.repository.updateStatus(invitation.id, "expired");
+      throw Object.assign(new Error("Invitation has expired"), {
+        statusCode: 400, // Still treat expired as error? Or return status 'expired'?
+        // Plan said: "except 'expired' and 'not found'". So keep throwing error for expired.
+      });
+    }
+
+    // Check if user exists
+    const user = await this.userRepository.findByEmail(invitation.email);
+
+    return {
+      email: invitation.email,
+      exists: !!user,
+      invitationId: invitation.id,
+      accountId: invitation.accountId,
+      role: invitation.role,
+      status: invitation.status,
+    };
   }
 }
