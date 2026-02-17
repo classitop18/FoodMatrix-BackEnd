@@ -261,6 +261,8 @@ export interface EventRecipePromptRequest {
   eventDate: Date;
   /** Type of meal being generated */
   mealType: MealType;
+  /** Optional: Course type within the meal (starter, main_course, side_dish, etc.) */
+  courseType?: string;
   /** Number of recipes to generate */
   recipeCount: number;
   /** Total servings needed */

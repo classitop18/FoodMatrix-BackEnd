@@ -47,6 +47,14 @@ export type MealType =
   | "dessert"
   | "beverages";
 
+export type CourseType =
+  | "starter"
+  | "main_course"
+  | "side_dish"
+  | "appetizer"
+  | "salad"
+  | "soup";
+
 export type MealStatus = "planned" | "prepared" | "served" | "cancelled";
 
 export type ShoppingListStatus =
@@ -254,4 +262,27 @@ export interface EventGenerationState {
   lastStep?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Budget Tracking
+export interface MealBudgetTracking {
+  mealType: MealType;
+  allocated: number;
+  spent: number;
+  remaining: number;
+  recipeCount: number;
+  utilizationPercent: number;
+}
+
+export interface BudgetTracking {
+  eventId: string;
+  eventName: string;
+  totalBudget: number;
+  totalAllocated: number;
+  totalSpent: number;
+  totalRemaining: number;
+  currency: string;
+  utilizationPercent: number;
+  status: "under_budget" | "on_track" | "over_budget";
+  mealBreakdown: MealBudgetTracking[];
 }

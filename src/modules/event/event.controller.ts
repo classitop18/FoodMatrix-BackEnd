@@ -721,6 +721,7 @@ export class EventController {
         eventId,
         accountId,
         mealType: validatedData.mealType as MealType,
+        courseType: validatedData.courseType as any,
         recipeCount: validatedData.recipeCount,
         budget: validatedData.budget,
         preferredCuisines: validatedData.preferredCuisines,
@@ -803,6 +804,31 @@ export class EventController {
       );
 
       sendResponse(res, null, "Generation state saved");
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ===== Budget Tracking =====
+  getBudgetTracking = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const userId = req.user?.id;
+      const { id: eventId } = req.params;
+
+      if (!userId) {
+        throw new AppError("Unauthorized", 401);
+      }
+
+      const tracking = await this.eventService.getBudgetTracking(
+        eventId,
+        userId,
+      );
+
+      sendResponse(res, tracking);
     } catch (error) {
       next(error);
     }

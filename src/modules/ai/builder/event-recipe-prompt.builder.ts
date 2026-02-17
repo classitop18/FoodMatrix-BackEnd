@@ -44,12 +44,92 @@ const OCCASION_GUIDANCE: Record<string, string> = {
   birthday: `- Focus on celebratory, crowd-pleasing dishes
 - Include colorful and visually appealing presentation
 - Consider dishes that can be prepared ahead of time
-- Include options suitable for all age groups`,
+- Include options suitable for all age groups
+- Classic American birthday party foods like sliders, mac & cheese, or grilled items work well`,
 
   anniversary: `- Suggest elegant, romantic dishes with premium quality
 - Quality over quantity approach
-- Include premium ingredient options when appropriate
-- Create an intimate dining experience`,
+- Include premium ingredient options (filet mignon, lobster, scallops)
+- Create an intimate dining experience
+- Consider classic American fine dining or fusion cuisine`,
+
+  thanksgiving: `- Traditional Thanksgiving staples are ESSENTIAL: turkey, stuffing, cranberry sauce, mashed potatoes, gravy
+- Include classic American side dishes: green bean casserole, sweet potato casserole, cornbread
+- Pumpkin pie or pecan pie for dessert
+- Consider make-ahead dishes for easier day-of preparation
+- Ensure generous portions — Thanksgiving is about abundance`,
+
+  super_bowl: `- Easy-to-eat finger foods and snacks are key
+- Buffalo wings, sliders, loaded nachos, dips (queso, guacamole, spinach artichoke)
+- Chili, pulled pork sandwiches, pizza rolls
+- Foods that can be eaten while watching the game
+- Hearty, crowd-pleasing, minimal utensils needed`,
+
+  fourth_of_july: `- Classic American BBQ and cookout foods
+- Burgers, hot dogs, grilled chicken, ribs, corn on the cob
+- Red, white, and blue themed desserts (berry trifle, flag cake)
+- Potato salad, coleslaw, baked beans as sides
+- Light refreshing options for hot weather`,
+
+  memorial_day: `- BBQ and grilling-focused menu
+- Burgers, steaks, grilled vegetables
+- Classic American picnic sides: potato salad, pasta salad, coleslaw
+- Fresh fruit and berry desserts
+- Easy outdoor-friendly dishes`,
+
+  christmas: `- Roast meats: prime rib, ham, turkey, or roast beef
+- Classic American sides: mashed potatoes, roasted vegetables, dinner rolls
+- Eggnog-inspired desserts, gingerbread, peppermint treats
+- Elegant presentation befitting the holiday
+- Consider make-ahead components for stress-free entertaining`,
+
+  easter: `- Spring-inspired dishes with fresh seasonal ingredients
+- Ham is traditional, also consider lamb or roasted chicken
+- Deviled eggs, asparagus, spring salads
+- Carrot cake, lemon desserts, hot cross buns
+- Light and fresh flavors`,
+
+  halloween: `- Fun, themed party foods with creative presentations
+- Spooky-themed finger foods and appetizers
+- Comfort foods like chili, soup in bread bowls
+- Creative desserts: spider web brownies, candy apples, monster cookies
+- Kid-friendly options if children are attending`,
+
+  bbq: `- Grilling and smoking focused: ribs, brisket, pulled pork, burgers
+- Classic BBQ sides: coleslaw, baked beans, cornbread, mac & cheese
+- Multiple sauce options (Kansas City, Carolina, Texas-style)
+- Grilled vegetables and corn on the cob
+- Ice cream or cobbler for dessert`,
+
+  potluck: `- Dishes that travel well and stay at temperature
+- Casseroles, one-pot dishes, and crowd-pleasers
+- Easy to serve and portion
+- Include both hot and cold options
+- Label-friendly for allergy awareness`,
+
+  baby_shower: `- Elegant but approachable finger foods
+- Mini sandwiches, fruit skewers, bruschetta, petit fours
+- Light and fresh options
+- Beautiful presentation is important
+- Consider dietary variety for guests`,
+
+  bridal_shower: `- Sophisticated and Instagram-worthy presentation
+- Brunch items work well: quiche, scones, fruit platters
+- Light bites and elegant appetizers
+- Champagne-friendly pairings
+- Dessert table with variety`,
+
+  game_night: `- Easy-to-eat snacks and appetizers
+- Pizza, wings, sliders, loaded fries
+- Dips with chips and veggies
+- Foods that don't require attention away from the game
+- Both savory and sweet options`,
+
+  tailgate: `- Portable, outdoor-friendly foods
+- Burgers, brats, hot dogs from the grill
+- Chili, loaded nachos, snack mixes
+- Everything should be easy to eat standing up
+- Hearty portions for game day appetite`,
 
   festival: `- Include traditional/cultural dishes appropriate for the festival
 - Focus on festive flavors and presentations
@@ -328,6 +408,14 @@ export class EventRecipePromptBuilder {
     // Build cuisine instruction - STRICT enforcement when specified
     const cuisineInstruction = this.buildCuisineInstruction(validCuisines);
 
+    // Build course type instruction
+    const courseTypeInstruction = request.courseType
+      ? `\n**📋 COURSE TYPE (SPECIFIC):**
+- Generate ONLY **${request.courseType.replace("_", " ")}** recipes for this ${request.mealType}
+- All ${request.recipeCount} recipe(s) must be appropriate as a ${request.courseType.replace("_", " ")}
+- ${this.getCourseTypeGuidance(request.courseType)}`
+      : "";
+
     return `**🎉 EVENT CONTEXT:**
 
 **Event Details:**
@@ -345,9 +433,33 @@ export class EventRecipePromptBuilder {
 **Recipe Generation:**
 - Generate exactly ${request.recipeCount} ${request.mealType} recipe(s)
 ${cuisineInstruction}
+${courseTypeInstruction}
 
 **OCCASION-SPECIFIC GUIDANCE:**
 ${this.getOccasionGuidance(request.occasionType)}`;
+  }
+
+  /**
+   * Get course type specific guidance
+   */
+  private getCourseTypeGuidance(courseType: string): string {
+    const guidance: Record<string, string> = {
+      starter:
+        "Starters should be light, easy to eat, and set the tone for the meal. Finger foods, small plates, and appetizers are ideal.",
+      main_course:
+        "Main course should be the centerpiece — hearty, satisfying, and the most substantial dish of the meal.",
+      side_dish:
+        "Side dishes should complement the main course without overpowering it. Vegetables, grains, and light accompaniments work best.",
+      appetizer:
+        "Appetizers should be bite-sized, flavorful, and designed to whet the appetite before the main event.",
+      salad:
+        "Salads should be fresh, seasonal, and provide a refreshing contrast to heavier courses.",
+      soup: "Soups should be flavorful and can range from light consommés to hearty chowders depending on the meal context.",
+    };
+    return (
+      guidance[courseType] ||
+      "Generate dishes appropriate for this course type."
+    );
   }
 
   /**

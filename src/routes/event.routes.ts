@@ -60,6 +60,9 @@ router.post("/:id/member-logs", eventController.logMemberConsumption);
 // ===== Analytics =====
 router.get("/:id/analytics", eventController.getEventAnalytics);
 
+// ===== Budget Tracking =====
+router.get("/:id/budget-tracking", eventController.getBudgetTracking);
+
 // ===== Generation State Persistence =====
 router.get("/:id/generation-state", eventController.getGenerationState);
 router.post("/:id/generation-state", eventController.saveGenerationState);

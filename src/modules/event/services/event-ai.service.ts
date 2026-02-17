@@ -70,6 +70,7 @@ export interface EventRecipeGenerationRequest {
   accountId: string;
   requesterId?: string;
   mealType: MealType;
+  courseType?: string; // "starter" | "main_course" | "side_dish" | "appetizer" | "salad" | "soup"
   recipeCount?: number;
   budget?: number; // Budget for this specific meal type
   preferredCuisines?: string[];
@@ -341,6 +342,7 @@ export class EventAIService {
       eventId,
       accountId,
       mealType,
+      courseType,
       recipeCount = 3,
       budget,
       preferredCuisines = [],
@@ -386,6 +388,7 @@ export class EventAIService {
       occasionType: (event as any).occasionType,
       eventDate: event.eventDate,
       mealType,
+      courseType,
       recipeCount,
       servings: totalServings,
       budget: budget || 0,

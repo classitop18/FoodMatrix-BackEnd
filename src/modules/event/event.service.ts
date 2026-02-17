@@ -14,6 +14,8 @@ import {
   CreateEventExtraItemDto,
   UpdateEventExtraItemDto,
   EventExtraItemResponseDto,
+  BudgetTrackingResponseDto,
+  MealBudgetTrackingDto,
 } from "./dto/event.dto.js";
 import { IEventRepository, EventRepository } from "./event.repository.js";
 import {
@@ -157,6 +159,12 @@ export interface IEventService {
     accountId: string,
     requesterId: string,
   ): Promise<EventStats>;
+
+  // Budget Tracking
+  getBudgetTracking(
+    eventId: string,
+    requesterId: string,
+  ): Promise<BudgetTrackingResponseDto>;
 
   // Event Generation State
   getGenerationState(eventId: string, requesterId: string): Promise<any>;
@@ -1222,5 +1230,93 @@ export class EventService implements IEventService {
     );
 
     await this.eventRepo.saveGenerationState(eventId, stateData, lastStep);
+  }
+
+  // Budget Tracking
+  async getBudgetTracking(
+    eventId: string,
+    requesterId: string,
+  ): Promise<BudgetTrackingResponseDto> {
+    const event = await this.eventRepo.findById(eventId, true);
+    if (!event) {
+      throw new EventNotFoundError(eventId);
+    }
+
+    await this.validateAccountAccess(
+      requesterId,
+      event.accountId,
+      "view budget tracking",
+    );
+
+    const totalBudget = event.budget
+      ? parseFloat(event.budget.totalBudget as any)
+      : 0;
+    const allocations =
+      (event.budget?.allocations as Record<string, number>) || {};
+    const currency = event.budget?.currency || "USD";
+
+    // Get all meals with their recipes
+    const meals = await this.eventRepo.getMealsByEventId(eventId);
+    const mealBreakdown: MealBudgetTrackingDto[] = [];
+    let totalSpent = 0;
+    let totalAllocated = 0;
+
+    for (const meal of meals) {
+      const recipes = await this.eventRepo.getRecipesByMealId(meal.id);
+      const mealSpent = recipes.reduce((sum: number, r: any) => {
+        return sum + (parseFloat(r.estimatedCost as any) || 0);
+      }, 0);
+
+      const allocated = allocations[meal.mealType] || 0;
+      totalSpent += mealSpent;
+      totalAllocated += allocated;
+
+      mealBreakdown.push({
+        mealType: meal.mealType,
+        allocated,
+        spent: mealSpent,
+        remaining: allocated - mealSpent,
+        recipeCount: recipes.length,
+        utilizationPercent: allocated > 0 ? (mealSpent / allocated) * 100 : 0,
+      });
+    }
+
+    // Add meal types that have allocations but no meals yet
+    for (const [mealType, allocated] of Object.entries(allocations)) {
+      if (!mealBreakdown.find((m) => m.mealType === mealType)) {
+        totalAllocated += allocated;
+        mealBreakdown.push({
+          mealType,
+          allocated,
+          spent: 0,
+          remaining: allocated,
+          recipeCount: 0,
+          utilizationPercent: 0,
+        });
+      }
+    }
+
+    const utilizationPercent =
+      totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+
+    let status: "under_budget" | "on_track" | "over_budget" = "on_track";
+    if (utilizationPercent > 100) {
+      status = "over_budget";
+    } else if (utilizationPercent < 70) {
+      status = "under_budget";
+    }
+
+    return {
+      eventId,
+      eventName: event.name,
+      totalBudget,
+      totalAllocated,
+      totalSpent,
+      totalRemaining: totalBudget - totalSpent,
+      currency,
+      utilizationPercent,
+      status,
+      mealBreakdown,
+    };
   }
 }

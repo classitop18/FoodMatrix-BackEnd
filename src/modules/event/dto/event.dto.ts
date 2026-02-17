@@ -34,6 +34,16 @@ export const MealTypeEnum = z.enum([
   "beverages",
 ]);
 
+// Course Type Enum
+export const CourseTypeEnum = z.enum([
+  "starter",
+  "main_course",
+  "side_dish",
+  "appetizer",
+  "salad",
+  "soup",
+]);
+
 // Meal Status Enum
 export const MealStatusEnum = z.enum([
   "planned",
@@ -59,7 +69,7 @@ export const createEventSchema = z.object({
   description: z.string().optional(),
   budgetType: BudgetTypeEnum,
   budgetAmount: z.number().positive().optional(),
-  currency: z.string().default("INR"),
+  currency: z.string().default("USD"),
   adultGuests: z.number().int().min(0).default(0),
   kidGuests: z.number().int().min(0).default(0),
   selectedMemberIds: z.array(z.string()).default([]),
@@ -376,6 +386,7 @@ export type BudgetSuggestionDto = z.infer<typeof budgetSuggestionSchema>;
 // Event Recipe Generation DTO
 export const eventRecipeGenerationSchema = z.object({
   mealType: MealTypeEnum,
+  courseType: CourseTypeEnum.optional(),
   recipeCount: z.number().int().min(1).max(10).optional().default(3),
   budget: z.number().positive().optional(),
   preferredCuisines: z.array(z.string()).optional(),
@@ -405,4 +416,27 @@ export interface BudgetSuggestionResponseDto {
   allocations: MealBudgetAllocationDto[];
   aiRecommendations: string[];
   totalAllocated: number;
+}
+
+// Budget Tracking Response DTO
+export interface MealBudgetTrackingDto {
+  mealType: string;
+  allocated: number;
+  spent: number;
+  remaining: number;
+  recipeCount: number;
+  utilizationPercent: number;
+}
+
+export interface BudgetTrackingResponseDto {
+  eventId: string;
+  eventName: string;
+  totalBudget: number;
+  totalAllocated: number;
+  totalSpent: number;
+  totalRemaining: number;
+  currency: string;
+  utilizationPercent: number;
+  status: "under_budget" | "on_track" | "over_budget";
+  mealBreakdown: MealBudgetTrackingDto[];
 }

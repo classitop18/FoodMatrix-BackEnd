@@ -200,7 +200,7 @@ export class EventRepository implements IEventRepository {
       await this.createBudget(
         result.id,
         data.budgetAmount,
-        data.currency || "INR",
+        data.currency || "USD",
       );
     }
 
@@ -316,7 +316,7 @@ export class EventRepository implements IEventRepository {
             0
           ).toString(),
           totalSpent: "0",
-          currency: data.currency || "INR",
+          currency: data.currency || "USD",
           allocations: data.allocations,
         });
       }
