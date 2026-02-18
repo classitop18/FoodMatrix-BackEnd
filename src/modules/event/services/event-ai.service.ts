@@ -383,8 +383,8 @@ export class EventAIService {
       memberCount + adultGuests + kidGuests * 0.5,
     );
 
-    // Get recent event meals to avoid duplicates
-    const recentEventMeals = await this.getRecentEventMeals(accountId, eventId);
+    // Only exclude recipes already generated for THIS event (passed from frontend via existingRecipeNames).
+    // Do NOT exclude recipes from other events — the user wants variety per-event, not globally.
 
     // Build the prompt using Event Recipe Prompt Builder
     const prompt = await this.promptBuilder.buildEventRecipePrompt({
@@ -404,7 +404,7 @@ export class EventAIService {
       participantCount: memberCount,
       adultGuests,
       kidGuests,
-      recentEventMealNames: recentEventMeals,
+      recentEventMealNames: [], // No cross-event exclusion
       accountId,
       excludedCategories: request.excludedCategories,
       existingRecipeNames: request.existingRecipeNames || [],
