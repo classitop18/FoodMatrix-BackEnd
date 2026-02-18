@@ -416,6 +416,14 @@ export class EventRecipePromptBuilder {
 - ${this.getCourseTypeGuidance(request.courseType)}`
       : "";
 
+    // Build excluded categories instruction
+    const excludedCategoriesInstruction =
+      request.excludedCategories && request.excludedCategories.length > 0
+        ? `\n**🚫 EXCLUDED CATEGORIES:**
+- Do NOT generate recipes for the following categories: ${request.excludedCategories.join(", ")}
+- Strict adherence is required.`
+        : "";
+
     return `**🎉 EVENT CONTEXT:**
 
 **Event Details:**
@@ -434,6 +442,7 @@ export class EventRecipePromptBuilder {
 - Generate exactly ${request.recipeCount} ${request.mealType} recipe(s)
 ${cuisineInstruction}
 ${courseTypeInstruction}
+${excludedCategoriesInstruction}
 
 **OCCASION-SPECIFIC GUIDANCE:**
 ${this.getOccasionGuidance(request.occasionType)}`;

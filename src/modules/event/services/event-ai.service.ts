@@ -36,6 +36,7 @@ export interface BudgetSuggestionRequest {
   accountId: string;
   requesterId: string;
   mealTypes?: MealType[];
+  activeCategories?: Record<MealType, string[]>; // Optional: Only allocate to these categories
 }
 
 /**
@@ -46,6 +47,7 @@ export interface MealBudgetAllocation {
   suggestedBudget: number;
   percentage: number;
   reasoning: string;
+  categoryBreakdown?: Record<string, number>; // Category name -> Percentage (0-100 of meal budget)
 }
 
 /**
@@ -57,7 +59,7 @@ export interface BudgetSuggestionResponse {
   totalBudget: number;
   currency: string;
   mealTypes: MealType[];
-  allocations: MealBudgetAllocation[];
+  allocations: MealBudgetAllocation[]; // Now includes category breakdown
   aiRecommendations: string[];
   totalAllocated: number;
 }
@@ -77,6 +79,7 @@ export interface EventRecipeGenerationRequest {
   customSearch?: string;
   considerHealthProfiles?: boolean;
   targetMemberIds?: string[];
+  excludedCategories?: string[]; // e.g. ["starter", "dessert"]
 }
 
 /**
@@ -265,6 +268,7 @@ export class EventAIService {
       adultGuests,
       kidGuests,
       healthProfiles: healthProfilesData,
+      activeCategories: request.activeCategories,
     });
 
     console.log("🚀 Prompt:", prompt);
@@ -401,6 +405,7 @@ export class EventAIService {
       kidGuests,
       recentEventMealNames: recentEventMeals,
       accountId,
+      excludedCategories: request.excludedCategories,
     });
 
     console.log({ prompt });
@@ -535,13 +540,22 @@ export class EventAIService {
     adultGuests: number;
     kidGuests: number;
     healthProfiles: MemberHealthProfile[];
+    activeCategories?: Record<MealType, string[]>;
   }): string {
     const hasHealthRestrictions = data.healthProfiles.some(
       (p) => p.allergies.length > 0 || p.dietaryRestrictions.length > 0,
     );
 
+    const activeCategoriesText = data.activeCategories
+      ? `\n**ACTIVE CATEGORIES PER MEAL (Only allocate to these):**\n${Object.entries(
+          data.activeCategories,
+        )
+          .map(([mt, cats]) => `- ${mt}: ${cats.join(", ")}`)
+          .join("\n")}`
+      : "";
+
     return `
-Analyze this event and suggest an optimal budget allocation for each meal type:
+Analyze this event and suggest an optimal budget allocation for each meal type AND each category within the meal:
 
 **EVENT DETAILS:**
 - Event Name: ${data.eventName}
@@ -554,6 +568,7 @@ Analyze this event and suggest an optimal budget allocation for each meal type:
 
 **MEAL TYPES TO ALLOCATE:**
 ${data.mealTypes.map((mt) => `- ${mt}`).join("\n")}
+${activeCategoriesText}
 
 **HEALTH CONSIDERATIONS:**
 ${
@@ -569,12 +584,14 @@ ${
 }
 
 **ALLOCATION RULES:**
-1. Distribute 100% of the budget ONLY among the listed meal types.
-2. Dinner typically gets highest allocation (40-50%)
-3. Lunch gets second highest (30-40%)
-4. Breakfast gets moderate allocation (20-30%)
-5. Do NOT reserve budget for snacks or beverages.
+1. Distribute 100% of the TOTAL budget among the listed meal types.
+2. Dinner typically gets highest allocation (40-50%).
+3. Lunch gets second highest (30-40%).
+4. Breakfast gets moderate allocation (20-30%).
+5. Do NOT reserve budget for snacks or beverages unless specified.
 6. Consider health restrictions may increase costs.
+7. **CRITICAL:** For each meal, distribute 100% of THAT MEAL'S budget among its active categories.
+   - Example: If Dinner gets 50% of total, and active categories are "Starter, Main", split that 50% (e.g., Starter 30%, Main 70%).
 
 **OUTPUT FORMAT (JSON only):**
 \`\`\`json
@@ -583,7 +600,12 @@ ${
         {
             "mealType": "dinner",
             "percentage": 40,
-            "reasoning": "Main event meal, requires premium ingredients"
+            "reasoning": "Main event meal, requires premium ingredients",
+            "categoryBreakdown": {
+                "starter": 25,
+                "main_course": 50,
+                "dessert": 25
+            }
         }
     ],
     "recommendations": [
@@ -616,6 +638,7 @@ ${
         percentage: a.percentage,
         suggestedBudget: Math.round((a.percentage / 100) * totalBudget),
         reasoning: a.reasoning || "",
+        categoryBreakdown: a.categoryBreakdown, // Extract category breakdown
       }));
 
       // Ensure all meal types are covered

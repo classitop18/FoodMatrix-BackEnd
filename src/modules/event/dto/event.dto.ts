@@ -63,7 +63,7 @@ export const ShoppingListStatusEnum = z.enum([
 // Create Event DTO
 export const createEventSchema = z.object({
   name: z.string().min(1, "Event name is required"),
-  occasionType: OccasionTypeEnum,
+  occasionType: z.string().optional(),
   eventDate: z.string().or(z.date()),
   eventTime: z.string().optional(),
   description: z.string().optional(),
@@ -82,7 +82,7 @@ export type CreateEventDto = z.infer<typeof createEventSchema>;
 // Update Event DTO
 export const updateEventSchema = z.object({
   name: z.string().min(1).optional(),
-  occasionType: OccasionTypeEnum.optional(),
+  occasionType: z.string().optional(),
   eventDate: z.string().or(z.date()).optional(),
   eventTime: z.string().optional(),
   description: z.string().optional(),
@@ -110,7 +110,7 @@ export const getEventsQuerySchema = z.object({
     .default("eventDate"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
   status: EventStatusEnum.optional(),
-  occasionType: OccasionTypeEnum.optional(),
+  occasionType: z.string().optional(),
   fromDate: z.string().optional(),
   toDate: z.string().optional(),
   search: z.string().optional(),

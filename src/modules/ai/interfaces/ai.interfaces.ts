@@ -289,6 +289,8 @@ export interface EventRecipePromptRequest {
   accountId: string;
   /** Whether to use pantry items */
   usePantryItems?: boolean;
+  /** Categories that should be excluded from generation (e.g. starter, dessert) */
+  excludedCategories?: string[];
 }
 
 /**
