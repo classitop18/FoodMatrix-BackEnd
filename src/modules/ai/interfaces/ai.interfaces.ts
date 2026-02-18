@@ -291,6 +291,8 @@ export interface EventRecipePromptRequest {
   usePantryItems?: boolean;
   /** Categories that should be excluded from generation (e.g. starter, dessert) */
   excludedCategories?: string[];
+  /** Recipe names that are already present in the event to avoid duplicates */
+  existingRecipeNames?: string[];
 }
 
 /**

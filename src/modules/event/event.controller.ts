@@ -671,7 +671,7 @@ export class EventController {
       const userId = req.user?.id;
       const accountId = req.headers["x-account-id"] as string;
       const { id: eventId } = req.params;
-      const { mealTypes } = req.body;
+      const { mealTypes, activeCategories } = req.body;
 
       if (!userId) {
         throw new AppError("Unauthorized", 401);
@@ -686,6 +686,7 @@ export class EventController {
           accountId,
           requesterId: userId,
           mealTypes,
+          activeCategories,
         });
 
       sendResponse(res, budgetSuggestion, "Budget allocation suggested by AI");

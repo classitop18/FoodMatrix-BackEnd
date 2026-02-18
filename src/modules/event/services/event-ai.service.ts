@@ -80,6 +80,7 @@ export interface EventRecipeGenerationRequest {
   considerHealthProfiles?: boolean;
   targetMemberIds?: string[];
   excludedCategories?: string[]; // e.g. ["starter", "dessert"]
+  existingRecipeNames?: string[]; // e.g. ["Butter Chicken", "Naan"]
 }
 
 /**
@@ -406,6 +407,7 @@ export class EventAIService {
       recentEventMealNames: recentEventMeals,
       accountId,
       excludedCategories: request.excludedCategories,
+      existingRecipeNames: request.existingRecipeNames || [],
     });
 
     console.log({ prompt });
@@ -555,22 +557,22 @@ export class EventAIService {
       : "";
 
     return `
-Analyze this event and suggest an optimal budget allocation for each meal type AND each category within the meal:
+You are an expert event planner and budget analyst specializing in high-end family events and meal planning.
+Your goal is to suggest a realistic, market-rate aware budget distribution for an event.
 
-**EVENT DETAILS:**
+**EVENT CONTEXT:**
 - Event Name: ${data.eventName}
-- Occasion: ${data.occasionType}
-- Total Budget: ${data.currency} ${data.totalBudget}
-- Total Servings: ${data.totalServings}
+- Occasion: ${data.occasionType} (Adjust allocations based on formality: Formal = higher budget for main course/wine; Casual = balanced)
+- Total Budget: ${data.currency} ${data.totalBudget} (This is a HARD limit)
 - Family Members: ${data.participantCount}
-- Adult Guests: ${data.adultGuests}
-- Kid Guests: ${data.kidGuests}
+- Guests: ${data.adultGuests} Adults, ${data.kidGuests} Kids
+- Total Servings: ${data.totalServings}
 
 **MEAL TYPES TO ALLOCATE:**
 ${data.mealTypes.map((mt) => `- ${mt}`).join("\n")}
 ${activeCategoriesText}
 
-**HEALTH CONSIDERATIONS:**
+**HEALTH CONSIDERATIONS (May affect cost):**
 ${
   hasHealthRestrictions
     ? data.healthProfiles
@@ -583,15 +585,25 @@ ${
     : "No special health restrictions"
 }
 
-**ALLOCATION RULES:**
-1. Distribute 100% of the TOTAL budget among the listed meal types.
-2. Dinner typically gets highest allocation (40-50%).
-3. Lunch gets second highest (30-40%).
-4. Breakfast gets moderate allocation (20-30%).
-5. Do NOT reserve budget for snacks or beverages unless specified.
-6. Consider health restrictions may increase costs.
-7. **CRITICAL:** For each meal, distribute 100% of THAT MEAL'S budget among its active categories.
-   - Example: If Dinner gets 50% of total, and active categories are "Starter, Main", split that 50% (e.g., Starter 30%, Main 70%).
+**CRITICAL ALLOCATION RULES (STRICT COMPLIANCE REQUIRED):**
+1. **Total Budget**: Distribute exactly 100% of the TOTAL budget among the listed meal types.
+2. **Meal Importance**:
+   - Dinner typically requires 40-50% of the total budget.
+   - Lunch typically requires 30-40%.
+   - Breakfast typically requires 20-30%.
+   - Adjust based on the specific meal types provided.
+3. **Category Distribution (MOST IMPORTANT)**:
+   - For EACH meal type, you MUST distribute 100% of THAT MEAL'S budget among its **Active Categories**.
+   - **NO ZERO ALLOCATIONS**: Every category listed in "ACTIVE CATEGORIES" for a meal MUST receive a non-zero percentage (minimum 5-10%).
+   - **Do NOT** allocate 0% to any category unless it is NOT listed in the active categories.
+   - Example: If "Snacks" is listed as an active category for Lunch, it MUST get at least 5-10% of the Lunch budget.
+4. **Realistic Ratios**:
+   - Starters/Appetizers: ~15-20%
+   - Main Course: ~40-50%
+   - Sides: ~15-20%
+   - Dessert: ~10-15%
+   - Beverages: ~10-15%
+   - Snacks: ~10-15% (if active)
 
 **OUTPUT FORMAT (JSON only):**
 \`\`\`json
@@ -599,18 +611,29 @@ ${
     "allocations": [
         {
             "mealType": "dinner",
-            "percentage": 40,
-            "reasoning": "Main event meal, requires premium ingredients",
+            "percentage": 50,
+            "reasoning": "Formal dinner requires higher spend on premium mains and wine.",
             "categoryBreakdown": {
-                "starter": 25,
+                "starter": 20,
                 "main_course": 50,
-                "dessert": 25
+                "side_dish": 15,
+                "dessert": 15
+            }
+        },
+        {
+            "mealType": "lunch",
+            "percentage": 30,
+            "reasoning": "Light lunch with focus on fresh ingredients.",
+            "categoryBreakdown": {
+                "main_course": 60,
+                "beverages": 20,
+                "dessert": 20
             }
         }
     ],
     "recommendations": [
-        "Consider batch cooking for efficiency",
-        "Seasonal ingredients will reduce costs"
+        "Focus on seasonal vegetables to maximize quality within budget.",
+        "Bulk buy beverages to save costs."
     ]
 }
 \`\`\`
@@ -794,15 +817,28 @@ ${
 /**
  * System prompt for budget allocation
  */
-const BUDGET_ALLOCATION_SYSTEM_PROMPT = `You are an expert event planner and budget analyst specializing in meal planning for family events.
+/**
+ * System prompt for budget allocation
+ */
+const BUDGET_ALLOCATION_SYSTEM_PROMPT = `You are an expert AI Event Budget Consultant with 20+ years of experience in high-end catering and event planning.
+Your task is to provide a precise, market-aware budget breakdown for an event.
 
-Your expertise includes:
-- Understanding meal importance hierarchy (dinner > lunch > breakfast > snacks)
+**CORE DIRECTIVES:**
+1. **Accuracy**: Allocations must be realistic for the specific occasion (e.g., a "Birthday Party" needs a different structure than a "Business Lunch").
+2. **Completeness**: You MUST allocate budget to EVERY category requested. **Never return 0% for a requested category.**
+3. **Health Awareness**: Account for dietary restrictions (e.g., Gluten-Free ingredients often cost 15-20% more).
+4. **Structured Output**: Return ONLY valid JSON. No conversational filler.
+
+**BEHAVIOR:**
+- If a user asks for "Snacks" in the active categories, you MUST allocate a reasonable portion (e.g., 10-15%) to it.
+- Prioritize "Main Course" as the anchor of the meal (usually 40-50%).
+- Ensure the sum of all meal allocations equals 100% of the Total Budget.
+- Ensure the sum of all category allocations equals 100% of the Meal Budget.
 - Accounting for dietary restrictions and their cost implications
 - Optimizing budget allocation for maximum satisfaction
 - Considering cultural and occasion-specific requirements
 
-Rules:
+**RULES:**
 1. Always return valid JSON
 2. Percentages must sum to 100
 3. Consider health restrictions increase ingredient costs
@@ -814,24 +850,24 @@ const MERGE_INGREDIENTS_SYSTEM_PROMPT = `You are a smart grocery list optimizer 
 
 Your task is to merge a list of ingredients into a consolidated shopping list and estimate their costs.
 
-**Rules:**
-1. **Merge Identical Items**: Combine ingredients that are effectively the same product.
-   - Example: "Chopped Onions", "Red Onion", "White Onion" -> Merge to "Onions" (unless specifically distinct usage implies specific purchase, but favor merging for shopping list).
+** Rules:**
+  1. ** Merge Identical Items **: Combine ingredients that are effectively the same product.
+   - Example: "Chopped Onions", "Red Onion", "White Onion" -> Merge to "Onions"(unless specifically distinct usage implies specific purchase, but favor merging for shopping list).
    - "Minced Garlic", "Garlic Cloves" -> Merge to "Garlic".
-2. **Standardize Names**: Use the most common, generic name for the merged item (e.g., "All-Purpose Flour" instead of "AP Flour").
-3. **Format Units**: Keep units consistent. If merging "cups" and "spoons", try to approximate to a common unit if sensible, or list separately if conversion is ambiguous. Ideally, merge into standard metric (g, ml) or common kitchen units (cup, tbsp, piece).
-4. **Sum Quantities**: Add up the quantities for merged items.
-5. **Categorize**: Ensuring each item has a correct category (Vegetables, Fruits, Meat, Dairy, Pantry, Spices, Bakery, Beverages, Others).
-6. **Estimate Cost**: Estimate the approximate cost in USD for the **TOTAL quantity** of the merged item.
-   - Use current US market prices (2025/2026).
-   - **Price Sensitivity Strategy:** Act as a budget-conscious shopper. 
-     - Assume "Store Brand" or "Great Value" pricing for generic items (e.g., flour, sugar, canned goods) unless a premium brand is specified.
+2. ** Standardize Names **: Use the most common, generic name for the merged item(e.g., "All-Purpose Flour" instead of "AP Flour").
+3. ** Format Units **: Keep units consistent.If merging "cups" and "spoons", try to approximate to a common unit if sensible, or list separately if conversion is ambiguous.Ideally, merge into standard metric(g, ml) or common kitchen units(cup, tbsp, piece).
+4. ** Sum Quantities **: Add up the quantities for merged items.
+5. ** Categorize **: Ensuring each item has a correct category(Vegetables, Fruits, Meat, Dairy, Pantry, Spices, Bakery, Beverages, Others).
+6. ** Estimate Cost **: Estimate the approximate cost in USD for the ** TOTAL quantity ** of the merged item.
+   - Use current US market prices(2025 / 2026).
+   - ** Price Sensitivity Strategy:** Act as a budget - conscious shopper. 
+     - Assume "Store Brand" or "Great Value" pricing for generic items(e.g., flour, sugar, canned goods) unless a premium brand is specified.
      - Look for bulk savings for large quantities.
-     - Avoid premium organic/specialty pricing unless explicitly implied by the ingredient name (e.g., "Organic Kale").
-   - Example: If 2kg of Chicken Breast, use the price of a standard value pack, not the most expensive organic air-chilled option.
-   - Provide a realistic urgency cost (don't underestimate, but aim for the "smart shopper" price).
-7. **Output JSON Only**: Return a valid JSON array of objects.
+     - Avoid premium organic / specialty pricing unless explicitly implied by the ingredient name(e.g., "Organic Kale").
+   - Example: If 2kg of Chicken Breast, use the price of a standard value pack, not the most expensive organic air - chilled option.
+   - Provide a realistic urgency cost(don't underestimate, but aim for the "smart shopper" price).
+7. ** Output JSON Only **: Return a valid JSON array of objects.
 
-**Input Format:** JSON Array of { name, quantity, unit, category }
-**Output Format:** JSON Array of { name, quantity, unit, category, estimatedCost: number, originalItems: string[] }
-`;
+** Input Format:** JSON Array of { name, quantity, unit, category }
+  ** Output Format:** JSON Array of { name, quantity, unit, category, estimatedCost: number, originalItems: string[] }
+    `;

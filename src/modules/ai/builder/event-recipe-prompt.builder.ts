@@ -283,7 +283,10 @@ export class EventRecipePromptBuilder {
       request.usePantryItems
         ? this.buildPantrySection(request.accountId)
         : Promise.resolve(""),
-      this.buildAvoidDuplicatesSection(request.recentEventMealNames),
+      this.buildAvoidDuplicatesSection(
+        request.recentEventMealNames,
+        request.existingRecipeNames,
+      ),
       request.customSearch
         ? this.buildCustomSearchSection(request.customSearch)
         : "",
@@ -751,19 +754,31 @@ ${formattedItems}
   /**
    * Build section to avoid duplicate recipes
    */
-  private buildAvoidDuplicatesSection(recentMealNames: string[]): string {
-    if (!recentMealNames || recentMealNames.length === 0) {
+  /**
+   * Build section to avoid duplicate recipes
+   */
+  private buildAvoidDuplicatesSection(
+    recentMealNames: string[],
+    existingRecipeNames: string[] = [],
+  ): string {
+    const allToAvoid = [
+      ...(recentMealNames || []),
+      ...(existingRecipeNames || []),
+    ];
+
+    if (allToAvoid.length === 0) {
       return `**🔄 VARIETY:**
 No recent event meals to avoid. Focus on variety and occasion appropriateness.`;
     }
 
-    const formattedNames = recentMealNames
-      .map((name) => `- "${name}"`)
-      .join("\n");
+    // De-duplicate the list
+    const uniqueNames = Array.from(new Set(allToAvoid));
 
-    return `**🚫 AVOID THESE RECIPES (Recently Used in Events):**
+    const formattedNames = uniqueNames.map((name) => `- "${name}"`).join("\n");
 
-The following recipes have been served in recent events. DO NOT suggest these or very similar dishes:
+    return `**🚫 AVOID THESE RECIPES (Already Selected or Recently Used):**
+
+The following recipes are either already selected for this event or have been served recently. DO NOT suggest these or very similar dishes:
 
 ${formattedNames}
 

@@ -393,6 +393,7 @@ export const eventRecipeGenerationSchema = z.object({
   customSearch: z.string().optional(),
   considerHealthProfiles: z.boolean().optional().default(true),
   targetMemberIds: z.array(z.string()).optional(),
+  existingRecipeNames: z.array(z.string()).optional(),
 });
 
 export type EventRecipeGenerationDto = z.infer<
