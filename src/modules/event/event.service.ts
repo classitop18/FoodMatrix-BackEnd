@@ -478,11 +478,16 @@ export class EventService implements IEventService {
     );
 
     const result = await this.eventRepo.findAll({
-      ...query,
+      accountId: query.accountId,
       page: query.page || 1,
       limit: query.limit || 10,
       sortBy: query.sortBy || "eventDate",
       sortOrder: query.sortOrder || "desc",
+      ...(query.occasionType && { occasionType: query.occasionType as any }),
+      ...(query.status && { status: query.status }),
+      ...(query.fromDate && { fromDate: query.fromDate }),
+      ...(query.toDate && { toDate: query.toDate }),
+      ...(query.search && { search: query.search }),
     });
 
     return {
