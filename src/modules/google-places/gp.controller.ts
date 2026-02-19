@@ -92,4 +92,41 @@ export class PlacesController {
       next(error);
     }
   };
+
+  /* =========================
+       Nearby Grocery Shops
+  ========================= */
+  nearbyGroceryShops = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { latitude, longitude, radius } = req.body;
+
+      if (!latitude || !longitude) {
+        return sendResponse(
+          res,
+          null,
+          "Latitude and longitude are required",
+          400,
+        );
+      }
+
+      const results = await this.placesService.searchNearbyGroceryShops(
+        Number(latitude),
+        Number(longitude),
+        radius ? Number(radius) : 15000,
+      );
+
+      return sendResponse(
+        res,
+        results,
+        "Nearby grocery shops fetched successfully",
+        200,
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
 }

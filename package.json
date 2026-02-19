@@ -56,6 +56,7 @@
     "@anthropic-ai/sdk": "^0.71.2",
     "@bull-board/api": "^6.15.0",
     "@bull-board/express": "^6.15.0",
+    "@google-cloud/vision": "^5.3.4",
     "@neondatabase/serverless": "^1.0.2",
     "@types/node-cron": "^3.0.11",
     "@types/pdfkit": "^0.17.4",

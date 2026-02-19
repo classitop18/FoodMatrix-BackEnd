@@ -24,5 +24,9 @@ googlePlacesRoutes.get(
 );
 googlePlacesRoutes.post("/geocode", placesController.geocodeAddress);
 googlePlacesRoutes.post("/reverse-geocode", placesController.reverseGeocode);
+googlePlacesRoutes.post(
+  "/nearby-grocery-shops",
+  placesController.nearbyGroceryShops,
+);
 
 export default googlePlacesRoutes;

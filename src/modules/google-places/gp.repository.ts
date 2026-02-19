@@ -1,6 +1,21 @@
 import { ICoordinates } from "./types/gp.types.js";
 import axios from "axios";
 
+export interface NearbySearchResult {
+  id: string;
+  name: string;
+  formattedAddress: string;
+  rating?: number;
+  userRatingCount?: number;
+  isOpen?: boolean;
+  openingHours?: string[];
+  photoUrl?: string;
+  websiteUri?: string;
+  googleMapsUri?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
 export interface IPlacesRepository {
   autocomplete(
     input: string,
@@ -9,6 +24,12 @@ export interface IPlacesRepository {
   getPlaceDetails(placeId: string): Promise<PlaceDetails>;
   geocodeAddress(address: string): Promise<ICoordinates>;
   reverseGeocode(latitude: number, longitude: number): Promise<PlaceDetails>;
+  nearbySearch(
+    latitude: number,
+    longitude: number,
+    radiusMeters: number,
+    includedTypes: string[],
+  ): Promise<NearbySearchResult[]>;
 }
 
 export interface PlaceDetails {
@@ -195,6 +216,72 @@ export class GooglePlacesRepository implements IPlacesRepository {
     } catch (error: any) {
       console.error("Reverse geocoding error:", error.message);
       throw new Error("Failed to reverse geocode coordinates");
+    }
+  }
+
+  /**
+   * Nearby Search — find places of given types within a radius
+   */
+  async nearbySearch(
+    latitude: number,
+    longitude: number,
+    radiusMeters: number = 15000,
+    includedTypes: string[] = ["grocery_store", "supermarket"],
+  ): Promise<NearbySearchResult[]> {
+    try {
+      const response = await axios.post(
+        "https://places.googleapis.com/v1/places:searchNearby",
+        {
+          includedTypes,
+          maxResultCount: 20,
+          locationRestriction: {
+            circle: {
+              center: { latitude, longitude },
+              radius: radiusMeters,
+            },
+          },
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": this.apiKey,
+            "X-Goog-FieldMask":
+              "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.currentOpeningHours,places.regularOpeningHours,places.websiteUri,places.googleMapsUri,places.location,places.photos",
+          },
+        },
+      );
+
+      const places = response.data.places || [];
+
+      return places.map((place: any) => {
+        // Build a photo URL if photos exist
+        let photoUrl: string | undefined;
+        if (place.photos && place.photos.length > 0) {
+          const photoRef = place.photos[0].name; // e.g. "places/xxx/photos/yyy"
+          photoUrl = `https://places.googleapis.com/v1/${photoRef}/media?maxHeightPx=400&maxWidthPx=600&key=${this.apiKey}`;
+        }
+
+        return {
+          id: place.id,
+          name: place.displayName?.text || "Unknown",
+          formattedAddress: place.formattedAddress || "",
+          rating: place.rating,
+          userRatingCount: place.userRatingCount,
+          isOpen: place.currentOpeningHours?.openNow ?? undefined,
+          openingHours:
+            place.currentOpeningHours?.weekdayDescriptions ||
+            place.regularOpeningHours?.weekdayDescriptions ||
+            [],
+          photoUrl,
+          websiteUri: place.websiteUri,
+          googleMapsUri: place.googleMapsUri,
+          latitude: place.location?.latitude,
+          longitude: place.location?.longitude,
+        } as NearbySearchResult;
+      });
+    } catch (error: any) {
+      console.error("Google Places Nearby Search error:", error.message);
+      throw new Error("Failed to search nearby places");
     }
   }
 }

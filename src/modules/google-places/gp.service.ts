@@ -1,4 +1,4 @@
-import { IPlacesRepository } from "./gp.repository.js";
+import { IPlacesRepository, NearbySearchResult } from "./gp.repository.js";
 import {
   IAddressDetails,
   ICoordinates,
@@ -11,6 +11,11 @@ export interface IPlacesService {
   getPlaceDetails(placeId: string): Promise<IPlaceDetails>;
   geocodeAddress(address: string): Promise<ICoordinates>;
   reverseGeocode(latitude: number, longitude: number): Promise<IAddressDetails>;
+  searchNearbyGroceryShops(
+    latitude: number,
+    longitude: number,
+    radiusMeters?: number,
+  ): Promise<NearbySearchResult[]>;
 }
 
 export class PlacesService implements IPlacesService {
@@ -52,6 +57,24 @@ export class PlacesService implements IPlacesService {
       return details;
     } catch (error: any) {
       throw new Error(`Reverse geocode service error: ${error.message}`);
+    }
+  }
+
+  async searchNearbyGroceryShops(
+    latitude: number,
+    longitude: number,
+    radiusMeters: number = 15000,
+  ): Promise<NearbySearchResult[]> {
+    try {
+      const results = await this.placesRepository.nearbySearch(
+        latitude,
+        longitude,
+        radiusMeters,
+        ["grocery_store", "supermarket"],
+      );
+      return results;
+    } catch (error: any) {
+      throw new Error(`Nearby grocery shops service error: ${error.message}`);
     }
   }
 }
