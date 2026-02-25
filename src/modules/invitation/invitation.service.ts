@@ -13,6 +13,7 @@ import type {
   GetInvitationsQuery,
 } from "./dto/invitation.dto.js";
 import { CONFIG } from "@/utils/env.config.js";
+import { notificationService } from "../notifications/notifications.service.js";
 
 export class InvitationService {
   private repository: InvitationRepository;
@@ -84,7 +85,7 @@ export class InvitationService {
 
     const inviter = await this.userRepository.findById(invitedBy);
 
-    // Send invitation email
+    // Send  invitation email
     const invitationLink = `${CONFIG.FRONTEND_BASE_URL || "http://localhost:3001"}/accept-invitation?token=${token}`;
 
     await this.emailService.sendInvitationEmail({
@@ -96,6 +97,19 @@ export class InvitationService {
         : undefined,
       accountName: account?.accountName || undefined,
     });
+
+    if (existingUser) {
+      // User is registered in the app but not in this account, send notification
+      await notificationService.sendToUser(existingUser.id, {
+        title: "New Account Invitation",
+        body: `You have been invited to join the account: ${account?.accountName || "a new account"}.`,
+        type: "INVITATION_RECEIVED",
+        accountId: data.accountId,
+        data: {
+          invitationId: invitation.id,
+        },
+      });
+    }
 
     return invitation;
   }
@@ -148,6 +162,21 @@ export class InvitationService {
     await this.emailService.sendInvitationAcceptedNotification({
       accountId: invitation.accountId,
       userEmail: invitation.email,
+    });
+
+    // Notify account admins via push
+    const user = await this.userRepository.findByEmail(userEmail);
+    const userName = user
+      ? `${user.firstName} ${user.lastName || ""}`.trim()
+      : userEmail;
+
+    await notificationService.sendToAccountAdmins(invitation.accountId, {
+      title: "Invitation Accepted",
+      body: `${userName} has accepted the invitation to join your account.`,
+      type: "INVITATION_ACCEPTED",
+      data: {
+        invitationId: invitation.id,
+      },
     });
 
     return updated;
@@ -204,6 +233,18 @@ export class InvitationService {
       to: invitation.email,
       accountName: (invitation as any).account?.accountName || "Account",
       role: data.role,
+    });
+
+    // Send push notification to the approved user
+    await notificationService.sendToUser(user.id, {
+      title: "Invitation Approved",
+      body: `Your request to join ${(invitation as any).account?.accountName || "the account"} has been approved!`,
+      type: "INVITATION_APPROVED",
+      accountId: invitation.accountId,
+      data: {
+        invitationId: invitation.id,
+        role: data.role,
+      },
     });
 
     return updated;

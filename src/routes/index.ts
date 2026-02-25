@@ -13,6 +13,7 @@ import recipeRoutes from "./recipe.routes.js";
 import pdfRoutes from "./pdf.routes.js";
 import eventRoutes from "./event.routes.js";
 import receiptRoutes from "./receipt.routes.js";
+import notificationRoutes from "../modules/notifications/notifications.routes.js";
 
 const appRouter = Router();
 
@@ -30,5 +31,6 @@ appRouter.use("/recipes", recipeRoutes);
 appRouter.use("/pdf", pdfRoutes);
 appRouter.use("/events", eventRoutes);
 appRouter.use("/receipts", receiptRoutes);
+appRouter.use("/notifications", notificationRoutes);
 
 export default appRouter;

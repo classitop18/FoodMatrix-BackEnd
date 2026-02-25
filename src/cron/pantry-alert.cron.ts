@@ -7,6 +7,7 @@ import {
 } from "../database/schemas/schema.js";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { logger } from "../utils/logger.utils.js";
+import { notificationService } from "../modules/notifications/notifications.service.js";
 
 /**
  * Pantry Alert Cron Job
@@ -84,6 +85,16 @@ class PantryAlertCron {
             severity,
           });
 
+          await notificationService.sendToAccountAdmins(item.accountId, {
+            title: "Pantry Item Expiring Soon",
+            body: message,
+            type: "PANTRY_ALERT",
+            data: {
+              pantryItemId: item.id,
+              alertType: "expiring_soon",
+            },
+          });
+
           logger.info(`Created expiry alert for: ${item.ingredientName}`);
         }
       }
@@ -135,6 +146,16 @@ class PantryAlertCron {
             alertType: "expired",
             message,
             severity: "critical",
+          });
+
+          await notificationService.sendToAccountAdmins(item.accountId, {
+            title: "Pantry Item Expired",
+            body: message,
+            type: "PANTRY_ALERT",
+            data: {
+              pantryItemId: item.id,
+              alertType: "expired",
+            },
           });
 
           logger.info(`Created expired alert for: ${item.ingredientName}`);

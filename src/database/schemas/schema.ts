@@ -74,6 +74,37 @@ export const users = pgTable("users", {
     .notNull()
     .default(sql`now()`),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+
+  // FCM and Notifications
+  fcmTokens: jsonb("fcm_tokens").default(sql`'[]'::jsonb`),
+  notificationPreferences: jsonb("notification_preferences").default(
+    sql`'{"email": true, "push": true, "inApp": true}'::jsonb`,
+  ),
+});
+
+// ================== NOTIFICATIONS TABLE ==================
+export const notifications = pgTable("notifications", {
+  id: varchar("id", { length: 36 })
+    .default(sql`gen_random_uuid()`)
+    .primaryKey(),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id, {
+    onDelete: "cascade",
+  }), // nullable for system-wide broadcasts
+  accountId: varchar("account_id", { length: 36 }).references(
+    () => accounts.id,
+    { onDelete: "cascade" },
+  ), // nullable — links notification to a specific account
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  type: text("type").default("INFO").notNull(),
+  data: jsonb("data").default(sql`'{}'::jsonb`),
+  isRead: boolean("is_read").default(false).notNull(),
+  sentAt: timestamp("sent_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
 });
 
 // ================== SESSIONS TABLE ==================
@@ -416,8 +447,8 @@ export const mealPlan = pgTable("meal_plan", {
   createdBy: varchar("created_by")
     .notNull()
     .references(() => members.id),
-  mealDate: timestamp("meal_date").notNull(),
   mealType: mealTypeEnum("meal_type").notNull(), // breakfast, lunch, dinner, snack
+  mealDate: timestamp("meal_date").notNull(),
   // recipeId: varchar("recipe_id").notNull().references(() => recipes.id),
   servings: integer("servings").default(1).notNull(),
   status: varchar("status").default("planned"), // planned, cooked, skipped
@@ -796,6 +827,9 @@ export type InsertRecipeIngredient = typeof recipeIngredients.$inferInsert;
 export type UserRecipeInteraction = typeof userRecipeInteractions.$inferSelect;
 export type InsertUserRecipeInteraction =
   typeof userRecipeInteractions.$inferInsert;
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
 
 export type RecipeShoppingListItem =
   typeof recipeShoppingListItems.$inferSelect;

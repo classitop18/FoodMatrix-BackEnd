@@ -13,7 +13,9 @@ import { emailQueue } from "./queues/email.queue.js";
 import { emailWorker } from "./queues/worker/email.worker.js";
 import cookieParser from "cookie-parser";
 import { initializePantryCron } from "./cron/pantry-alert.cron.js";
+import { initializeEventCron } from "./cron/event-alert.cron.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
+import { initFirebase } from "./utils/firebase.js";
 import { config } from "dotenv";
 import path from "path";
 config(); // Load .env variables
@@ -100,8 +102,14 @@ const server = app.listen(PORT, async () => {
   await connectDatabase();
   logger.info(`Server is running on port ${PORT}`);
 
+  // Initialize Firebase Admin SDK
+  initFirebase();
+
   // Initialize pantry alert cron job
   initializePantryCron();
+
+  // Initialize event reminder cron job
+  initializeEventCron();
 
   emailWorker.on("completed", (job) =>
     logger.info(`Job ${job.id} completed successfully`),

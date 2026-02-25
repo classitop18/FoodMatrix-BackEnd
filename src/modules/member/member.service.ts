@@ -17,6 +17,7 @@ import {
   MemberStats,
   UnauthorizedMemberActionError,
 } from "./types/member.types.js";
+import { notificationService } from "../notifications/notifications.service.js";
 
 export interface IMemberService {
   // CRUD Operations
@@ -126,6 +127,19 @@ export class MemberService implements IMemberService {
 
     if (!fullMember) {
       throw new MemberNotFoundError(member.id);
+    }
+
+    if (data.userId && requesterId !== data.userId) {
+      await notificationService.sendToUser(data.userId, {
+        title: "Added to Account",
+        body: `You have been directly added to an account by an administrator.`,
+        type: "ACCOUNT_JOINED",
+        accountId: data.accountId,
+        data: {
+          memberId: member.id,
+          role: data.role,
+        },
+      });
     }
 
     return this.mapToResponseDto(fullMember);

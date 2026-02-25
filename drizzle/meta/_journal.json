@@ -99,6 +99,13 @@
       "when": 1770894004085,
       "tag": "0013_lying_archangel",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1771828882702,
+      "tag": "0014_illegal_stranger",
+      "breakpoints": true
     }
   ]
 }

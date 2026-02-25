@@ -5,6 +5,7 @@ import type {
   UpdateMealPlanPayload,
 } from "./dto/meal-plan.dto.js";
 import type { MealPlanPaginatedResponse } from "./types/meal-plan.types.js";
+import { notificationService } from "../notifications/notifications.service.js";
 
 export class MealPlanService {
   private repository: MealPlanRepository;
@@ -42,7 +43,7 @@ export class MealPlanService {
     // Ensure mealDate is a Date object
     const mealDate = new Date(data.mealDate);
 
-    return await this.repository.createMealPlan({
+    const mealPlan = await this.repository.createMealPlan({
       accountId: data.accountId,
       createdBy: data.createdBy,
       mealDate: mealDate,
@@ -51,6 +52,20 @@ export class MealPlanService {
       status: data.status,
       // recipeId: data.recipeId, // Commented out as per schema
     });
+
+    // Notify account admins
+    await notificationService.sendToAccountAdmins(data.accountId, {
+      title: "New Meal Plan Created",
+      body: `A new ${data.mealType} meal plan has been scheduled for ${mealDate.toLocaleDateString()}.`,
+      type: "MEAL_PLAN_CREATED",
+      data: {
+        mealPlanId: mealPlan.id,
+        mealType: data.mealType,
+        mealDate: mealDate.toISOString(),
+      },
+    });
+
+    return mealPlan;
   }
 
   async updateMealPlan(id: string, updates: UpdateMealPlanPayload) {

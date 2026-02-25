@@ -70,6 +70,7 @@
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
     "express": "^5.2.1",
+    "firebase-admin": "^13.6.1",
     "handlebars": "^4.7.8",
     "helmet": "^8.1.0",
     "ioredis": "^5.8.2",
