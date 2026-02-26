@@ -52,6 +52,12 @@ temp
 .idea
 *.swp
 
+# Secrets / credentials (NEVER commit)
+secrets/
+*.json.key
+google-vision.json
+
 # OS generated files
 .DS_Store
 Thumbs.db
+/secrets

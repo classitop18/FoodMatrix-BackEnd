@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { IUserService } from "./user.service.js";
 import { IUserOtpService } from "../user-otps/user-otp.service.js";
 import { ApiResponse } from "@/types/index.js";
+import { s3Service, S3Folder } from "../storage/s3.service.js";
 import {
   generateAuthenticationToken,
   generateJwtToken,
@@ -849,8 +850,20 @@ export class UserController {
         throw new AppError("No file uploaded", 400);
       }
 
-      const filename = req.file.filename;
-      const avatarUrl = `/uploads/${filename}`;
+      // Delete old avatar from S3 if it exists (matches S3 or CloudFront URLs)
+      const currentUser = await this.userService.getUserById(id);
+      if (currentUser?.avatar && currentUser.avatar.startsWith("https://")) {
+        await s3Service.deleteFile(currentUser.avatar);
+      }
+
+      // Upload new avatar to S3
+      const avatarUrl = await s3Service.uploadFile(
+        req.file.buffer,
+        S3Folder.AVATARS,
+        req.file.originalname,
+        req.file.mimetype,
+        id,
+      );
 
       const user = await this.userService.updateUser(id, { avatar: avatarUrl });
 

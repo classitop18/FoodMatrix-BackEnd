@@ -1,4 +1,5 @@
 import { Response, NextFunction } from "express";
+import { s3Service, S3Folder } from "../storage/s3.service.js";
 import { IMemberService, MemberService } from "./member.service.js";
 import {
   bulkDeleteMembersSchema,
@@ -454,8 +455,26 @@ export class MemberController {
         throw new AppError("No file uploaded", 400);
       }
 
-      const filename = req.file.filename;
-      const avatarUrl = `/uploads/${filename}`;
+      // Delete old avatar from S3 if it exists (matches S3 or CloudFront URLs)
+      const currentMember = await this.memberService.getMemberById(
+        id,
+        requesterId,
+      );
+      if (
+        currentMember?.avatar &&
+        currentMember.avatar.startsWith("https://")
+      ) {
+        await s3Service.deleteFile(currentMember.avatar);
+      }
+
+      // Upload new avatar to S3
+      const avatarUrl = await s3Service.uploadFile(
+        req.file.buffer,
+        S3Folder.MEMBER_AVATARS,
+        req.file.originalname,
+        req.file.mimetype,
+        id,
+      );
 
       const member = await this.memberService.updateMember(
         id,

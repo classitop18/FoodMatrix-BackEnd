@@ -2,6 +2,7 @@ import { ImageAnnotatorClient } from "@google-cloud/vision";
 import { getDb } from "@/database/db.js";
 import { receipts } from "@/database/schemas/receipts.js";
 import { logger } from "@/utils/logger.utils.js";
+import { s3Service, S3Folder } from "../storage/s3.service.js";
 
 // Initialize Vision Client
 const visionClient = new ImageAnnotatorClient();
@@ -41,6 +42,26 @@ export class ReceiptService {
         extractedData = await this.extractFromImage(file.buffer);
       }
 
+      // Upload receipt image/PDF to S3
+      let imageUrl: string | null = null;
+      if (s3Service.isConfigured()) {
+        try {
+          imageUrl = await s3Service.uploadFile(
+            file.buffer,
+            S3Folder.RECEIPTS,
+            file.originalname,
+            file.mimetype,
+            userId,
+          );
+          logger.info(`Receipt image uploaded to S3: ${imageUrl}`);
+        } catch (uploadError) {
+          logger.warn(
+            "Failed to upload receipt image to S3, continuing without image URL:",
+            uploadError,
+          );
+        }
+      }
+
       // Save to Database
       const db = getDb();
       const [newReceipt] = await db
@@ -59,7 +80,7 @@ export class ReceiptService {
           purchaseDate: extractedData.purchaseDate,
           items: extractedData.items,
           rawText: extractedData.rawText,
-          imageUrl: null, // We are not storing the image file itself for now to save storage, or we could if we had S3
+          imageUrl,
         })
         .returning();
 

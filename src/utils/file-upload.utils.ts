@@ -1,31 +1,12 @@
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 import { AppError } from "./app-error.utils.js";
 import { Request } from "express";
 
-const UPLOAD_DIR = "public/uploads";
+// ─── Memory Storage (buffers go directly to S3) ────────────
+const storage = multer.memoryStorage();
 
-// Ensure upload directory exists
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
-
-// Configure storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, UPLOAD_DIR);
-  },
-  filename: (req, file, cb) => {
-    // Unique filename: fieldname-timestamp-random.ext
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
-  },
-});
-
-// File filter (only images)
-const fileFilter = (
+// ─── Image File Filter ─────────────────────────────────────
+const imageFileFilter = (
   req: Request,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback,
@@ -43,10 +24,55 @@ const fileFilter = (
   }
 };
 
+// ─── Receipt File Filter (images + PDF) ────────────────────
+const receiptFileFilter = (
+  req: Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback,
+) => {
+  const allowedMimes = [
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+    "image/webp",
+    "application/pdf",
+  ];
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(
+      new AppError(
+        "Invalid file type. Only JPG, PNG, WEBP, and PDF are allowed.",
+        400,
+      ),
+    );
+  }
+};
+
+/**
+ * Standard image upload (avatars, recipe images)
+ * - Memory storage (buffer available for S3)
+ * - 5MB limit
+ * - Images only
+ */
 export const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
+  storage,
+  fileFilter: imageFileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+});
+
+/**
+ * Receipt upload (images + PDFs)
+ * - Memory storage (buffer available for S3)
+ * - 10MB limit
+ * - Images + PDF
+ */
+export const receiptUpload = multer({
+  storage,
+  fileFilter: receiptFileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
   },
 });
