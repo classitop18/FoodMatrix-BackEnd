@@ -196,26 +196,8 @@ export class ReceiptService {
 
     const total = countResult[0]?.count ?? 0;
 
-    // Generate presigned URLs for images
-    const dataWithPresignedUrls = await Promise.all(
-      rows.map(async (row) => {
-        if (row.imageUrl) {
-          try {
-            row.imageUrl = await s3Service.getPresignedUrl(row.imageUrl);
-          } catch (err) {
-            logger.warn(
-              `Failed to generate presigned URL for receipt ${row.id}:`,
-              err,
-            );
-            row.imageUrl = null;
-          }
-        }
-        return row;
-      }),
-    );
-
     return {
-      data: dataWithPresignedUrls,
+      data: rows,
       pagination: {
         page,
         limit,
@@ -259,18 +241,6 @@ export class ReceiptService {
       .from(receipts)
       .leftJoin(users, eq(receipts.userId, users.id))
       .where(and(eq(receipts.id, id), eq(receipts.accountId, accountId)));
-
-    if (receipt && receipt.imageUrl) {
-      try {
-        receipt.imageUrl = await s3Service.getPresignedUrl(receipt.imageUrl);
-      } catch (err) {
-        logger.warn(
-          `Failed to generate presigned URL for receipt ${receipt.id}:`,
-          err,
-        );
-        receipt.imageUrl = null;
-      }
-    }
 
     return receipt ?? null;
   }
