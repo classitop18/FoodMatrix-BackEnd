@@ -3,8 +3,8 @@ import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
 const client = new S3Client({
   region: "us-east-2",
   credentials: {
-    // accessKeyId: "AKIATL7H67FCFCU4MT7aa4",
-    // secretAccessKey: "iNJXF0kPR7ENJOzzMIkwsO4rXtYzOa+83AERnOoaaA",
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
 });
 

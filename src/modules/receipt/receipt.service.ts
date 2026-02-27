@@ -3,6 +3,10 @@ import { getDb } from "@/database/db.js";
 import { receipts } from "@/database/schemas/receipts.js";
 import { logger } from "@/utils/logger.utils.js";
 import { s3Service, S3Folder } from "../storage/s3.service.js";
+import { eq, desc, and, ilike, gte, lte, sql } from "drizzle-orm";
+
+// @ts-expect-error - No types available for pdf-parse
+import pdfParse from "pdf-parse/lib/pdf-parse.js";
 
 // Initialize Vision Client
 const visionClient = new ImageAnnotatorClient();
@@ -22,6 +26,16 @@ interface ExtractedReceiptData {
   rawText: string;
 }
 
+export interface ReceiptListParams {
+  page?: number;
+  limit?: number;
+  search?: string; // Search by storeName or description
+  dateFrom?: string;
+  dateTo?: string;
+  sortBy?: "createdAt" | "purchaseDate" | "totalAmount";
+  sortOrder?: "asc" | "desc";
+}
+
 export class ReceiptService {
   /**
    * Process an uploaded receipt file (image or PDF)
@@ -31,6 +45,8 @@ export class ReceiptService {
     userId: string,
     eventId?: string,
     shoppingListId?: string,
+    description?: string,
+    tags?: string[],
   ) {
     try {
       logger.info(`Processing receipt for user ${userId}`);
@@ -81,6 +97,8 @@ export class ReceiptService {
           items: extractedData.items,
           rawText: extractedData.rawText,
           imageUrl,
+          description: description || null,
+          tags: tags ?? [],
         })
         .returning();
 
@@ -90,6 +108,131 @@ export class ReceiptService {
       logger.error("Error processing receipt:", error);
       throw error;
     }
+  }
+
+  /**
+   * Get paginated list of receipts for a user
+   */
+  async getReceipts(userId: string, params: ReceiptListParams = {}) {
+    const db = getDb();
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      dateFrom,
+      dateTo,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = params;
+
+    const offset = (page - 1) * limit;
+
+    // Build WHERE conditions
+    const conditions: any[] = [eq(receipts.userId, userId)];
+
+    if (search) {
+      conditions.push(
+        sql`(${ilike(receipts.storeName, `%${search}%`)} OR ${ilike(receipts.description, `%${search}%`)})`,
+      );
+    }
+
+    if (dateFrom) {
+      conditions.push(gte(receipts.createdAt, new Date(dateFrom)));
+    }
+
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      conditions.push(lte(receipts.createdAt, toDate));
+    }
+
+    const whereClause =
+      conditions.length > 1 ? and(...conditions) : conditions[0];
+
+    // Build ORDER BY
+    const orderColumn = receipts[sortBy as keyof typeof receipts] as any;
+    const orderClause = sortOrder === "asc" ? orderColumn : desc(orderColumn);
+
+    // Execute queries in parallel
+    const [rows, countResult] = await Promise.all([
+      db
+        .select()
+        .from(receipts)
+        .where(whereClause)
+        .orderBy(orderClause)
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(receipts)
+        .where(whereClause),
+    ]);
+
+    const total = countResult[0]?.count ?? 0;
+
+    return {
+      data: rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
+      },
+    };
+  }
+
+  /**
+   * Get a single receipt by ID (must belong to user)
+   */
+  async getReceiptById(id: string, userId: string) {
+    const db = getDb();
+    const [receipt] = await db
+      .select()
+      .from(receipts)
+      .where(and(eq(receipts.id, id), eq(receipts.userId, userId)));
+
+    return receipt ?? null;
+  }
+
+  /**
+   * Update receipt annotation (description, tags, eventId, shoppingListId)
+   */
+  async updateReceipt(
+    id: string,
+    userId: string,
+    data: {
+      description?: string | null;
+      tags?: string[];
+      eventId?: string | null;
+      shoppingListId?: string | null;
+    },
+  ) {
+    const db = getDb();
+
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+
+    if (data.description !== undefined)
+      updateData.description = data.description;
+    if (data.tags !== undefined) updateData.tags = data.tags;
+    if (data.eventId !== undefined) updateData.eventId = data.eventId;
+    if (data.shoppingListId !== undefined)
+      updateData.shoppingListId = data.shoppingListId;
+
+    const [updated] = await db
+      .update(receipts)
+      .set(updateData)
+      .where(and(eq(receipts.id, id), eq(receipts.userId, userId)))
+      .returning();
+
+    if (!updated) {
+      throw new Error("Receipt not found or unauthorized");
+    }
+
+    return updated;
   }
 
   /**
@@ -108,60 +251,25 @@ export class ReceiptService {
     return this.parseReceiptText(fullText);
   }
 
-  /**
-   * Extract text from a PDF buffer
-   * Note: For PDF, Vision API is async and requires GCS storage usually.
-   * However, for small PDFs (single page receipt), we might try to convert to image or use
-   * documentTextDetection if supported for small files directly?
-   *
-   * ACTUALLY: Vision API's `documentTextDetection` usually works on images.
-   * For PDF files directly, we need `asyncBatchAnnotateFiles` which writes to GCS.
-   * A simpler approach for the MVP without GCS bucket dependency is to ask users to upload images,
-   * or use a library to convert PDF to Image first.
-   *
-   * For now, let's assume we support Image formats primarily.
-   * If PDF support is strict requirement without GCS, we'd need 'pdf-parse' or similar.
-   *
-   * Let's check if the requirements mentioned "PDF". Yes, "PDF format".
-   * For a "complete OCR feature using Google Vision API", the standard way for PDF is via GCS.
-   * To keep it simple and stateless (without GCS bucket), we can use a library like `pdf-poppler` or `pdf-img-convert`
-   * to convert PDF to image buffer, then send to Vision API `textDetection`.
-   *
-   * Since I cannot easily install system dependencies like poppler,
-   * I will use `documentTextDetection` on the file if it's an image.
-   * For pure PDF, I might need to throw an error if I can't convert it easily without system deps.
-   *
-   * Wait, `pdfkit` is in package.json. That's for CREATING PDFs.
-   *
-   * Strategy update:
-   * For this implementation, I will treat PDF upload as "Not fully supported without GCS bucket"
-   * OR I'll see if I can just interpret the buffer.
-   *
-   * Actually, there is `pdf-parse` which extracts text from PDF.
-   * But we want VISION API for OCR (scanned PDFs).
-   *
-   * Let's stick to Images for the highest quality OCR for now.
-   * If PDF is uploaded, I'll return an error saying "Please upload an image of the receipt for best results"
-   * unless I can use a node-only converter.
-   *
-   * HOWEVER, the requirement is explicit.
-   * I'll try to find a way.
-   *
-   * Let's try to assume the user uploads images for now to make progress.
-   * If I receive a PDF, I will try to use `pdf-parse` if installed, or just fail gracefully.
-   *
-   * Let's check if `pdf-parse` is in package.json.
-   */
-
-  async extractFromPdf(buffer?: Buffer): Promise<ExtractedReceiptData> {
-    console.log(buffer);
-    // Stub for PDF support.
-    // Real implementation would require converting PDF page to image or using GCS async annotation.
-    logger.warn("PDF OCR request received - currently limited support");
-    throw new Error(
-      "PDF OCR requires GCS bucket configuration. Please upload an image (JPG/PNG) for now.",
-    );
-    // In a real production app, we would upload to GCS, trigger async OCR, and poll for results.
+  async extractFromPdf(buffer: Buffer): Promise<ExtractedReceiptData> {
+    logger.info("PDF OCR request received - extracting text via pdf-parse");
+    try {
+      const data = await pdfParse(buffer);
+      if (!data.text || data.text.trim().length === 0) {
+        throw new Error(
+          "No text found in PDF. If this is a scanned receipt, please upload it as an image (JPG/PNG).",
+        );
+      }
+      return this.parseReceiptText(data.text);
+    } catch (error: any) {
+      if (error.message && error.message.includes("No text found")) {
+        throw error;
+      }
+      logger.error("Failed to parse PDF receipt:", error);
+      throw new Error(
+        "Failed to parse PDF. Please ensure it is a valid digital receipt or upload an image (JPG/PNG) instead.",
+      );
+    }
   }
 
   /**
@@ -176,11 +284,13 @@ export class ReceiptService {
     // 1. Store Name (Heuristic: usually the first valid line that isn't a header)
     const storeName = lines[0] || "Unknown Store";
 
-    // 2. Date
+    // 2. Date — always validate to avoid RangeError when JS can't parse the matched string
     const dateRegex =
       /(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})|(\d{4}[/-]\d{1,2}[/-]\d{1,2})/;
     const dateMatch = text.match(dateRegex);
-    const purchaseDate = dateMatch ? new Date(dateMatch[0]) : new Date();
+    const parsedDate = dateMatch ? new Date(dateMatch[0]) : null;
+    const purchaseDate =
+      parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : new Date();
 
     // 3. Prices and Items
     const items: ExtractedItem[] = [];
@@ -204,11 +314,10 @@ export class ReceiptService {
         if (match) {
           const val = parseFloat(match[0].replace(/[^0-9.-]+/g, ""));
           if (!totalAmount || val > totalAmount) {
-            // Usually the largest "total" found
             totalAmount = val;
           }
         }
-        continue; // Skip adding "Total" as an item
+        continue;
       }
 
       // Check for Tax
@@ -224,12 +333,9 @@ export class ReceiptService {
       const priceMatch = line.match(/(\d+\.\d{2})$/);
       if (priceMatch) {
         const price = parseFloat(priceMatch[1]);
-        // Name is everything before the price
         let name = line.substring(0, line.lastIndexOf(priceMatch[1])).trim();
-        // Clean up leading/trailing dots or currency symbols
         name = name.replace(/[.$]+$/, "").trim();
 
-        // Ignore likely headers/footers
         if (name.length > 2 && !name.toLowerCase().includes("subtotal")) {
           items.push({ name, price, quantity: 1 });
         }

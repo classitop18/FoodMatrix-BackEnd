@@ -7,6 +7,7 @@ import {
   decimal,
   jsonb,
 } from "drizzle-orm/pg-core";
+
 import { users, events, eventShoppingLists } from "./schema.js";
 
 export const receipts = pgTable("receipts", {
@@ -37,7 +38,14 @@ export const receipts = pgTable("receipts", {
   imageUrl: text("image_url"),
   rawText: text("raw_text"),
 
+  // Annotation fields for context tagging
+  description: text("description"),
+  tags: jsonb("tags").default(sql`'[]'::jsonb`), // Array of string tags
+
   createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
 });
