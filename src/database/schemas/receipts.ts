@@ -8,7 +8,7 @@ import {
   jsonb,
 } from "drizzle-orm/pg-core";
 
-import { users, events, eventShoppingLists } from "./schema.js";
+import { users, accounts, events, eventShoppingLists } from "./schema.js";
 
 export const receipts = pgTable("receipts", {
   id: varchar("id", { length: 36 })
@@ -18,6 +18,11 @@ export const receipts = pgTable("receipts", {
   userId: varchar("user_id", { length: 36 })
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+
+  accountId: varchar("account_id", { length: 36 }).references(
+    () => accounts.id,
+    { onDelete: "cascade" },
+  ),
 
   eventId: varchar("event_id", { length: 36 }).references(() => events.id, {
     onDelete: "set null",

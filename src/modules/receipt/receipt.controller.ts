@@ -15,9 +15,15 @@ export const uploadReceipt = async (
 
     const { eventId, shoppingListId, description, tags } = req.body;
     const userId = (req as any).user?.id;
+    const accountId =
+      (req.headers["x-account-id"] as string) ||
+      (req as any).session?.accountId;
 
     if (!userId) {
       throw new AppError("User not authenticated", 401);
+    }
+    if (!accountId) {
+      throw new AppError("Account ID is required", 401);
     }
 
     // Parse tags if sent as JSON string
@@ -33,6 +39,7 @@ export const uploadReceipt = async (
     const receipt = await receiptService.processReceipt(
       req.file,
       userId,
+      accountId,
       eventId,
       shoppingListId,
       description,
@@ -52,12 +59,16 @@ export const getReceipts = async (
 ) => {
   try {
     const userId = (req as any).user?.id;
+    const accountId =
+      (req.headers["x-account-id"] as string) ||
+      (req as any).session?.accountId;
     if (!userId) throw new AppError("User not authenticated", 401);
+    if (!accountId) throw new AppError("Account ID is required", 401);
 
     const { page, limit, search, dateFrom, dateTo, sortBy, sortOrder } =
       req.query as Record<string, string>;
 
-    const result = await receiptService.getReceipts(userId, {
+    const result = await receiptService.getReceipts(accountId, {
       page: page ? parseInt(page) : 1,
       limit: limit ? parseInt(limit) : 10,
       search,
@@ -80,10 +91,14 @@ export const getReceiptById = async (
 ) => {
   try {
     const userId = (req as any).user?.id;
+    const accountId =
+      (req.headers["x-account-id"] as string) ||
+      (req as any).session?.accountId;
     if (!userId) throw new AppError("User not authenticated", 401);
+    if (!accountId) throw new AppError("Account ID is required", 401);
 
     const { id } = req.params;
-    const receipt = await receiptService.getReceiptById(id, userId);
+    const receipt = await receiptService.getReceiptById(id, accountId);
 
     if (!receipt) {
       throw new AppError("Receipt not found", 404);
@@ -102,12 +117,16 @@ export const updateReceipt = async (
 ) => {
   try {
     const userId = (req as any).user?.id;
+    const accountId =
+      (req.headers["x-account-id"] as string) ||
+      (req as any).session?.accountId;
     if (!userId) throw new AppError("User not authenticated", 401);
+    if (!accountId) throw new AppError("Account ID is required", 401);
 
     const { id } = req.params;
     const { description, tags, eventId, shoppingListId } = req.body;
 
-    const updated = await receiptService.updateReceipt(id, userId, {
+    const updated = await receiptService.updateReceipt(id, accountId, {
       description,
       tags,
       eventId,

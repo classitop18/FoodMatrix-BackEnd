@@ -1,6 +1,7 @@
 import { ImageAnnotatorClient } from "@google-cloud/vision";
 import { getDb } from "@/database/db.js";
 import { receipts } from "@/database/schemas/receipts.js";
+import { users } from "@/database/schemas/schema.js";
 import { logger } from "@/utils/logger.utils.js";
 import { s3Service, S3Folder } from "../storage/s3.service.js";
 import { eq, desc, and, ilike, gte, lte, sql } from "drizzle-orm";
@@ -43,6 +44,7 @@ export class ReceiptService {
   async processReceipt(
     file: Express.Multer.File,
     userId: string,
+    accountId: string,
     eventId?: string,
     shoppingListId?: string,
     description?: string,
@@ -84,6 +86,7 @@ export class ReceiptService {
         .insert(receipts)
         .values({
           userId,
+          accountId,
           eventId,
           shoppingListId,
           storeName: extractedData.storeName,
@@ -113,7 +116,7 @@ export class ReceiptService {
   /**
    * Get paginated list of receipts for a user
    */
-  async getReceipts(userId: string, params: ReceiptListParams = {}) {
+  async getReceipts(accountId: string, params: ReceiptListParams = {}) {
     const db = getDb();
     const {
       page = 1,
@@ -128,7 +131,7 @@ export class ReceiptService {
     const offset = (page - 1) * limit;
 
     // Build WHERE conditions
-    const conditions: any[] = [eq(receipts.userId, userId)];
+    const conditions: any[] = [eq(receipts.accountId, accountId)];
 
     if (search) {
       conditions.push(
@@ -156,8 +159,31 @@ export class ReceiptService {
     // Execute queries in parallel
     const [rows, countResult] = await Promise.all([
       db
-        .select()
+        .select({
+          id: receipts.id,
+          userId: receipts.userId,
+          accountId: receipts.accountId,
+          eventId: receipts.eventId,
+          shoppingListId: receipts.shoppingListId,
+          storeName: receipts.storeName,
+          totalAmount: receipts.totalAmount,
+          taxAmount: receipts.taxAmount,
+          purchaseDate: receipts.purchaseDate,
+          items: receipts.items,
+          imageUrl: receipts.imageUrl,
+          rawText: receipts.rawText,
+          description: receipts.description,
+          tags: receipts.tags,
+          createdAt: receipts.createdAt,
+          updatedAt: receipts.updatedAt,
+          submittedBy: {
+            firstName: users.firstName,
+            lastName: users.lastName,
+            avatar: users.avatar,
+          },
+        })
         .from(receipts)
+        .leftJoin(users, eq(receipts.userId, users.id))
         .where(whereClause)
         .orderBy(orderClause)
         .limit(limit)
@@ -170,8 +196,26 @@ export class ReceiptService {
 
     const total = countResult[0]?.count ?? 0;
 
+    // Generate presigned URLs for images
+    const dataWithPresignedUrls = await Promise.all(
+      rows.map(async (row) => {
+        if (row.imageUrl) {
+          try {
+            row.imageUrl = await s3Service.getPresignedUrl(row.imageUrl);
+          } catch (err) {
+            logger.warn(
+              `Failed to generate presigned URL for receipt ${row.id}:`,
+              err,
+            );
+            row.imageUrl = null;
+          }
+        }
+        return row;
+      }),
+    );
+
     return {
-      data: rows,
+      data: dataWithPresignedUrls,
       pagination: {
         page,
         limit,
@@ -186,12 +230,47 @@ export class ReceiptService {
   /**
    * Get a single receipt by ID (must belong to user)
    */
-  async getReceiptById(id: string, userId: string) {
+  async getReceiptById(id: string, accountId: string) {
     const db = getDb();
     const [receipt] = await db
-      .select()
+      .select({
+        id: receipts.id,
+        userId: receipts.userId,
+        accountId: receipts.accountId,
+        eventId: receipts.eventId,
+        shoppingListId: receipts.shoppingListId,
+        storeName: receipts.storeName,
+        totalAmount: receipts.totalAmount,
+        taxAmount: receipts.taxAmount,
+        purchaseDate: receipts.purchaseDate,
+        items: receipts.items,
+        imageUrl: receipts.imageUrl,
+        rawText: receipts.rawText,
+        description: receipts.description,
+        tags: receipts.tags,
+        createdAt: receipts.createdAt,
+        updatedAt: receipts.updatedAt,
+        submittedBy: {
+          firstName: users.firstName,
+          lastName: users.lastName,
+          avatar: users.avatar,
+        },
+      })
       .from(receipts)
-      .where(and(eq(receipts.id, id), eq(receipts.userId, userId)));
+      .leftJoin(users, eq(receipts.userId, users.id))
+      .where(and(eq(receipts.id, id), eq(receipts.accountId, accountId)));
+
+    if (receipt && receipt.imageUrl) {
+      try {
+        receipt.imageUrl = await s3Service.getPresignedUrl(receipt.imageUrl);
+      } catch (err) {
+        logger.warn(
+          `Failed to generate presigned URL for receipt ${receipt.id}:`,
+          err,
+        );
+        receipt.imageUrl = null;
+      }
+    }
 
     return receipt ?? null;
   }
@@ -201,7 +280,7 @@ export class ReceiptService {
    */
   async updateReceipt(
     id: string,
-    userId: string,
+    accountId: string,
     data: {
       description?: string | null;
       tags?: string[];
@@ -225,7 +304,7 @@ export class ReceiptService {
     const [updated] = await db
       .update(receipts)
       .set(updateData)
-      .where(and(eq(receipts.id, id), eq(receipts.userId, userId)))
+      .where(and(eq(receipts.id, id), eq(receipts.accountId, accountId)))
       .returning();
 
     if (!updated) {
