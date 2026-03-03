@@ -15,6 +15,7 @@ export interface IPlacesService {
     latitude: number,
     longitude: number,
     radiusMeters?: number,
+    includedTypes?: string[],
   ): Promise<NearbySearchResult[]>;
 }
 
@@ -64,13 +65,14 @@ export class PlacesService implements IPlacesService {
     latitude: number,
     longitude: number,
     radiusMeters: number = 15000,
+    includedTypes: string[] = ["grocery_store", "supermarket"],
   ): Promise<NearbySearchResult[]> {
     try {
       const results = await this.placesRepository.nearbySearch(
         latitude,
         longitude,
         radiusMeters,
-        ["grocery_store", "supermarket"],
+        includedTypes,
       );
       return results;
     } catch (error: any) {

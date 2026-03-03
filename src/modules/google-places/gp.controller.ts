@@ -102,7 +102,7 @@ export class PlacesController {
     next: NextFunction,
   ) => {
     try {
-      const { latitude, longitude, radius } = req.body;
+      const { latitude, longitude, radius, types } = req.body;
 
       if (!latitude || !longitude) {
         return sendResponse(
@@ -113,10 +113,23 @@ export class PlacesController {
         );
       }
 
+      const parsedRadius = Math.min(radius ? Number(radius) : 15000, 50000);
+      let parsedTypes: string[] | undefined = undefined;
+
+      if (types) {
+        if (Array.isArray(types)) {
+          parsedTypes = types;
+        } else if (typeof types === "string") {
+          // handle comma separated if needed from older implementations or direct string
+          parsedTypes = [types];
+        }
+      }
+
       const results = await this.placesService.searchNearbyGroceryShops(
         Number(latitude),
         Number(longitude),
-        radius ? Number(radius) : 15000,
+        parsedRadius,
+        parsedTypes,
       );
 
       return sendResponse(
