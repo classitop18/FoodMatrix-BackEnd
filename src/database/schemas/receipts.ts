@@ -6,6 +6,7 @@ import {
   timestamp,
   decimal,
   jsonb,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 import { users, accounts, events, eventShoppingLists } from "./schema.js";
@@ -38,7 +39,18 @@ export const receipts = pgTable("receipts", {
   taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }),
   purchaseDate: timestamp("purchase_date", { withTimezone: true }),
 
-  items: jsonb("items").default(sql`'[]'::jsonb`), // Array of { name, quantity, price }
+  items: jsonb("items").default(sql`'[]'::jsonb`), // Array of { name, quantity, price } — raw parsed
+
+  // AI-processed structured items with categories
+  aiAuditedItems: jsonb("ai_audited_items").default(sql`'[]'::jsonb`),
+  // Array of { name, quantity, unit, price, category, brand?, confidence }
+
+  aiProcessingStatus: text("ai_processing_status").default("pending"),
+  // pending | processing | completed | failed
+
+  currency: text("currency").default("INR"),
+
+  addedToPantry: boolean("added_to_pantry").default(false).notNull(),
 
   imageUrl: text("image_url"),
   rawText: text("raw_text"),

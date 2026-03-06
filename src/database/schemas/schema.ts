@@ -19,6 +19,7 @@ import {
   allergyEnum,
   budgetAllocationEnum,
   budgetFlexibilityEnum,
+  budgetModeEnum,
   cookingFrequencyEnum,
   cookingSkillEnum,
   dietaryRestrictionEnum,
@@ -802,6 +803,98 @@ export const eventGenerationState = pgTable("event_generation_state", {
     .notNull(),
 });
 
+// ================== BUDGET TRACKING TABLES ==================
+
+// Budget configuration per account
+export const budgetConfigs = pgTable("budget_configs", {
+  id: varchar("id", { length: 36 })
+    .default(sql`gen_random_uuid()`)
+    .primaryKey(),
+  accountId: varchar("account_id", { length: 36 })
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  mode: budgetModeEnum("mode").notNull(), // 'daily' or 'weekly'
+  dailyAmount: numeric("daily_amount", { precision: 16, scale: 2 }), // amount per day (daily mode)
+  weeklyAmount: numeric("weekly_amount", { precision: 16, scale: 2 }), // total weekly (weekly mode)
+  isActive: boolean("is_active").notNull().default(true),
+  effectiveFrom: timestamp("effective_from", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+});
+
+// Versioned history of budget config changes
+export const budgetConfigVersions = pgTable("budget_config_versions", {
+  id: varchar("id", { length: 36 })
+    .default(sql`gen_random_uuid()`)
+    .primaryKey(),
+  budgetConfigId: varchar("budget_config_id", { length: 36 })
+    .notNull()
+    .references(() => budgetConfigs.id, { onDelete: "cascade" }),
+  version: integer("version").notNull(),
+  mode: budgetModeEnum("mode").notNull(),
+  dailyAmount: numeric("daily_amount", { precision: 16, scale: 2 }),
+  weeklyAmount: numeric("weekly_amount", { precision: 16, scale: 2 }),
+  changedBy: varchar("changed_by", { length: 36 })
+    .notNull()
+    .references(() => users.id),
+  changeReason: text("change_reason"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+});
+
+// Per-day allocated budget (auto-generated from config)
+export const dailyBudgets = pgTable("daily_budgets", {
+  id: varchar("id", { length: 36 })
+    .default(sql`gen_random_uuid()`)
+    .primaryKey(),
+  accountId: varchar("account_id", { length: 36 })
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  budgetConfigId: varchar("budget_config_id", { length: 36 })
+    .notNull()
+    .references(() => budgetConfigs.id, { onDelete: "cascade" }),
+  date: timestamp("date", { withTimezone: true }).notNull(),
+  allocatedAmount: numeric("allocated_amount", {
+    precision: 16,
+    scale: 2,
+  }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+});
+
+// User-submitted actual spending per day
+export const dailyExpenses = pgTable("daily_expenses", {
+  id: varchar("id", { length: 36 })
+    .default(sql`gen_random_uuid()`)
+    .primaryKey(),
+  accountId: varchar("account_id", { length: 36 })
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  dailyBudgetId: varchar("daily_budget_id", { length: 36 })
+    .notNull()
+    .references(() => dailyBudgets.id, { onDelete: "cascade" }),
+  date: timestamp("date", { withTimezone: true }).notNull(),
+  amountSpent: numeric("amount_spent", { precision: 16, scale: 2 }).notNull(),
+  notes: text("notes"),
+  updatedBy: varchar("updated_by", { length: 36 })
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+});
+
 // Export Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -839,3 +932,16 @@ export type InsertRecipeShoppingListItem =
 export type EventGenerationState = typeof eventGenerationState.$inferSelect;
 export type InsertEventGenerationState =
   typeof eventGenerationState.$inferInsert;
+
+export type BudgetConfig = typeof budgetConfigs.$inferSelect;
+export type InsertBudgetConfig = typeof budgetConfigs.$inferInsert;
+
+export type BudgetConfigVersion = typeof budgetConfigVersions.$inferSelect;
+export type InsertBudgetConfigVersion =
+  typeof budgetConfigVersions.$inferInsert;
+
+export type DailyBudget = typeof dailyBudgets.$inferSelect;
+export type InsertDailyBudget = typeof dailyBudgets.$inferInsert;
+
+export type DailyExpense = typeof dailyExpenses.$inferSelect;
+export type InsertDailyExpense = typeof dailyExpenses.$inferInsert;

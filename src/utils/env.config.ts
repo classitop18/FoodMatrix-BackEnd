@@ -48,6 +48,7 @@ const envSchema = z.object({
   PASSWORD_RESET_EXPIRATION_MINUTES: z.string(),
   PASSWORD_RESET_SECRET: z.string(),
   GOOGLE_PLACES_API_KEY: z.string(),
+  // GOOGLE_CLOUD_STORAGE_BUCKET: z.string().optional(),
 });
 
 // Parse + validate

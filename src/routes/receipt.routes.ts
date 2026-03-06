@@ -5,6 +5,9 @@ import {
   getReceipts,
   getReceiptById,
   updateReceipt,
+  deleteReceipt,
+  addReceiptItemsToPantry,
+  getExpirySuggestions,
 } from "@/modules/receipt/receipt.controller.js";
 import { receiptUpload } from "@/utils/file-upload.utils.js";
 
@@ -25,5 +28,14 @@ router.post(
 
 // PATCH /receipts/:id - Update description/tags
 router.patch("/:id", authenticate, updateReceipt);
+
+// DELETE /receipts/:id - Delete a receipt
+router.delete("/:id", authenticate, deleteReceipt);
+
+// POST /receipts/:id/add-to-pantry - Add receipt items to pantry
+router.post("/:id/add-to-pantry", authenticate, addReceiptItemsToPantry);
+
+// GET /receipts/:id/expiry-suggestions - Get AI-suggested expiry dates
+router.get("/:id/expiry-suggestions", authenticate, getExpirySuggestions);
 
 export default router;

@@ -27,6 +27,8 @@ export const budgetAllocationEnum = pgEnum("budget_allocation", [
   "annual",
 ]);
 
+export const budgetModeEnum = pgEnum("budget_mode", ["daily", "weekly"]);
+
 // Receipt scanning enums
 export const receiptStatusEnum = pgEnum("receipt_status", [
   "processing",
