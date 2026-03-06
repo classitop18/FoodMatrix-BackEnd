@@ -94,7 +94,7 @@ export class RecipeService {
       );
 
       // Remove scoreChange from updates and add the calculated score
-      //eslint-disable-next-line @typescript-eslint/no-unused-vars
+
       const { scoreChange: _scoreChange, ...restUpdates } = updates;
       return await this.storage.updateRecipe(recipeId, {
         ...restUpdates,

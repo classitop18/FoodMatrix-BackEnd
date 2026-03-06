@@ -48,7 +48,7 @@ export const receipts = pgTable("receipts", {
   aiProcessingStatus: text("ai_processing_status").default("pending"),
   // pending | processing | completed | failed
 
-  currency: text("currency").default("INR"),
+  currency: text("currency").default("USD"),
 
   addedToPantry: boolean("added_to_pantry").default(false).notNull(),
 

@@ -19,9 +19,9 @@ export enum S3Folder {
 }
 
 // ─── Configuration ──────────────────────────────────────────
-const S3_BUCKET = process.env.AWS_S3_BUCKET || "foodmatrix-prod-assets";
-const S3_REGION = process.env.AWS_REGION || "us-east-2";
-const CDN_DOMAIN =
+const getS3Bucket = () => process.env.AWS_S3_BUCKET || "foodmatrix-prod-assets";
+const getS3Region = () => process.env.AWS_REGION || "us-east-2";
+const getCdnDomain = () =>
   process.env.AWS_CLOUDFRONT_DOMAIN || "d8k560yezazuw.cloudfront.net";
 
 // ─── Lazy-initialized S3 client (singleton) ─────────────────
@@ -29,7 +29,7 @@ let _s3Client: S3Client | null = null;
 
 function getS3Client(): S3Client {
   if (!_s3Client) {
-    const clientConfig: any = { region: S3_REGION };
+    const clientConfig: any = { region: getS3Region() };
 
     // On EC2 with IAM Role: credentials are auto-resolved from instance metadata
     // For local dev: use explicit keys from .env
@@ -45,7 +45,7 @@ function getS3Client(): S3Client {
 
     _s3Client = new S3Client(clientConfig);
     logger.info(
-      `S3 bucket: ${S3_BUCKET} | Region: ${S3_REGION} | CDN: ${CDN_DOMAIN}`,
+      `S3 bucket: ${getS3Bucket()} | Region: ${getS3Region()} | CDN: ${getCdnDomain()}`,
     );
   }
   return _s3Client;
@@ -83,7 +83,7 @@ export class S3Service {
     try {
       await client.send(
         new PutObjectCommand({
-          Bucket: S3_BUCKET,
+          Bucket: getS3Bucket(),
           Key: key,
           Body: buffer,
           ContentType: contentType,
@@ -92,13 +92,13 @@ export class S3Service {
       );
 
       // Return CloudFront CDN URL (OAC handles auth to S3)
-      const url = `https://${CDN_DOMAIN}/${key}`;
+      const url = `https://${getCdnDomain()}/${key}`;
       logger.info(`S3 upload successful → CDN URL: ${url}`);
       return url;
     } catch (error: any) {
       logger.error(`S3 upload failed for key ${key}:`, error);
       throw new AppError(
-        `File upload failed: ${error.message || "Unknown S3 error"} ${S3_BUCKET}/${key}`,
+        `File upload failed: ${error.message || "Unknown S3 error"} ${getS3Bucket()}/${key}`,
         500,
       );
     }
@@ -114,7 +114,7 @@ export class S3Service {
     try {
       await client.send(
         new DeleteObjectCommand({
-          Bucket: S3_BUCKET,
+          Bucket: getS3Bucket(),
           Key: key,
         }),
       );
@@ -138,7 +138,7 @@ export class S3Service {
 
     try {
       const command = new GetObjectCommand({
-        Bucket: S3_BUCKET,
+        Bucket: getS3Bucket(),
         Key: key,
       });
 
@@ -156,7 +156,7 @@ export class S3Service {
    * Get the CDN URL for a given S3 key
    */
   getCdnUrl(key: string): string {
-    return `https://${CDN_DOMAIN}/${key}`;
+    return `https://${getCdnDomain()}/${key}`;
   }
 
   /**
@@ -179,7 +179,7 @@ export class S3Service {
   isConfigured(): boolean {
     // On EC2 with IAM role, we don't need explicit keys
     // Just check if bucket is configured
-    return !!S3_BUCKET;
+    return !!getS3Bucket();
   }
 }
 

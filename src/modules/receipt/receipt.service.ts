@@ -69,24 +69,19 @@ export class ReceiptService {
       }
       console.log(rawText, "rawtext");
 
-      // Step 2: Upload receipt image/PDF to S3
+      // Step 2: Upload receipt image/PDF to S3 or Local
       let imageUrl: string | null = null;
       if (s3Service.isConfigured()) {
-        try {
-          imageUrl = await s3Service.uploadFile(
-            file.buffer,
-            S3Folder.RECEIPTS,
-            file.originalname,
-            file.mimetype,
-            userId,
-          );
-          logger.info(`Receipt image uploaded to S3: ${imageUrl}`);
-        } catch (uploadError) {
-          logger.warn(
-            "Failed to upload receipt image to S3, continuing without image URL:",
-            uploadError,
-          );
-        }
+        imageUrl = await s3Service.uploadFile(
+          file.buffer,
+          S3Folder.RECEIPTS,
+          file.originalname,
+          file.mimetype,
+          userId,
+        );
+        logger.info(`Receipt image uploaded to S3: ${imageUrl}`);
+      } else {
+        throw new Error("S3 is not configured for receipt uploads");
       }
 
       // Step 3: AI Audit — structure and categorize the extracted text

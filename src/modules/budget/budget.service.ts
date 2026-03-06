@@ -70,7 +70,7 @@ export class BudgetService {
       dailyBudget: dailyBudgetEntry,
       date: selectedDate.toISOString(),
       allocatedAmount: input.amount,
-      message: `Budget of ₹${input.amount} set for ${selectedDate.toLocaleDateString("en-IN")}`,
+      message: `Budget of $${input.amount} set for ${selectedDate.toLocaleDateString("en-US")}`,
     };
   }
 

@@ -58,7 +58,7 @@ const RECEIPT_AUDIT_SYSTEM_PROMPT = `You are an expert receipt data extraction a
 11. If a line looks like a discount (negative price or "DISC"/"OFF"), reduce the corresponding item's price
 12. Store name is usually the first 1-3 lines of the receipt
 13. Date formats vary — always return in ISO format (YYYY-MM-DD) or null if not found
-14. Currency: detect from symbols ($=USD, ₹=INR, €=EUR) or default to USD for US receipts
+14. Currency: detect from symbols ($=USD, $=INR, €=EUR) or default to USD for US receipts
 15. If an item name contains a brand, extract it into the brand field
 16. NEVER fabricate items that are not in the receipt text
 17. NEVER guess prices — if price is unclear, set confidence to 0.3 and use best estimate
