@@ -93,11 +93,5 @@
     "winston-daily-rotate-file": "^5.0.0",
     "ws": "^8.18.3",
     "zod": "^3.25.76"
-  },
-  "overrides": {
-    "@smithy/core": "^3.0.0",
-    "@smithy/middleware-stack": "^3.0.0",
-    "@smithy/protocol-http": "^4.0.0",
-    "@smithy/types": "^3.0.0"
   }
 }
