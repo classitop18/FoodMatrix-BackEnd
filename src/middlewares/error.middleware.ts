@@ -1,9 +1,14 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { logger } from "../utils/logger.utils.js";
 import { sendError } from "../utils/response.utils.js";
 
-// @typescript-eslint/no-unused-vars
-export const errorHandler = (err: any, req: Request, res: Response) => {
+ 
+export const errorHandler = (
+  err: any,
+  req: Request,
+  res: Response,
+  _next: NextFunction,
+) => {
   logger.error(err.stack || err.message || err);
 
   return sendError(

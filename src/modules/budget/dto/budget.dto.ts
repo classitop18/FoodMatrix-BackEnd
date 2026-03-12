@@ -44,6 +44,7 @@ export const updateBudgetSchema = z
 export const logExpenseSchema = z.object({
   date: z.string().min(1, "Date is required"),
   amountSpent: z.number().min(0, "Amount spent cannot be negative"),
+  categoriesBreakdown: z.record(z.number().min(0)).optional(),
   notes: z.string().max(500).optional(),
 });
 

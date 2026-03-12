@@ -40,20 +40,23 @@ const RECEIPT_AUDIT_SYSTEM_PROMPT = `You are an expert receipt data extraction a
 - Correcting OCR errors (misread characters, broken words, garbled text)
 - Identifying item names, quantities, units, and prices from messy receipt formats
 - Categorizing grocery/store items accurately
+- Calculating taxes on food items accurately (distinguishing hot/prepared food from exempt unprepared food)
 - Detecting store name, date, tax, total, and payment information
 - Understanding US and international receipt formats
-- Handling multiple languages and transliterations
 
 **Critical Rules:**
 1. ALWAYS return valid JSON — no markdown, no code blocks, no extra text
 2. Fix OCR errors intelligently (e.g., "C0CA C0LA" → "Coca Cola", "BRDAD" → "Bread")
-3. Every item MUST have: name, quantity, unit, price, category, confidence
+3. Every item MUST have: name, quantity, unit, price, category, confidence, taxable, calculatedTax
 4. If quantity is not specified, default to 1
 5. If unit is not clear, use "pcs" (pieces) for countable items, "kg" for weight items, "L" for liquids
-6. Price must be the per-line total (quantity × unit price), NOT per-unit price
+6. Price must be the per-line total (quantity × unit price), NOT per-unit price. This price is BEFORE tax is applied if tax is separate.
 7. Category must be exactly one of: food, snacks, beverages, dairy, produce, meat, bakery, spices, frozen, household, other
 8. Confidence is 0.0 to 1.0 — use lower values for items where OCR was unclear
-9. The sum of all item prices should approximately equal subtotal (before tax)
+9. **FOOD TOTALS ONLY**: The \`subtotal\`, \`taxAmount\`, and \`totalAmount\` in the root JSON MUST ONLY REFLECT FOOD-RELATED ITEMS. Entirely ignore items in categories "household" or "other" when summing these up.
+   - subtotal = sum of all food item prices
+   - taxAmount = sum of all food item calculatedTaxes
+   - totalAmount = subtotal + taxAmount
 10. Do NOT include tax lines, total lines, or discount lines as items
 11. If a line looks like a discount (negative price or "DISC"/"OFF"), reduce the corresponding item's price
 12. Store name is usually the first 1-3 lines of the receipt
@@ -61,10 +64,14 @@ const RECEIPT_AUDIT_SYSTEM_PROMPT = `You are an expert receipt data extraction a
 14. Currency: detect from symbols ($=USD, $=INR, €=EUR) or default to USD for US receipts
 15. If an item name contains a brand, extract it into the brand field
 16. NEVER fabricate items that are not in the receipt text
-17. NEVER guess prices — if price is unclear, set confidence to 0.3 and use best estimate
+17. **TAX CALCULATION**: 
+    - Determine if an item is taxable. Look for tax flags on the receipt (e.g., 'F' = food exempt, 'H' = hot/prepared/taxable). 
+    - Generally, unprepared foods (produce, meat, dairy, basic groceries) are tax-exempt ("taxable": false, "calculatedTax": 0).
+    - Prepared hot foods, soda, and certain snacks are usually taxable.
+    - If taxable and tax rate isn't explicitly clear on the receipt, estimate standard tax rate based on context, otherwise try to extract exact tax paid for that item. Extrapolate total tax proportionately across taxable items.
 
 **Category Guide:**
-- food: cooked meals, ready-to-eat items, rice, dal, flour, atta, oil, ghee, noodles, pasta
+- food: cooked meals, ready-to-eat items, hot/prepared foods, rice, dal, flour, atta, oil, ghee, noodles, pasta
 - snacks: chips, biscuits, cookies, namkeen, crackers, popcorn, chocolates, candy
 - beverages: water, juice, soda, tea, coffee, milk drinks, energy drinks, alcohol
 - dairy: milk, curd, yogurt, cheese, paneer, butter, cream
@@ -73,7 +80,7 @@ const RECEIPT_AUDIT_SYSTEM_PROMPT = `You are an expert receipt data extraction a
 - bakery: bread, buns, cakes, pastries, pav
 - spices: masala, turmeric, chili powder, cumin, coriander, salt, pepper
 - frozen: frozen vegetables, frozen meals, ice cream
-- household: soap, detergent, tissue, foil, bags, cleaning supplies, toiletries
+- household: soap, detergent, tissue, foil, bags, cleaning supplies, toiletries (THESE MUST BE EXCLUDED FROM THE FINAL SUBTOTAL/TOTAL/TAX AMOUNT IN THE ROOT OBJECT)
 - other: anything that doesn't fit above categories`;
 
 const buildUserPrompt = (rawText: string): string => {
@@ -97,8 +104,10 @@ Return a single JSON object with this EXACT structure (no additional keys, no ma
       "unit": "pcs|kg|g|L|ml|pack|dozen|box|bottle|can|bag",
       "price": 0.00,
       "category": "food|snacks|beverages|dairy|produce|meat|bakery|spices|frozen|household|other",
-      "brand": "string or null",
-      "confidence": 0.95
+      "brand": "string or null",Scanned Receipts
+      "confidence": 0.95,
+      "taxable": boolean,
+      "calculatedTax": 0.00
     }
   ],
   "subtotal": 0.00,
@@ -108,7 +117,8 @@ Return a single JSON object with this EXACT structure (no additional keys, no ma
 }
 
 IMPORTANT VALIDATION:
-- Sum of all item prices should roughly equal subtotal or totalAmount minus tax
+- \`subtotal\`, \`taxAmount\`, and \`totalAmount\` MUST ONLY represent the sum of food-related items. Drop any non-food items (like household goods) from your root totals (but keep them in the items array).
+- Calculate item-level tax (\`calculatedTax\`) accurately using receipt tax indicators (F, H, etc.) or standard rules.
 - Do not include tax, subtotal, or total as items
 - If you see quantity indicators like "2x" or "x3", multiply accordingly
 - Remove any promotional text, barcodes, or reference numbers from item names`;

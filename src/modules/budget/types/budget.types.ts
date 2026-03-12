@@ -18,8 +18,10 @@ export interface LogExpenseInput {
   accountId: string;
   date: string; // ISO date string
   amountSpent: number;
+  categoriesBreakdown?: Record<string, number>;
   notes?: string;
   userId: string;
+  isAdditive?: boolean;
 }
 
 export interface BudgetHistoryQuery {
@@ -38,6 +40,7 @@ export interface DailyBudgetWithExpense {
   date: string;
   allocatedAmount: string;
   amountSpent: string | null;
+  categoriesBreakdown: Record<string, number> | null;
   balance: number;
   notes: string | null;
   expenseId: string | null;
@@ -80,6 +83,7 @@ export interface BudgetAnalytics {
   daysOverBudget: number;
   daysUnderBudget: number;
   averageDailySpending: number;
+  categoriesBreakdown: Record<string, number>;
   dailyData: {
     date: string;
     budget: number;

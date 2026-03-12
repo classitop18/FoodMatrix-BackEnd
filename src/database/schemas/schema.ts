@@ -883,6 +883,7 @@ export const dailyExpenses = pgTable("daily_expenses", {
     .references(() => dailyBudgets.id, { onDelete: "cascade" }),
   date: timestamp("date", { withTimezone: true }).notNull(),
   amountSpent: numeric("amount_spent", { precision: 16, scale: 2 }).notNull(),
+  categoriesBreakdown: jsonb("categories_breakdown").default(sql`'{}'::jsonb`),
   notes: text("notes"),
   updatedBy: varchar("updated_by", { length: 36 })
     .notNull()

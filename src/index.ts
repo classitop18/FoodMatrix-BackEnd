@@ -14,6 +14,7 @@ import { emailWorker } from "./queues/worker/email.worker.js";
 import cookieParser from "cookie-parser";
 import { initializePantryCron } from "./cron/pantry-alert.cron.js";
 import { initializeEventCron } from "./cron/event-alert.cron.js";
+import { initializeBudgetCron } from "./cron/budget-alert.cron.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 import { initFirebase } from "./utils/firebase.js";
 import { config } from "dotenv";
@@ -110,6 +111,9 @@ const server = app.listen(PORT, async () => {
 
   // Initialize event reminder cron job
   initializeEventCron();
+
+  // Initialize budget alert cron job
+  initializeBudgetCron();
 
   emailWorker.on("completed", (job) =>
     logger.info(`Job ${job.id} completed successfully`),

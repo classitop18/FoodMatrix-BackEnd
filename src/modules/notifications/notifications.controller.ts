@@ -183,7 +183,12 @@ export const markAsRead = async (
     await getDb()
       .update(notifications)
       .set({ isRead: true })
-      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+      .where(
+        and(
+          eq(notifications.id, id as string),
+          eq(notifications.userId, userId as string),
+        ),
+      );
 
     res.status(200).json({ message: "Notification marked as read" });
   } catch (error) {
@@ -263,6 +268,23 @@ export const getUnreadCount = async (
     const unreadCount = unreadResult[0].count;
 
     res.status(200).json({ unreadCount });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const clearAllNotifications = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) throw new AppError("Unauthorized", 401);
+
+    await getDb().delete(notifications).where(eq(notifications.userId, userId));
+
+    res.status(200).json({ message: "All notifications cleared" });
   } catch (error) {
     next(error);
   }

@@ -288,8 +288,8 @@ export class BudgetRepository {
       conditions.push(lte(dailyBudgets.date, new Date(query.endDate)));
     }
 
-    const page = query.page || 1;
-    const limit = query.limit || 30;
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 30;
     const offset = (page - 1) * limit;
 
     const [totalResult] = await this.db
@@ -303,6 +303,7 @@ export class BudgetRepository {
         date: dailyBudgets.date,
         allocatedAmount: dailyBudgets.allocatedAmount,
         amountSpent: dailyExpenses.amountSpent,
+        categoriesBreakdown: dailyExpenses.categoriesBreakdown,
         notes: dailyExpenses.notes,
         expenseId: dailyExpenses.id,
       })
@@ -318,6 +319,7 @@ export class BudgetRepository {
       date: row.date,
       allocatedAmount: row.allocatedAmount,
       amountSpent: row.amountSpent,
+      categoriesBreakdown: row.categoriesBreakdown || {},
       balance:
         parseFloat(row.allocatedAmount) - parseFloat(row.amountSpent || "0"),
       notes: row.notes,
@@ -364,11 +366,22 @@ export class BudgetRepository {
 
   // ================== DAILY EXPENSES ==================
 
+  async getDailyExpenseByBudgetId(dailyBudgetId: string) {
+    const result = await this.db
+      .select()
+      .from(dailyExpenses)
+      .where(eq(dailyExpenses.dailyBudgetId, dailyBudgetId))
+      .limit(1);
+
+    return result[0] || null;
+  }
+
   async upsertDailyExpense(data: {
     accountId: string;
     dailyBudgetId: string;
     date: Date;
     amountSpent: number;
+    categoriesBreakdown?: Record<string, number>;
     notes?: string;
     updatedBy: string;
   }) {
@@ -383,6 +396,7 @@ export class BudgetRepository {
         .update(dailyExpenses)
         .set({
           amountSpent: data.amountSpent.toString(),
+          categoriesBreakdown: data.categoriesBreakdown || {},
           notes: data.notes,
           updatedBy: data.updatedBy,
           updatedAt: new Date(),
@@ -400,6 +414,7 @@ export class BudgetRepository {
         dailyBudgetId: data.dailyBudgetId,
         date: data.date,
         amountSpent: data.amountSpent.toString(),
+        categoriesBreakdown: data.categoriesBreakdown || {},
         notes: data.notes,
         updatedBy: data.updatedBy,
       })
@@ -447,6 +462,7 @@ export class BudgetRepository {
         date: dailyBudgets.date,
         allocatedAmount: dailyBudgets.allocatedAmount,
         amountSpent: dailyExpenses.amountSpent,
+        categoriesBreakdown: dailyExpenses.categoriesBreakdown,
       })
       .from(dailyBudgets)
       .leftJoin(dailyExpenses, eq(dailyBudgets.id, dailyExpenses.dailyBudgetId))

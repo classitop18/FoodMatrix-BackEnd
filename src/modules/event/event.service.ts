@@ -39,6 +39,7 @@ import {
 import { AIRecipeService } from "../ai/services/ai-recipe.service.js";
 import { AIRecipeServiceFactory } from "../ai/ai-recipe-service.factory.js";
 import { PantryItemsStorage } from "../pantry/pantry.repository.js";
+import { BudgetService } from "../budget/budget.service.js";
 
 export interface IEventService {
   // Event CRUD
@@ -181,6 +182,7 @@ export class EventService implements IEventService {
     private readonly eventRepo: IEventRepository = new EventRepository(),
     private readonly memberRepo: IMemberRepository = new MemberRepository(),
     private readonly recipeRepo: RecipeStorageInterface = new RecipeStorage(),
+    private readonly budgetService: BudgetService = new BudgetService(),
   ) {}
 
   private aiRecipeService: AIRecipeService | null = null;
@@ -1002,6 +1004,28 @@ export class EventService implements IEventService {
       status: "completed",
       actualCost,
     });
+
+    if (actualCost > 0) {
+      const eventDateStr = event.eventDate
+        ? new Date(event.eventDate).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0];
+      try {
+        await this.budgetService.logExpense({
+          accountId: event.accountId,
+          userId: requesterId,
+          date: eventDateStr,
+          amountSpent: actualCost,
+          notes: `Event: ${event.name}`,
+          categoriesBreakdown: { events: actualCost },
+          isAdditive: true,
+        });
+      } catch (err) {
+        console.error(
+          "Failed to auto-log budget expense for event completion:",
+          err,
+        );
+      }
+    }
 
     const completedEvent = await this.eventRepo.findById(eventId, true);
     return this.mapToResponseDto(completedEvent!);

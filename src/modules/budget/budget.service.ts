@@ -28,12 +28,8 @@ export class BudgetService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Block past dates
     if (selectedDate < today) {
-      throw new AppError(
-        "Cannot set budget for past dates. Please select today or a future date.",
-        400,
-      );
+      throw new AppError("Cannot configure budget for past dates", 400);
     }
 
     // Ensure an active config exists (create one if not)
@@ -100,6 +96,36 @@ export class BudgetService {
       newWeeklyAmount = parseFloat(activeConfig.weeklyAmount || "0");
     }
 
+    // Lock the current week to the old budget config so the new one applies starting next week.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dayOfWeek = today.getDay(); // 0 = Sunday
+    const nextSunday = new Date(today);
+    nextSunday.setDate(today.getDate() + (7 - dayOfWeek));
+    nextSunday.setHours(0, 0, 0, 0);
+
+    const oldDailyAmount = parseFloat(activeConfig.dailyAmount || "0");
+    if (oldDailyAmount > 0) {
+      for (
+        let d = new Date(today);
+        d < nextSunday;
+        d.setDate(d.getDate() + 1)
+      ) {
+        const exists = await this.budgetRepo.existsDailyBudgetForDate(
+          input.accountId,
+          d,
+        );
+        if (!exists) {
+          await this.budgetRepo.upsertDailyBudgetForDate({
+            accountId: input.accountId,
+            budgetConfigId: activeConfig.id,
+            date: new Date(d),
+            allocatedAmount: oldDailyAmount,
+          });
+        }
+      }
+    }
+
     await this.budgetRepo.createBudgetConfigVersion({
       budgetConfigId: activeConfig.id,
       mode: activeConfig.mode,
@@ -135,7 +161,7 @@ export class BudgetService {
       expenseDate,
     );
 
-    // If no budget for this date, try fallback to previous date's budget
+    // If no budget for this date, try fallback to previous date's budget or active config
     // and auto-create a daily budget entry using the fallback amount
     if (!dailyBudget) {
       const fallbackBudget = await this.budgetRepo.getMostRecentPreviousBudget(
@@ -143,23 +169,34 @@ export class BudgetService {
         expenseDate,
       );
 
-      if (!fallbackBudget) {
+      const activeConfig = await this.budgetRepo.getActiveBudgetConfig(
+        input.accountId,
+      );
+
+      let fallbackAmount: number | null = null;
+      let configIdToUse: string | null = null;
+
+      if (fallbackBudget) {
+        fallbackAmount = parseFloat(fallbackBudget.allocatedAmount);
+        configIdToUse = activeConfig?.id || fallbackBudget.budgetConfigId;
+      } else if (activeConfig && activeConfig.dailyAmount) {
+        fallbackAmount = parseFloat(activeConfig.dailyAmount);
+        configIdToUse = activeConfig.id;
+      }
+
+      if (fallbackAmount === null || !configIdToUse) {
         throw new AppError(
-          "No budget found for this date and no previous budget to use as fallback. Please set up a budget first.",
+          "No budget found for this date and no previous budget or active config to use as fallback. Please set up a budget first.",
           404,
         );
       }
 
       // Auto-create a daily budget entry with the fallback amount
-      const activeConfig = await this.budgetRepo.getActiveBudgetConfig(
-        input.accountId,
-      );
-
       await this.budgetRepo.upsertDailyBudgetForDate({
         accountId: input.accountId,
-        budgetConfigId: activeConfig?.id || fallbackBudget.budgetConfigId,
+        budgetConfigId: configIdToUse,
         date: expenseDate,
-        allocatedAmount: parseFloat(fallbackBudget.allocatedAmount),
+        allocatedAmount: fallbackAmount,
       });
 
       // Re-fetch with the newly created budget
@@ -173,22 +210,47 @@ export class BudgetService {
       throw new AppError("Failed to create budget entry", 500);
     }
 
+    let newAmountSpent = input.amountSpent;
+    let newCategories = input.categoriesBreakdown || {};
+
+    if (input.isAdditive) {
+      const existingExpense = await this.budgetRepo.getDailyExpenseByBudgetId(
+        dailyBudget.dailyBudget.id,
+      );
+
+      if (existingExpense) {
+        newAmountSpent += parseFloat(existingExpense.amountSpent || "0");
+
+        const existingCats = (existingExpense.categoriesBreakdown ||
+          {}) as Record<string, number>;
+        const mergedCats = { ...existingCats };
+
+        for (const [cat, val] of Object.entries(
+          input.categoriesBreakdown || {},
+        )) {
+          mergedCats[cat] = (mergedCats[cat] || 0) + val;
+        }
+        newCategories = mergedCats;
+      }
+    }
+
     const expense = await this.budgetRepo.upsertDailyExpense({
       accountId: input.accountId,
       dailyBudgetId: dailyBudget.dailyBudget.id,
       date: expenseDate,
-      amountSpent: input.amountSpent,
+      amountSpent: newAmountSpent,
+      categoriesBreakdown: newCategories,
       notes: input.notes,
       updatedBy: input.userId,
     });
 
     const allocatedAmount = parseFloat(dailyBudget.dailyBudget.allocatedAmount);
-    const balance = allocatedAmount - input.amountSpent;
+    const balance = allocatedAmount - newAmountSpent;
 
     return {
       expense,
       allocatedAmount,
-      amountSpent: input.amountSpent,
+      amountSpent: newAmountSpent,
       balance,
       isOverBudget: balance < 0,
     };
@@ -212,7 +274,7 @@ export class BudgetService {
       today,
     );
 
-    // Fallback: if no budget for today, use the most recent previous budget
+    // Fallback: if no budget for today, use the most recent previous budget or active config
     if (!dailyBudget && activeConfig) {
       const previousBudget = await this.budgetRepo.getMostRecentPreviousBudget(
         accountId,
@@ -229,6 +291,19 @@ export class BudgetService {
           hasExpenseLogged: false,
           isFallback: true,
           fallbackFromDate: previousBudget.date,
+          configId: activeConfig.id,
+        };
+      } else if (activeConfig.dailyAmount) {
+        // Fallback to active configuration default
+        const fallbackAmount = parseFloat(activeConfig.dailyAmount);
+        return {
+          date: today.toISOString(),
+          allocatedAmount: fallbackAmount,
+          amountSpent: 0,
+          balance: fallbackAmount,
+          hasExpenseLogged: false,
+          isFallback: true,
+          fallbackFromDate: null,
           configId: activeConfig.id,
         };
       }
@@ -294,7 +369,13 @@ export class BudgetService {
     // Track the last known budget amount for fallback
     let lastKnownBudgetAmount = 0;
 
-    // Get the most recent budget before this week for initial fallback
+    // First try active config as a baseline
+    const activeConfig = await this.budgetRepo.getActiveBudgetConfig(accountId);
+    if (activeConfig && activeConfig.dailyAmount) {
+      lastKnownBudgetAmount = parseFloat(activeConfig.dailyAmount);
+    }
+
+    // Get the most recent budget before this week for initial fallback override
     const previousBudget = await this.budgetRepo.getMostRecentPreviousBudget(
       accountId,
       weekStart,
@@ -392,11 +473,17 @@ export class BudgetService {
     let daysOverBudget = 0;
     let daysUnderBudget = 0;
     let daysWithData = 0;
+    const categoryTotals: Record<string, number> = {};
 
     const dailyData = rawData.map((row: any) => {
       const budget = parseFloat(row.allocatedAmount || "0");
       const spent = parseFloat(row.amountSpent || "0");
       const balance = budget - spent;
+      const cats = row.categoriesBreakdown || {};
+
+      for (const [key, val] of Object.entries(cats)) {
+        categoryTotals[key] = (categoryTotals[key] || 0) + Number(val);
+      }
 
       totalBudget += budget;
       totalSpent += spent;
@@ -423,6 +510,7 @@ export class BudgetService {
       daysOverBudget,
       daysUnderBudget,
       averageDailySpending: daysWithData > 0 ? totalSpent / daysWithData : 0,
+      categoriesBreakdown: categoryTotals,
       dailyData,
     };
   }
