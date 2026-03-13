@@ -63,3 +63,18 @@ export const analyticsQuerySchema = z.object({
   month: z.string().optional(),
   weekDate: z.string().optional(),
 });
+
+// ================== LOG EXPENSE FROM RECEIPT ==================
+
+export const logExpenseFromReceiptSchema = z.object({
+  receiptId: z.string().min(1, "Receipt ID is required"),
+  date: z.string().min(1, "Date is required"),
+  note: z.string().max(500).optional(),
+});
+
+// ================== EXPENSE DETAILS PARAMS ==================
+
+export const expenseDetailsParamSchema = z.object({
+  accountId: z.string().min(1, "Account ID is required"),
+  dailyBudgetId: z.string().min(1, "Daily Budget ID is required"),
+});

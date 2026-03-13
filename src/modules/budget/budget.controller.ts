@@ -172,7 +172,8 @@ export class BudgetController {
   ) => {
     try {
       const { accountId } = req.params;
-      const pending = await this.budgetService.getPendingUpdates(accountId);
+      const id = Array.isArray(accountId) ? accountId[0] : accountId;
+      const pending = await this.budgetService.getPendingUpdates(id);
       return sendResponse(res, pending, "Success", 200);
     } catch (error) {
       next(error);
@@ -188,8 +189,60 @@ export class BudgetController {
   ) => {
     try {
       const { accountId } = req.params;
-      const versions = await this.budgetService.getConfigVersions(accountId);
+      const id = Array.isArray(accountId) ? accountId[0] : accountId;
+
+      const versions = await this.budgetService.getConfigVersions(id);
       return sendResponse(res, versions, "Success", 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /* ---------------- LOG EXPENSE FROM RECEIPT ---------------- */
+
+  logExpenseFromReceipt = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { accountId } = req.params;
+      const userId = req.user!.id;
+      const { receiptId, date, note } = req.body;
+
+      const result = await this.budgetService.logExpenseFromReceipt({
+        accountId: Array.isArray(accountId) ? accountId[0] : accountId,
+        receiptId,
+        date,
+        note,
+        userId,
+      });
+
+      return sendResponse(
+        res,
+        result,
+        "Receipt expense logged successfully",
+        200,
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /* ---------------- GET EXPENSE DETAILS ---------------- */
+
+  getExpenseDetails = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { accountId, dailyBudgetId } = req.params;
+      const details = await this.budgetService.getExpenseDetails(
+        accountId,
+        dailyBudgetId,
+      );
+      return sendResponse(res, details, "Success", 200);
     } catch (error) {
       next(error);
     }

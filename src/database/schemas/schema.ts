@@ -896,6 +896,31 @@ export const dailyExpenses = pgTable("daily_expenses", {
     .default(sql`now()`),
 });
 
+// Receipt-to-budget expense linking table
+export const receiptExpenses = pgTable("receipt_expenses", {
+  id: varchar("id", { length: 36 })
+    .default(sql`gen_random_uuid()`)
+    .primaryKey(),
+  dailyExpenseId: varchar("daily_expense_id", { length: 36 })
+    .notNull()
+    .references(() => dailyExpenses.id, { onDelete: "cascade" }),
+  receiptId: varchar("receipt_id", { length: 36 }).notNull(),
+  // Note: receipts table is in a separate schema file, so we use raw varchar here
+  accountId: varchar("account_id", { length: 36 })
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  amount: numeric("amount", { precision: 16, scale: 2 }).notNull(),
+  itemsSnapshot: jsonb("items_snapshot").default(sql`'[]'::jsonb`),
+  // Snapshot of food items at link time: [{ name, quantity, unit, price, category }]
+  note: text("note"),
+  linkedAt: timestamp("linked_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+  linkedBy: varchar("linked_by", { length: 36 })
+    .notNull()
+    .references(() => users.id),
+});
+
 // Export Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -946,3 +971,6 @@ export type InsertDailyBudget = typeof dailyBudgets.$inferInsert;
 
 export type DailyExpense = typeof dailyExpenses.$inferSelect;
 export type InsertDailyExpense = typeof dailyExpenses.$inferInsert;
+
+export type ReceiptExpense = typeof receiptExpenses.$inferSelect;
+export type InsertReceiptExpense = typeof receiptExpenses.$inferInsert;

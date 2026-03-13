@@ -1,7 +1,7 @@
 import { ImageAnnotatorClient } from "@google-cloud/vision";
 import { getDb } from "@/database/db.js";
 import { receipts } from "@/database/schemas/receipts.js";
-import { users } from "@/database/schemas/schema.js";
+import { users, receiptExpenses } from "@/database/schemas/schema.js";
 import { logger } from "@/utils/logger.utils.js";
 import { s3Service, S3Folder } from "../storage/s3.service.js";
 import { eq, desc, and, ilike, gte, lte, sql } from "drizzle-orm";
@@ -234,8 +234,33 @@ export class ReceiptService {
 
     const total = countResult[0]?.count ?? 0;
 
+    // Enrich each receipt with isBudgetDeducted flag
+    const receiptIds = rows.map((r: any) => r.id);
+    let budgetLinkedReceiptIds = new Set<string>();
+
+    if (receiptIds.length > 0) {
+      const linkedEntries = await db
+        .select({ receiptId: receiptExpenses.receiptId })
+        .from(receiptExpenses)
+        .where(
+          sql`${receiptExpenses.receiptId} IN (${sql.join(
+            receiptIds.map((id: string) => sql`${id}`),
+            sql`, `,
+          )})`,
+        );
+
+      budgetLinkedReceiptIds = new Set(
+        linkedEntries.map((e: any) => e.receiptId),
+      );
+    }
+
+    const enrichedRows = rows.map((row: any) => ({
+      ...row,
+      isBudgetDeducted: budgetLinkedReceiptIds.has(row.id),
+    }));
+
     return {
-      data: rows,
+      data: enrichedRows,
       pagination: {
         page,
         limit,
@@ -284,7 +309,19 @@ export class ReceiptService {
       .leftJoin(users, eq(receipts.userId, users.id))
       .where(and(eq(receipts.id, id), eq(receipts.accountId, accountId)));
 
-    return receipt ?? null;
+    if (!receipt) return null;
+
+    // Check if this receipt has any budget deduction links
+    const [linkedEntry] = await db
+      .select({ id: receiptExpenses.id })
+      .from(receiptExpenses)
+      .where(eq(receiptExpenses.receiptId, id))
+      .limit(1);
+
+    return {
+      ...receipt,
+      isBudgetDeducted: !!linkedEntry,
+    };
   }
 
   /**

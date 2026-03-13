@@ -8,6 +8,9 @@ import type {
   TodayBudgetSummary,
   BudgetAnalytics,
   WeeklySummary,
+  LogExpenseFromReceiptInput,
+  ExpenseDetailResult,
+  ReceiptExpenseDetail,
 } from "./types/budget.types.js";
 
 export class BudgetService {
@@ -627,6 +630,203 @@ export class BudgetService {
     const config = await this.budgetRepo.getActiveBudgetConfig(accountId);
     if (!config) return [];
     return this.budgetRepo.getBudgetConfigVersions(config.id);
+  }
+
+  // ================== LOG EXPENSE FROM RECEIPT ==================
+
+  async logExpenseFromReceipt(input: LogExpenseFromReceiptInput) {
+    await this.ensureMembership(input.userId, input.accountId);
+
+    // Fetch the receipt
+    const { receipts } = await import("../../database/schemas/receipts.js");
+    const { eq, and } = await import("drizzle-orm");
+    const { getDb } = await import("../../database/db.js");
+    const db = getDb();
+
+    const [receipt] = await db
+      .select()
+      .from(receipts)
+      .where(
+        and(
+          eq(receipts.id, input.receiptId),
+          eq(receipts.accountId, input.accountId),
+        ),
+      )
+      .limit(1);
+
+    if (!receipt) {
+      throw new AppError("Receipt not found", 404);
+    }
+
+    // ── Duplicate check: prevent same receipt from deducting on the same date twice ──
+    const expenseDate = new Date(input.date);
+    expenseDate.setHours(0, 0, 0, 0);
+
+    const alreadyLinked = await this.budgetRepo.hasReceiptExpenseForDate(
+      input.receiptId,
+      input.accountId,
+      expenseDate,
+    );
+
+    if (alreadyLinked) {
+      throw new AppError(
+        "This receipt has already been deducted from the budget for this date",
+        409,
+      );
+    }
+
+    // Extract food-related items from aiAuditedItems
+    const aiItems: any[] = Array.isArray(receipt.aiAuditedItems)
+      ? receipt.aiAuditedItems
+      : [];
+
+    const foodItems = aiItems.filter(
+      (item: any) => !["household", "other"].includes(item.category),
+    );
+
+    if (foodItems.length === 0) {
+      throw new AppError(
+        "No food items found in this receipt to deduct from budget",
+        400,
+      );
+    }
+
+    // Calculate food total
+    const foodTotal = foodItems.reduce(
+      (sum: number, item: any) => sum + (parseFloat(item.price) || 0),
+      0,
+    );
+
+    if (foodTotal <= 0) {
+      throw new AppError("Food items total is zero or negative", 400);
+    }
+
+    // Build categories breakdown from food items
+    const categoriesBreakdown: Record<string, number> = {};
+    for (const item of foodItems) {
+      const cat = item.category || "food";
+      categoriesBreakdown[cat] =
+        (categoriesBreakdown[cat] || 0) + (parseFloat(item.price) || 0);
+    }
+
+    // Log the expense using existing additive method
+    const expenseResult = await this.logExpense({
+      accountId: input.accountId,
+      date: input.date,
+      amountSpent: foodTotal,
+      categoriesBreakdown,
+      notes: input.note || `Receipt: ${receipt.storeName || "Unknown Store"}`,
+      userId: input.userId,
+      isAdditive: true,
+    });
+
+    // Create the receipt-expense link
+    const receiptExpenseEntry = await this.budgetRepo.createReceiptExpense({
+      dailyExpenseId: expenseResult.expense.id,
+      receiptId: input.receiptId,
+      accountId: input.accountId,
+      amount: foodTotal,
+      itemsSnapshot: foodItems.map((item: any) => ({
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        price: item.price,
+        category: item.category,
+        brand: item.brand,
+      })),
+      note: input.note,
+      linkedBy: input.userId,
+    });
+
+    return {
+      ...expenseResult,
+      receiptExpense: receiptExpenseEntry,
+      foodTotal,
+      foodItemsCount: foodItems.length,
+      storeName: receipt.storeName,
+    };
+  }
+
+  // ================== EXPENSE DETAILS ==================
+
+  async getExpenseDetails(
+    accountId: string,
+    dailyBudgetId: string,
+  ): Promise<ExpenseDetailResult> {
+    // Get the daily budget + expense
+    const { dailyBudgets, dailyExpenses } =
+      await import("../../database/schemas/schema.js");
+    const { eq } = await import("drizzle-orm");
+    const { getDb } = await import("../../database/db.js");
+    const db = getDb();
+
+    const [budgetRow] = await db
+      .select({
+        dailyBudget: dailyBudgets,
+        expense: dailyExpenses,
+      })
+      .from(dailyBudgets)
+      .leftJoin(dailyExpenses, eq(dailyBudgets.id, dailyExpenses.dailyBudgetId))
+      .where(eq(dailyBudgets.id, dailyBudgetId))
+      .limit(1);
+
+    if (!budgetRow) {
+      throw new AppError("Daily budget not found", 404);
+    }
+
+    const receiptExpensesList: ReceiptExpenseDetail[] = [];
+
+    if (budgetRow.expense) {
+      // Get all linked receipt expenses
+      const rawEntries =
+        await this.budgetRepo.getReceiptExpensesByDailyExpenseId(
+          budgetRow.expense.id,
+        );
+
+      // Enrich with receipt store name
+      const { receipts } = await import("../../database/schemas/receipts.js");
+
+      for (const entry of rawEntries) {
+        let storeName: string | null = null;
+        try {
+          const [receipt] = await db
+            .select({ storeName: receipts.storeName })
+            .from(receipts)
+            .where(eq(receipts.id, entry.receiptId))
+            .limit(1);
+          storeName = receipt?.storeName ?? null;
+        } catch {
+          // Receipt may have been deleted
+        }
+
+        receiptExpensesList.push({
+          id: entry.id,
+          receiptId: entry.receiptId,
+          amount: entry.amount,
+          itemsSnapshot: Array.isArray(entry.itemsSnapshot)
+            ? entry.itemsSnapshot
+            : [],
+          note: entry.note,
+          linkedAt: entry.linkedAt?.toISOString?.() || entry.linkedAt,
+          storeName,
+        });
+      }
+    }
+
+    const allocatedAmount = budgetRow.dailyBudget.allocatedAmount;
+    const amountSpent = budgetRow.expense?.amountSpent || "0";
+    const balance = parseFloat(allocatedAmount) - parseFloat(amountSpent);
+
+    return {
+      dailyBudgetId,
+      date:
+        budgetRow.dailyBudget.date?.toISOString?.() ||
+        String(budgetRow.dailyBudget.date),
+      allocatedAmount,
+      amountSpent,
+      balance,
+      receiptExpenses: receiptExpensesList,
+    };
   }
 
   // ================== HELPERS ==================

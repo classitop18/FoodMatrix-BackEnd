@@ -100,3 +100,30 @@ export interface PendingUpdate {
   allocatedAmount: number;
   dailyBudgetId: string;
 }
+
+export interface LogExpenseFromReceiptInput {
+  accountId: string;
+  receiptId: string;
+  date: string; // The budget date to deduct from
+  note?: string;
+  userId: string;
+}
+
+export interface ReceiptExpenseDetail {
+  id: string;
+  receiptId: string;
+  amount: string;
+  itemsSnapshot: any[];
+  note: string | null;
+  linkedAt: string;
+  storeName?: string | null;
+}
+
+export interface ExpenseDetailResult {
+  dailyBudgetId: string;
+  date: string;
+  allocatedAmount: string;
+  amountSpent: string;
+  balance: number;
+  receiptExpenses: ReceiptExpenseDetail[];
+}

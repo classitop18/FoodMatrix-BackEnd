@@ -15,6 +15,7 @@ import {
   budgetConfigVersions,
   dailyBudgets,
   dailyExpenses,
+  receiptExpenses,
 } from "../../database/schemas/schema.js";
 import { getDb } from "../../database/db.js";
 import type {
@@ -490,6 +491,97 @@ export class BudgetRepository {
       .select()
       .from(members)
       .where(and(eq(members.userId, userId), eq(members.accountId, accountId)))
+      .limit(1);
+
+    return result.length > 0;
+  }
+
+  // ================== RECEIPT EXPENSES ==================
+
+  async createReceiptExpense(data: {
+    dailyExpenseId: string;
+    receiptId: string;
+    accountId: string;
+    amount: number;
+    itemsSnapshot: any[];
+    note?: string;
+    linkedBy: string;
+  }) {
+    const [entry] = await this.db
+      .insert(receiptExpenses)
+      .values({
+        dailyExpenseId: data.dailyExpenseId,
+        receiptId: data.receiptId,
+        accountId: data.accountId,
+        amount: data.amount.toString(),
+        itemsSnapshot: data.itemsSnapshot,
+        note: data.note,
+        linkedBy: data.linkedBy,
+      })
+      .returning();
+
+    return entry;
+  }
+
+  async getReceiptExpensesByDailyExpenseId(dailyExpenseId: string) {
+    return this.db
+      .select()
+      .from(receiptExpenses)
+      .where(eq(receiptExpenses.dailyExpenseId, dailyExpenseId))
+      .orderBy(desc(receiptExpenses.linkedAt));
+  }
+
+  async getReceiptExpenseByReceiptIdAndDate(
+    receiptId: string,
+    accountId: string,
+    dailyExpenseId: string,
+  ) {
+    const result = await this.db
+      .select()
+      .from(receiptExpenses)
+      .where(
+        and(
+          eq(receiptExpenses.receiptId, receiptId),
+          eq(receiptExpenses.accountId, accountId),
+          eq(receiptExpenses.dailyExpenseId, dailyExpenseId),
+        ),
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
+  /**
+   * Check if a receipt has already been linked to a budget expense for a specific date.
+   * This prevents duplicate deductions from the same receipt on the same date.
+   */
+  async hasReceiptExpenseForDate(
+    receiptId: string,
+    accountId: string,
+    date: Date,
+  ): Promise<boolean> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Join receiptExpenses -> dailyExpenses to check if this receipt
+    // is already linked to an expense on the given date
+    const result = await this.db
+      .select({ id: receiptExpenses.id })
+      .from(receiptExpenses)
+      .innerJoin(
+        dailyExpenses,
+        eq(receiptExpenses.dailyExpenseId, dailyExpenses.id),
+      )
+      .where(
+        and(
+          eq(receiptExpenses.receiptId, receiptId),
+          eq(receiptExpenses.accountId, accountId),
+          gte(dailyExpenses.date, startOfDay),
+          lte(dailyExpenses.date, endOfDay),
+        ),
+      )
       .limit(1);
 
     return result.length > 0;

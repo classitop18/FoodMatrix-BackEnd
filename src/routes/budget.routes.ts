@@ -9,6 +9,8 @@ import {
   logExpenseSchema,
   budgetHistoryQuerySchema,
   analyticsQuerySchema,
+  logExpenseFromReceiptSchema,
+  expenseDetailsParamSchema,
 } from "@/modules/budget/dto/budget.dto.js";
 import { Router } from "express";
 
@@ -52,6 +54,17 @@ router.post(
   validate(budgetAccountIdParamSchema, "params"),
   validate(logExpenseSchema, "body"),
   budgetController.logExpense,
+);
+
+/**
+ * Log expense from receipt (receipt → budget link)
+ */
+router.post(
+  "/:accountId/expense-from-receipt",
+  authenticate,
+  validate(budgetAccountIdParamSchema, "params"),
+  validate(logExpenseFromReceiptSchema, "body"),
+  budgetController.logExpenseFromReceipt,
 );
 
 /**
@@ -114,6 +127,16 @@ router.get(
   authenticate,
   validate(budgetAccountIdParamSchema, "params"),
   budgetController.getConfigVersions,
+);
+
+/**
+ * Get expense details for a daily budget (receipts breakdown)
+ */
+router.get(
+  "/:accountId/expense/:dailyBudgetId/details",
+  authenticate,
+  validate(expenseDetailsParamSchema, "params"),
+  budgetController.getExpenseDetails,
 );
 
 export default router;
