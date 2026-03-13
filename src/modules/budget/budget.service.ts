@@ -144,6 +144,26 @@ export class BudgetService {
       },
     );
 
+    // If weekly mode, create/update daily budget entries for the upcoming week
+    // so the weekly amount gets distributed evenly across 7 days
+    if (newMode === "weekly" && newDailyAmount && newDailyAmount > 0) {
+      const nextWeekSaturday = new Date(nextSunday);
+      nextWeekSaturday.setDate(nextSunday.getDate() + 6);
+
+      for (
+        let d = new Date(nextSunday);
+        d <= nextWeekSaturday;
+        d.setDate(d.getDate() + 1)
+      ) {
+        await this.budgetRepo.upsertDailyBudgetForDate({
+          accountId: input.accountId,
+          budgetConfigId: activeConfig.id,
+          date: new Date(d),
+          allocatedAmount: newDailyAmount,
+        });
+      }
+    }
+
     return updatedConfig;
   }
 
@@ -346,9 +366,15 @@ export class BudgetService {
    * Returns a Sun–Sat weekly breakdown of budget vs spent.
    * For days without an explicit budget, uses fallback from the most recent previous date.
    */
-  async getWeeklySummary(accountId: string): Promise<WeeklySummary> {
-    const today = new Date();
+  async getWeeklySummary(
+    accountId: string,
+    dateStr?: string,
+  ): Promise<WeeklySummary> {
+    const today = dateStr ? new Date(dateStr) : new Date();
     today.setHours(0, 0, 0, 0);
+
+    const actualToday = new Date();
+    actualToday.setHours(0, 0, 0, 0);
 
     // Find Sunday (start of current week)
     const dayOfWeek = today.getDay(); // 0 = Sunday
@@ -408,8 +434,8 @@ export class BudgetService {
         hasBudget = true;
         hasExpense = !!dailyData.expense;
         lastKnownBudgetAmount = allocatedAmount;
-      } else if (lastKnownBudgetAmount > 0 && dayDate <= today) {
-        // Fallback: use last known budget for past/today
+      } else if (lastKnownBudgetAmount > 0) {
+        // Fallback: use last known budget for any day (past, today, or future)
         allocatedAmount = lastKnownBudgetAmount;
         isFallback = true;
       }
@@ -442,6 +468,7 @@ export class BudgetService {
   // ================== BUDGET HISTORY ==================
 
   async getBudgetHistory(accountId: string, query: BudgetHistoryQuery) {
+    await this.syncPastBudgets(accountId);
     return this.budgetRepo.getDailyBudgetsWithExpenses(accountId, query);
   }
 
@@ -449,17 +476,57 @@ export class BudgetService {
 
   async getAnalytics(
     accountId: string,
-    period: "weekly" | "monthly",
+    period: "weekly" | "monthly" | "yearly" | "custom",
+    yearStr?: string,
+    monthStr?: string,
+    weekDateStr?: string,
   ): Promise<BudgetAnalytics> {
+    try {
+      await this.syncPastBudgets(accountId);
+    } catch (syncError) {
+      // Don't let sync failure break analytics
+      console.error("syncPastBudgets failed (non-fatal):", syncError);
+    }
+
     const endDate = new Date();
     endDate.setHours(23, 59, 59, 999);
 
     const startDate = new Date();
-    if (period === "weekly") {
-      startDate.setDate(startDate.getDate() - 7);
-    } else {
-      startDate.setDate(startDate.getDate() - 30);
+    if (period === "weekly" || (period === "custom" && weekDateStr)) {
+      if (weekDateStr) {
+        // If a specific week was requested
+        const targetDate = new Date(weekDateStr);
+        targetDate.setHours(0, 0, 0, 0);
+        const dayOfWeek = targetDate.getDay();
+        startDate.setTime(targetDate.getTime());
+        startDate.setDate(targetDate.getDate() - dayOfWeek); // Sunday
+        endDate.setTime(startDate.getTime());
+        endDate.setDate(startDate.getDate() + 6); // Saturday
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        // Default rolling 7 days
+        startDate.setDate(startDate.getDate() - 7);
+      }
+    } else if (period === "monthly" || period === "yearly") {
+      const year = yearStr ? parseInt(yearStr, 10) : new Date().getFullYear();
+      if (period === "monthly") {
+        if (monthStr) {
+          // Specific month
+          const month = parseInt(monthStr, 10);
+          startDate.setFullYear(year, month - 1, 1); // First day of month
+          endDate.setFullYear(year, month, 0); // Last day of month
+          endDate.setHours(23, 59, 59, 999);
+        } else {
+          // Default rolling 30 days
+          startDate.setDate(startDate.getDate() - 30);
+        }
+      } else if (period === "yearly") {
+        startDate.setFullYear(year, 0, 1);
+        endDate.setFullYear(year, 11, 31);
+        endDate.setHours(23, 59, 59, 999);
+      }
     }
+
     startDate.setHours(0, 0, 0, 0);
 
     const rawData = await this.budgetRepo.getAnalyticsData(
@@ -479,10 +546,13 @@ export class BudgetService {
       const budget = parseFloat(row.allocatedAmount || "0");
       const spent = parseFloat(row.amountSpent || "0");
       const balance = budget - spent;
-      const cats = row.categoriesBreakdown || {};
+      const cats =
+        row.categoriesBreakdown && typeof row.categoriesBreakdown === "object"
+          ? (row.categoriesBreakdown as Record<string, unknown>)
+          : {};
 
       for (const [key, val] of Object.entries(cats)) {
-        categoryTotals[key] = (categoryTotals[key] || 0) + Number(val);
+        categoryTotals[key] = (categoryTotals[key] || 0) + Number(val || 0);
       }
 
       totalBudget += budget;
@@ -502,6 +572,36 @@ export class BudgetService {
       };
     });
 
+    let finalDailyData: typeof dailyData = [];
+
+    // If period is yearly, aggregate the data by month to prevent rendering 365 bars in chart
+    if (period === "yearly") {
+      const monthlyAggregations: Record<
+        number,
+        { budget: number; spent: number; balance: number; date: string }
+      > = {};
+      for (let i = 0; i < 12; i++) {
+        monthlyAggregations[i] = {
+          budget: 0,
+          spent: 0,
+          balance: 0,
+          date: new Date(startDate.getFullYear(), i, 1).toISOString(),
+        };
+      }
+
+      dailyData.forEach((d: any) => {
+        const dateObj = new Date(d.date);
+        const monthIndex = dateObj.getMonth();
+        monthlyAggregations[monthIndex].budget += d.budget;
+        monthlyAggregations[monthIndex].spent += d.spent;
+        monthlyAggregations[monthIndex].balance += d.balance;
+      });
+
+      finalDailyData = Object.values(monthlyAggregations);
+    } else {
+      finalDailyData = dailyData;
+    }
+
     return {
       period,
       totalBudget,
@@ -511,7 +611,7 @@ export class BudgetService {
       daysUnderBudget,
       averageDailySpending: daysWithData > 0 ? totalSpent / daysWithData : 0,
       categoriesBreakdown: categoryTotals,
-      dailyData,
+      dailyData: finalDailyData,
     };
   }
 
@@ -530,6 +630,68 @@ export class BudgetService {
   }
 
   // ================== HELPERS ==================
+
+  private async syncPastBudgets(accountId: string) {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const activeConfig =
+        await this.budgetRepo.getActiveBudgetConfig(accountId);
+      if (!activeConfig || !activeConfig.dailyAmount) return;
+
+      const fallbackAmount = parseFloat(activeConfig.dailyAmount);
+      if (fallbackAmount <= 0) return;
+
+      const startSyncDate = activeConfig.effectiveFrom
+        ? new Date(activeConfig.effectiveFrom)
+        : new Date(today);
+      startSyncDate.setHours(0, 0, 0, 0);
+
+      const minSyncDate = new Date(today);
+      minSyncDate.setDate(minSyncDate.getDate() - 90); // Sync max 90 days back
+
+      const actualStartDate =
+        startSyncDate < minSyncDate ? minSyncDate : startSyncDate;
+      if (actualStartDate >= today) return;
+
+      const existingBudgets = await this.budgetRepo.getAnalyticsData(
+        accountId,
+        actualStartDate,
+        today,
+      );
+      const existingDates = new Set(
+        existingBudgets.map((b: any) => {
+          const d = new Date(b.date);
+          d.setHours(0, 0, 0, 0);
+          return d.getTime();
+        }),
+      );
+
+      const missingEntries = [];
+      for (
+        let d = new Date(actualStartDate);
+        d < today;
+        d.setDate(d.getDate() + 1)
+      ) {
+        const dTime = new Date(d).getTime();
+        if (!existingDates.has(dTime)) {
+          missingEntries.push({
+            accountId,
+            budgetConfigId: activeConfig.id,
+            date: new Date(d),
+            allocatedAmount: fallbackAmount,
+          });
+        }
+      }
+
+      if (missingEntries.length > 0) {
+        await this.budgetRepo.createDailyBudgetsBulk(missingEntries);
+      }
+    } catch (error) {
+      console.error("Failed to sync past budgets:", error);
+    }
+  }
 
   private async ensureMembership(userId: string, accountId: string) {
     const isMember = await this.budgetRepo.isUserMemberOfAccount(

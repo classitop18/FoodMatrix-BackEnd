@@ -58,5 +58,8 @@ export const budgetHistoryQuerySchema = z.object({
 });
 
 export const analyticsQuerySchema = z.object({
-  period: z.enum(["weekly", "monthly"]).default("weekly"),
+  period: z.enum(["weekly", "monthly", "yearly", "custom"]).default("weekly"),
+  year: z.string().optional(),
+  month: z.string().optional(),
+  weekDate: z.string().optional(),
 });

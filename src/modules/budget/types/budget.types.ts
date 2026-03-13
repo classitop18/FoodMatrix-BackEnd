@@ -32,7 +32,10 @@ export interface BudgetHistoryQuery {
 }
 
 export interface AnalyticsQuery {
-  period: "weekly" | "monthly";
+  period: "weekly" | "monthly" | "yearly" | "custom";
+  year?: string;
+  month?: string;
+  weekDate?: string;
 }
 
 export interface DailyBudgetWithExpense {
@@ -76,7 +79,7 @@ export interface WeeklySummary {
 }
 
 export interface BudgetAnalytics {
-  period: "weekly" | "monthly";
+  period: "weekly" | "monthly" | "yearly" | "custom";
   totalBudget: number;
   totalSpent: number;
   totalBalance: number;

@@ -43,7 +43,18 @@ export const validate = (
       const validatedData = await schema.parseAsync(dataToValidate);
 
       // Replace the original data with validated and sanitized data
-      req[target] = validatedData;
+      // Note: req.query is a getter-only property in modern Express/Node,
+      // so we mutate the existing object in-place instead of replacing it.
+      if (target === "query") {
+        // Clear existing keys and copy validated data in-place
+        const queryObj = req.query;
+        for (const key of Object.keys(queryObj)) {
+          delete queryObj[key];
+        }
+        Object.assign(queryObj, validatedData);
+      } else {
+        req[target] = validatedData;
+      }
 
       logger.debug("Request validation successful", {
         target,

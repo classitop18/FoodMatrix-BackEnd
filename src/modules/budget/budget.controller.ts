@@ -104,7 +104,11 @@ export class BudgetController {
   ) => {
     try {
       const { accountId } = req.params;
-      const summary = await this.budgetService.getWeeklySummary(accountId);
+      const { date } = req.query;
+      const summary = await this.budgetService.getWeeklySummary(
+        accountId,
+        typeof date === "string" ? date : undefined,
+      );
       return sendResponse(res, summary, "Success", 200);
     } catch (error) {
       next(error);
@@ -139,11 +143,19 @@ export class BudgetController {
     next: NextFunction,
   ) => {
     try {
-      const { accountId } = req.params;
-      const { period } = req.query as { period: "weekly" | "monthly" };
+      const { accountId } = req.params as { accountId: string };
+      const { period, year, month, weekDate } = req.query as {
+        period: "weekly" | "monthly" | "yearly" | "custom";
+        year?: string;
+        month?: string;
+        weekDate?: string;
+      };
       const analytics = await this.budgetService.getAnalytics(
         accountId,
         period || "weekly",
+        year,
+        month,
+        weekDate,
       );
       return sendResponse(res, analytics, "Success", 200);
     } catch (error) {
