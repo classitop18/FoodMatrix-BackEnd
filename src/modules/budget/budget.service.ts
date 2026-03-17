@@ -78,12 +78,18 @@ export class BudgetService {
   async updateBudget(input: UpdateBudgetInput) {
     await this.ensureMembership(input.userId, input.accountId);
 
-    const activeConfig = await this.budgetRepo.getActiveBudgetConfig(
+    let activeConfig = await this.budgetRepo.getActiveBudgetConfig(
       input.accountId,
     );
 
     if (!activeConfig) {
-      throw new AppError("No active budget configuration found", 404);
+      // Create an initial empty config if it doesn't exist so the pipeline can continue
+      activeConfig = await this.budgetRepo.createBudgetConfig({
+        accountId: input.accountId,
+        mode: input.mode || "weekly",
+        dailyAmount: 0,
+        weeklyAmount: 0,
+      });
     }
 
     const newMode = input.mode || activeConfig.mode;

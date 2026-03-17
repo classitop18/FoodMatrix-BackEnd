@@ -813,6 +813,7 @@ export const budgetConfigs = pgTable("budget_configs", {
   accountId: varchar("account_id", { length: 36 })
     .notNull()
     .references(() => accounts.id, { onDelete: "cascade" }),
+
   mode: budgetModeEnum("mode").notNull(), // 'daily' or 'weekly'
   dailyAmount: numeric("daily_amount", { precision: 16, scale: 2 }), // amount per day (daily mode)
   weeklyAmount: numeric("weekly_amount", { precision: 16, scale: 2 }), // total weekly (weekly mode)
@@ -921,6 +922,23 @@ export const receiptExpenses = pgTable("receipt_expenses", {
     .references(() => users.id),
 });
 
+export const activity = pgTable("activity", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  memberId: varchar("member_id")
+    .notNull()
+    .references(() => members.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  details: jsonb("details").default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+});
+
 // Export Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -974,3 +992,6 @@ export type InsertDailyExpense = typeof dailyExpenses.$inferInsert;
 
 export type ReceiptExpense = typeof receiptExpenses.$inferSelect;
 export type InsertReceiptExpense = typeof receiptExpenses.$inferInsert;
+
+export type Activity = typeof activity.$inferSelect;
+export type InsertActivity = typeof activity.$inferInsert;
