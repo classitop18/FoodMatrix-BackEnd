@@ -247,4 +247,23 @@ export class BudgetController {
       next(error);
     }
   };
+
+  /* ---------------- GET CURRENT WEEK STATUS ---------------- */
+
+  getCurrentWeekStatus = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { accountId } = req.params;
+      const id = Array.isArray(accountId) ? accountId[0] : accountId;
+      const status = await this.budgetService.getCurrentWeekStatus(
+        id as string,
+      );
+      return sendResponse(res, status, "Success", 200);
+    } catch (error) {
+      next(error);
+    }
+  };
 }

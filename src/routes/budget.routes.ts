@@ -139,4 +139,14 @@ router.get(
   budgetController.getExpenseDetails,
 );
 
+/**
+ * Get current week budget status (attempts left)
+ */
+router.get(
+  "/:accountId/current-week-status",
+  authenticate,
+  validate(budgetAccountIdParamSchema, "params"),
+  budgetController.getCurrentWeekStatus,
+);
+
 export default router;

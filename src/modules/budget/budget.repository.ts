@@ -430,6 +430,9 @@ export class BudgetRepository {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+
     const result = await this.db
       .select({
         date: dailyBudgets.date,
@@ -443,6 +446,7 @@ export class BudgetRepository {
         and(
           eq(dailyBudgets.accountId, accountId),
           lt(dailyBudgets.date, today),
+          gte(dailyBudgets.date, startOfWeek),
           isNull(dailyExpenses.id),
         ),
       )

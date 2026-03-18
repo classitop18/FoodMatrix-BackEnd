@@ -13,8 +13,18 @@ import type {
   ReceiptExpenseDetail,
 } from "./types/budget.types.js";
 
+import dayjs from "dayjs";
 export class BudgetService {
   constructor(private readonly budgetRepo = new BudgetRepository()) {}
+
+  /**
+   * Helper to format a local Date object into an ISO string without timezone shifts.
+   * Ensures the resulting `YYYY-MM-DD` literal exactly matches the local time components.
+   */
+  private formatLocalToISO(date: Date): string {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  }
 
   // ================== SET DAILY BUDGET (Calendar-based) ==================
 
@@ -25,8 +35,8 @@ export class BudgetService {
   async setDailyBudget(input: SetupBudgetInput) {
     await this.ensureMembership(input.userId, input.accountId);
 
-    const selectedDate = new Date(input.date);
-    selectedDate.setHours(0, 0, 0, 0);
+    const [year, month, day] = input.date.split("T")[0].split("-").map(Number);
+    const selectedDate = new Date(year, month - 1, day);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -62,12 +72,12 @@ export class BudgetService {
       mode: "daily",
       dailyAmount: input.amount,
       changedBy: input.userId,
-      changeReason: `Budget set for ${selectedDate.toISOString().split("T")[0]}`,
+      changeReason: `Budget set for ${this.formatLocalToISO(selectedDate).split("T")[0]}`,
     });
 
     return {
       dailyBudget: dailyBudgetEntry,
-      date: selectedDate.toISOString(),
+      date: this.formatLocalToISO(selectedDate),
       allocatedAmount: input.amount,
       message: `Budget of $${input.amount} set for ${selectedDate.toLocaleDateString("en-US")}`,
     };
@@ -77,6 +87,16 @@ export class BudgetService {
 
   async updateBudget(input: UpdateBudgetInput) {
     await this.ensureMembership(input.userId, input.accountId);
+
+    if (input.overrideCurrentWeek) {
+      const status = await this.getCurrentWeekStatus(input.accountId);
+      if (status.attemptsLeft <= 0) {
+        throw new AppError(
+          "Maximum attempts reached for overriding the current week's budget.",
+          400,
+        );
+      }
+    }
 
     let activeConfig = await this.budgetRepo.getActiveBudgetConfig(
       input.accountId,
@@ -105,7 +125,9 @@ export class BudgetService {
       newWeeklyAmount = parseFloat(activeConfig.weeklyAmount || "0");
     }
 
-    // Lock the current week to the old budget config so the new one applies starting next week.
+    // Lock logic:
+    // If overrideCurrentWeek is true, we immediately update the rest of the current week with the NEW amount.
+    // If false (default), we lock the rest of the current week to the OLD budget config, so new one applies next Sunday.
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const dayOfWeek = today.getDay(); // 0 = Sunday
@@ -114,23 +136,38 @@ export class BudgetService {
     nextSunday.setHours(0, 0, 0, 0);
 
     const oldDailyAmount = parseFloat(activeConfig.dailyAmount || "0");
-    if (oldDailyAmount > 0) {
+    const amountToApplyToCurrentWeek = input.overrideCurrentWeek
+      ? newDailyAmount
+      : oldDailyAmount;
+
+    if (amountToApplyToCurrentWeek > 0) {
       for (
         let d = new Date(today);
         d < nextSunday;
         d.setDate(d.getDate() + 1)
       ) {
-        const exists = await this.budgetRepo.existsDailyBudgetForDate(
-          input.accountId,
-          d,
-        );
-        if (!exists) {
+        if (input.overrideCurrentWeek) {
+          // Force update the daily budget for the rest of the week
           await this.budgetRepo.upsertDailyBudgetForDate({
             accountId: input.accountId,
             budgetConfigId: activeConfig.id,
             date: new Date(d),
-            allocatedAmount: oldDailyAmount,
+            allocatedAmount: amountToApplyToCurrentWeek,
           });
+        } else {
+          // Lock ONLY if it doesn't already exist
+          const exists = await this.budgetRepo.existsDailyBudgetForDate(
+            input.accountId,
+            d,
+          );
+          if (!exists) {
+            await this.budgetRepo.upsertDailyBudgetForDate({
+              accountId: input.accountId,
+              budgetConfigId: activeConfig.id,
+              date: new Date(d),
+              allocatedAmount: amountToApplyToCurrentWeek,
+            });
+          }
         }
       }
     }
@@ -141,7 +178,9 @@ export class BudgetService {
       dailyAmount: parseFloat(activeConfig.dailyAmount || "0"),
       weeklyAmount: parseFloat(activeConfig.weeklyAmount || "0"),
       changedBy: input.userId,
-      changeReason: input.changeReason || "Budget updated",
+      changeReason: input.overrideCurrentWeek
+        ? "Current week budget override"
+        : input.changeReason || "Budget updated",
     });
 
     const updatedConfig = await this.budgetRepo.updateBudgetConfig(
@@ -181,8 +220,8 @@ export class BudgetService {
   async logExpense(input: LogExpenseInput) {
     await this.ensureMembership(input.userId, input.accountId);
 
-    const expenseDate = new Date(input.date);
-    expenseDate.setHours(0, 0, 0, 0);
+    const [year, month, day] = input.date.split("T")[0].split("-").map(Number);
+    const expenseDate = new Date(year, month - 1, day);
 
     // Find the daily budget for this date
     let dailyBudget = await this.budgetRepo.getDailyBudgetByDate(
@@ -313,7 +352,7 @@ export class BudgetService {
       if (previousBudget) {
         // Return with fallback data (don't auto-create — let user explicitly set)
         return {
-          date: today.toISOString(),
+          date: this.formatLocalToISO(today),
           allocatedAmount: parseFloat(previousBudget.allocatedAmount),
           amountSpent: 0,
           balance: parseFloat(previousBudget.allocatedAmount),
@@ -326,7 +365,7 @@ export class BudgetService {
         // Fallback to active configuration default
         const fallbackAmount = parseFloat(activeConfig.dailyAmount);
         return {
-          date: today.toISOString(),
+          date: this.formatLocalToISO(today),
           allocatedAmount: fallbackAmount,
           amountSpent: 0,
           balance: fallbackAmount,
@@ -340,7 +379,7 @@ export class BudgetService {
 
     if (!dailyBudget || !activeConfig) {
       return {
-        date: today.toISOString(),
+        date: this.formatLocalToISO(today),
         allocatedAmount: 0,
         amountSpent: 0,
         balance: 0,
@@ -358,7 +397,7 @@ export class BudgetService {
     const balance = allocatedAmount - amountSpent;
 
     return {
-      date: today.toISOString(),
+      date: this.formatLocalToISO(today),
       allocatedAmount,
       amountSpent,
       balance,
@@ -375,59 +414,51 @@ export class BudgetService {
    * Returns a Sun–Sat weekly breakdown of budget vs spent.
    * For days without an explicit budget, uses fallback from the most recent previous date.
    */
+
   async getWeeklySummary(
     accountId: string,
     dateStr?: string,
   ): Promise<WeeklySummary> {
-    const today = dateStr ? new Date(dateStr) : new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = dateStr
+      ? dayjs(dateStr).startOf("day") // ✅ force local start
+      : dayjs().startOf("day");
 
-    const actualToday = new Date();
-    actualToday.setHours(0, 0, 0, 0);
+    // ✅ week from Sunday
+    const weekStart = today.startOf("week");
+    const weekEnd = weekStart.add(6, "day").endOf("day");
 
-    // Find Sunday (start of current week)
-    const dayOfWeek = today.getDay(); // 0 = Sunday
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - dayOfWeek);
-    weekStart.setHours(0, 0, 0, 0);
-
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
-
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const days = [];
 
     let totalBudget = 0;
     let totalSpent = 0;
-
-    // Track the last known budget amount for fallback
     let lastKnownBudgetAmount = 0;
 
-    // First try active config as a baseline
+    // Active config
     const activeConfig = await this.budgetRepo.getActiveBudgetConfig(accountId);
-    if (activeConfig && activeConfig.dailyAmount) {
+    if (activeConfig?.dailyAmount) {
       lastKnownBudgetAmount = parseFloat(activeConfig.dailyAmount);
     }
 
-    // Get the most recent budget before this week for initial fallback override
+    // Previous budget
     const previousBudget = await this.budgetRepo.getMostRecentPreviousBudget(
       accountId,
-      weekStart,
+      weekStart.toDate(),
     );
+
     if (previousBudget) {
       lastKnownBudgetAmount = parseFloat(previousBudget.allocatedAmount);
     }
 
     for (let i = 0; i < 7; i++) {
-      const dayDate = new Date(weekStart);
-      dayDate.setDate(weekStart.getDate() + i);
-      dayDate.setHours(0, 0, 0, 0);
+      const dayDate = weekStart.add(i, "day").startOf("day");
+      console.log(dayDate, "dayDatedayDatedayDate");
 
       const dailyData = await this.budgetRepo.getDailyBudgetByDate(
         accountId,
-        dayDate,
+        dayDate.toDate(), // DB ke liye OK
       );
+
+      console.log(`Daily data : ${dailyData}`);
 
       let allocatedAmount = 0;
       let amountSpent = 0;
@@ -440,11 +471,12 @@ export class BudgetService {
         amountSpent = dailyData.expense
           ? parseFloat(dailyData.expense.amountSpent)
           : 0;
+
         hasBudget = true;
         hasExpense = !!dailyData.expense;
+
         lastKnownBudgetAmount = allocatedAmount;
       } else if (lastKnownBudgetAmount > 0) {
-        // Fallback: use last known budget for any day (past, today, or future)
         allocatedAmount = lastKnownBudgetAmount;
         isFallback = true;
       }
@@ -453,8 +485,8 @@ export class BudgetService {
       totalSpent += amountSpent;
 
       days.push({
-        date: dayDate.toISOString(),
-        dayName: dayNames[i],
+        date: dayDate.format("YYYY-MM-DD"), // ✅ FIX (NO ISO)
+        dayName: dayDate.format("ddd"), // ✅ always correct
         allocatedAmount,
         amountSpent,
         balance: allocatedAmount - amountSpent,
@@ -465,20 +497,43 @@ export class BudgetService {
     }
 
     return {
-      weekStart: weekStart.toISOString(),
-      weekEnd: weekEnd.toISOString(),
+      weekStart: weekStart.format("YYYY-MM-DD"), // ✅ FIX
+      weekEnd: weekEnd.format("YYYY-MM-DD"), // ✅ FIX
       totalBudget,
       totalSpent,
       totalBalance: totalBudget - totalSpent,
       days,
     };
   }
-
   // ================== BUDGET HISTORY ==================
 
   async getBudgetHistory(accountId: string, query: BudgetHistoryQuery) {
     await this.syncPastBudgets(accountId);
-    return this.budgetRepo.getDailyBudgetsWithExpenses(accountId, query);
+    const history = await this.budgetRepo.getDailyBudgetsWithExpenses(
+      accountId,
+      query,
+    );
+
+    const uniqueMap = new Map();
+    for (const item of history.data) {
+      const d = this.formatLocalToISO(new Date(item.date));
+      if (!uniqueMap.has(d)) {
+        uniqueMap.set(d, { ...item, date: d });
+      } else {
+        const existing = uniqueMap.get(d);
+        if (existing.amountSpent === null && item.amountSpent !== null) {
+          uniqueMap.set(d, { ...item, date: d });
+        }
+      }
+    }
+
+    const finalData = Array.from(uniqueMap.values());
+    finalData.sort((a, b) => b.date.localeCompare(a.date));
+
+    return {
+      total: finalData.length,
+      data: finalData,
+    };
   }
 
   // ================== ANALYTICS ==================
@@ -504,8 +559,11 @@ export class BudgetService {
     if (period === "weekly" || (period === "custom" && weekDateStr)) {
       if (weekDateStr) {
         // If a specific week was requested
-        const targetDate = new Date(weekDateStr);
-        targetDate.setHours(0, 0, 0, 0);
+        const [year, month, day] = weekDateStr
+          .split("T")[0]
+          .split("-")
+          .map(Number);
+        const targetDate = new Date(year, month - 1, day);
         const dayOfWeek = targetDate.getDay();
         startDate.setTime(targetDate.getTime());
         startDate.setDate(targetDate.getDate() - dayOfWeek); // Sunday
@@ -544,6 +602,20 @@ export class BudgetService {
       endDate,
     );
 
+    const uniqueMap = new Map();
+    for (const row of rawData) {
+      const d = this.formatLocalToISO(new Date(row.date));
+      if (!uniqueMap.has(d)) {
+        uniqueMap.set(d, row);
+      } else {
+        const existing = uniqueMap.get(d);
+        if (existing.amountSpent === null && row.amountSpent !== null) {
+          uniqueMap.set(d, row);
+        }
+      }
+    }
+    const deduplicatedData = Array.from(uniqueMap.values());
+
     let totalBudget = 0;
     let totalSpent = 0;
     let daysOverBudget = 0;
@@ -551,7 +623,7 @@ export class BudgetService {
     let daysWithData = 0;
     const categoryTotals: Record<string, number> = {};
 
-    const dailyData = rawData.map((row: any) => {
+    const dailyData = deduplicatedData.map((row: any) => {
       const budget = parseFloat(row.allocatedAmount || "0");
       const spent = parseFloat(row.amountSpent || "0");
       const balance = budget - spent;
@@ -574,7 +646,7 @@ export class BudgetService {
       }
 
       return {
-        date: row.date,
+        date: this.formatLocalToISO(new Date(row.date)),
         budget,
         spent,
         balance,
@@ -594,7 +666,7 @@ export class BudgetService {
           budget: 0,
           spent: 0,
           balance: 0,
-          date: new Date(startDate.getFullYear(), i, 1).toISOString(),
+          date: this.formatLocalToISO(new Date(startDate.getFullYear(), i, 1)),
         };
       }
 
@@ -627,7 +699,39 @@ export class BudgetService {
   // ================== PENDING UPDATES ==================
 
   async getPendingUpdates(accountId: string) {
-    return this.budgetRepo.getPendingExpenseUpdates(accountId);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+
+    const history = await this.budgetRepo.getDailyBudgetsWithExpenses(
+      accountId,
+      {
+        startDate: startOfWeek.toISOString(),
+        endDate: today.toISOString(),
+        page: 1,
+        limit: 100,
+      },
+    );
+
+    const datesWithExpenses = new Set<string>();
+    for (const item of history.data) {
+      if (item.amountSpent !== null) {
+        datesWithExpenses.add(this.formatLocalToISO(new Date(item.date)));
+      }
+    }
+
+    const updates = await this.budgetRepo.getPendingExpenseUpdates(accountId);
+    const uniqueMap = new Map();
+    const finalData = [];
+    for (const u of updates) {
+      const d = this.formatLocalToISO(new Date(u.date));
+      if (!uniqueMap.has(d) && !datesWithExpenses.has(d)) {
+        uniqueMap.set(d, true);
+        finalData.push({ ...u, date: d });
+      }
+    }
+    return finalData;
   }
 
   // ================== CONFIG VERSIONS ==================
@@ -665,8 +769,8 @@ export class BudgetService {
     }
 
     // ── Duplicate check: prevent same receipt from deducting on the same date twice ──
-    const expenseDate = new Date(input.date);
-    expenseDate.setHours(0, 0, 0, 0);
+    const [year, month, day] = input.date.split("T")[0].split("-").map(Number);
+    const expenseDate = new Date(year, month - 1, day);
 
     const alreadyLinked = await this.budgetRepo.hasReceiptExpenseForDate(
       input.receiptId,
@@ -707,7 +811,6 @@ export class BudgetService {
       throw new AppError("Food items total is zero or negative", 400);
     }
 
-    // Build categories breakdown from food items
     const categoriesBreakdown: Record<string, number> = {};
     for (const item of foodItems) {
       const cat = item.category || "food";
@@ -825,9 +928,7 @@ export class BudgetService {
 
     return {
       dailyBudgetId,
-      date:
-        budgetRow.dailyBudget.date?.toISOString?.() ||
-        String(budgetRow.dailyBudget.date),
+      date: this.formatLocalToISO(new Date(budgetRow.dailyBudget.date!)),
       allocatedAmount,
       amountSpent,
       balance,
@@ -907,5 +1008,40 @@ export class BudgetService {
     if (!isMember) {
       throw new AppError("User is not a member of this account", 403);
     }
+  }
+
+  // ================== CURRENT WEEK STATUS  ==================
+
+  async getCurrentWeekStatus(accountId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dayOfWeek = today.getDay(); // 0 = Sunday
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const config = await this.budgetRepo.getActiveBudgetConfig(accountId);
+    if (!config) {
+      return { attemptsLeft: 3, maxAttempts: 3, usedAttempts: 0 };
+    }
+
+    const versions = await this.budgetRepo.getBudgetConfigVersions(config.id);
+
+    // Count how many overriding versions were created this week
+    let usedAttempts = 0;
+    for (const v of versions) {
+      if (
+        v.changeReason === "Current week budget override" &&
+        new Date(v.createdAt) >= startOfWeek
+      ) {
+        usedAttempts++;
+      }
+    }
+
+    const maxAttempts = 3;
+    const attemptsLeft = Math.max(0, maxAttempts - usedAttempts);
+
+    return { attemptsLeft, maxAttempts, usedAttempts };
   }
 }

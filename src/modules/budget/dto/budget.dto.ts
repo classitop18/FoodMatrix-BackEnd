@@ -27,6 +27,7 @@ export const updateBudgetSchema = z
       .positive("Weekly amount must be positive")
       .optional(),
     changeReason: z.string().max(500).optional(),
+    overrideCurrentWeek: z.boolean().optional(),
   })
   .refine(
     (data) => {

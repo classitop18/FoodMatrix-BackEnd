@@ -12,6 +12,7 @@ export interface UpdateBudgetInput {
   weeklyAmount?: number;
   changeReason?: string;
   userId: string;
+  overrideCurrentWeek?: boolean;
 }
 
 export interface LogExpenseInput {
