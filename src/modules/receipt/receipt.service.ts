@@ -9,7 +9,7 @@ import { gcsService } from "../../utils/gcs.utils.js";
 import { randomUUID } from "crypto";
 import PDFParser from "pdf2json";
 import { PDFParse } from "pdf-parse";
-import pdf2img from "pdf-img-convert";
+import * as pdf2img from "pdf-img-convert";
 
 import {
   receiptAIService,
