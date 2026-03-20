@@ -126,7 +126,7 @@ export class BudgetService {
     }
 
     // Lock logic:
-    // If overrideCurrentWeek is true, we immediately update the rest of the current week with the NEW amount.
+    // If overrideCurrentWeek is true, we immediately update the ENTIRE current week with the NEW amount.
     // If false (default), we lock the rest of the current week to the OLD budget config, so new one applies next Sunday.
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -140,9 +140,14 @@ export class BudgetService {
       ? newDailyAmount
       : oldDailyAmount;
 
+    const startUpdateDate = new Date(today);
+    if (input.overrideCurrentWeek) {
+      startUpdateDate.setDate(today.getDate() - dayOfWeek); // Start from Sunday
+    }
+
     if (amountToApplyToCurrentWeek > 0) {
       for (
-        let d = new Date(today);
+        let d = new Date(startUpdateDate);
         d < nextSunday;
         d.setDate(d.getDate() + 1)
       ) {

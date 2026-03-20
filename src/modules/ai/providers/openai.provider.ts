@@ -26,7 +26,7 @@ export class OpenAIProvider implements AIProvider {
             role: "system",
             content: params.systemPrompt || "You are a helpful assistant.",
           },
-          { role: "user", content: params.prompt },
+          { role: "user", content: params.prompt as any },
         ],
         max_tokens: params.maxTokens,
         temperature: params.temperature || 0.7,

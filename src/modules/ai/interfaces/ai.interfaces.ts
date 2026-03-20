@@ -17,7 +17,7 @@ export interface AIProvider {
 }
 
 export interface AICompletionParams {
-  prompt: string;
+  prompt: string | any[];
   systemPrompt?: string;
   maxTokens: number;
   temperature?: number;

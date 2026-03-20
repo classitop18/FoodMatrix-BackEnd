@@ -34,7 +34,7 @@ export interface AIReceiptAuditResult {
   paymentMethod?: string;
 }
 
-const RECEIPT_AUDIT_SYSTEM_PROMPT = `You are an expert receipt data extraction and auditing AI. Your job is to take raw OCR text extracted from grocery/store receipts and produce perfectly structured, accurate data.
+const RECEIPT_AUDIT_SYSTEM_PROMPT = `You are an expert receipt data extraction and auditing AI. Your job is to read grocery/store receipts (from images or OCR text) and produce perfectly structured, accurate data.
 
 **Your Expertise:**
 - Correcting OCR errors (misread characters, broken words, garbled text)
@@ -83,15 +83,38 @@ const RECEIPT_AUDIT_SYSTEM_PROMPT = `You are an expert receipt data extraction a
 - household: soap, detergent, tissue, foil, bags, cleaning supplies, toiletries (THESE MUST BE EXCLUDED FROM THE FINAL SUBTOTAL/TOTAL/TAX AMOUNT IN THE ROOT OBJECT)
 - other: anything that doesn't fit above categories`;
 
-const buildUserPrompt = (rawText: string): string => {
-  return `Analyze this raw OCR text extracted from a receipt and return structured data.
+const buildUserPrompt = (rawText?: string, imagesData?: string[]): any[] => {
+  const content: any[] = [];
 
-RAW RECEIPT TEXT:
----
-${rawText}
----
+  if (imagesData && imagesData.length > 0) {
+    content.push({
+      type: "text",
+      text: `Analyze the provided receipt image(s) and return structured data. ${rawText ? "I have also included the raw OCR text below as a hint, but rely primarily on the images for accuracy." : ""}`,
+    });
 
-Return a single JSON object with this EXACT structure (no additional keys, no markdown):
+    for (const base64 of imagesData) {
+      content.push({
+        type: "image_url",
+        image_url: { url: base64 },
+      });
+    }
+  } else {
+    content.push({
+      type: "text",
+      text: `Analyze this raw OCR text extracted from a receipt and return structured data.`,
+    });
+  }
+
+  if (rawText) {
+    content.push({
+      type: "text",
+      text: `\nRAW RECEIPT TEXT:\n---\n${rawText}\n---\n`,
+    });
+  }
+
+  content.push({
+    type: "text",
+    text: `\nReturn a single JSON object with this EXACT structure (no additional keys, no markdown):
 {
   "storeName": "string — name of the store",
   "storeAddress": "string or null — store address if found",
@@ -104,7 +127,7 @@ Return a single JSON object with this EXACT structure (no additional keys, no ma
       "unit": "pcs|kg|g|L|ml|pack|dozen|box|bottle|can|bag",
       "price": 0.00,
       "category": "food|snacks|beverages|dairy|produce|meat|bakery|spices|frozen|household|other",
-      "brand": "string or null",Scanned Receipts
+      "brand": "string or null",
       "confidence": 0.95,
       "taxable": boolean,
       "calculatedTax": 0.00
@@ -121,7 +144,10 @@ IMPORTANT VALIDATION:
 - Calculate item-level tax (\`calculatedTax\`) accurately using receipt tax indicators (F, H, etc.) or standard rules.
 - Do not include tax, subtotal, or total as items
 - If you see quantity indicators like "2x" or "x3", multiply accordingly
-- Remove any promotional text, barcodes, or reference numbers from item names`;
+- Remove any promotional text, barcodes, or reference numbers from item names`,
+  });
+
+  return content;
 };
 
 export class ReceiptAIService {
@@ -138,14 +164,17 @@ export class ReceiptAIService {
   }
 
   /**
-   * Takes raw OCR text and returns AI-audited, structured receipt data
+   * Takes raw OCR text and optionally images, returning AI-audited, structured receipt data
    */
-  async auditAndStructure(rawText: string): Promise<AIReceiptAuditResult> {
+  async auditAndStructure(
+    rawText?: string,
+    imagesData?: string[],
+  ): Promise<AIReceiptAuditResult> {
     logger.info("Starting AI receipt audit...");
 
     try {
       const response = await this.aiProvider.createCompletion({
-        prompt: buildUserPrompt(rawText),
+        prompt: buildUserPrompt(rawText, imagesData),
         systemPrompt: RECEIPT_AUDIT_SYSTEM_PROMPT,
         maxTokens: 4000,
         temperature: 0, // Deterministic output for accuracy

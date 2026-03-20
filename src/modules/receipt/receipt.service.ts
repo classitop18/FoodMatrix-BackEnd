@@ -9,6 +9,7 @@ import { gcsService } from "../../utils/gcs.utils.js";
 import { randomUUID } from "crypto";
 import PDFParser from "pdf2json";
 import { PDFParse } from "pdf-parse";
+import pdf2img from "pdf-img-convert";
 
 import {
   receiptAIService,
@@ -69,6 +70,25 @@ export class ReceiptService {
       }
       console.log(rawText, "rawtext");
 
+      // Prepare images for AI Audit
+      const imagesData: string[] = [];
+      try {
+        if (file.mimetype === "application/pdf") {
+          logger.info(`Converting PDF to images for AI Audit...`);
+          const pdfArray = await pdf2img.convert(file.buffer, { base64: true });
+          imagesData.push(
+            ...(pdfArray as string[]).map(
+              (b64) => `data:image/png;base64,${b64}`,
+            ),
+          );
+        } else {
+          const base64 = file.buffer.toString("base64");
+          imagesData.push(`data:${file.mimetype};base64,${base64}`);
+        }
+      } catch (err) {
+        logger.error("Failed to prepare images for AI Vision:", err);
+      }
+
       // Step 2: Upload receipt image/PDF to S3 or Local
       let imageUrl: string | null = null;
       if (s3Service.isConfigured()) {
@@ -88,7 +108,10 @@ export class ReceiptService {
       let aiResult: AIReceiptAuditResult | null = null;
       let aiProcessingStatus = "processing";
       try {
-        aiResult = await receiptAIService.auditAndStructure(rawText);
+        aiResult = await receiptAIService.auditAndStructure(
+          rawText,
+          imagesData,
+        );
         aiProcessingStatus = "completed";
         logger.info(
           `AI audit completed: ${aiResult.items.length} items, total: ${aiResult.totalAmount}`,
@@ -180,13 +203,30 @@ export class ReceiptService {
       );
 
       let combinedRawText = "";
+      const imagesData: string[] = [];
+
       for (const file of files) {
         if (file.mimetype === "application/pdf") {
           combinedRawText +=
             (await this.extractTextFromPdf(file.buffer)) + "\n\n";
+          try {
+            // @ts-except-error
+            const pdfArray = await pdf2img.convert(file.buffer, {
+              base64: true,
+            });
+            imagesData.push(
+              ...(pdfArray as string[]).map(
+                (b64) => `data:image/png;base64,${b64}`,
+              ),
+            );
+          } catch (err) {
+            logger.error("Failed to convert PDF to image for AI Vision:", err);
+          }
         } else {
           combinedRawText +=
             (await this.extractTextFromImage(file.buffer)) + "\n\n";
+          const base64 = file.buffer.toString("base64");
+          imagesData.push(`data:${file.mimetype};base64,${base64}`);
         }
       }
 
@@ -213,7 +253,10 @@ export class ReceiptService {
       let aiResult: AIReceiptAuditResult | null = null;
       let aiProcessingStatus = "processing";
       try {
-        aiResult = await receiptAIService.auditAndStructure(combinedRawText);
+        aiResult = await receiptAIService.auditAndStructure(
+          combinedRawText,
+          imagesData,
+        );
         aiProcessingStatus = "completed";
       } catch (aiError) {
         logger.error("AI audit failed on combined bill:", aiError);
