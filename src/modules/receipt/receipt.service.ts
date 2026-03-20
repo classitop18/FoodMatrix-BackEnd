@@ -146,6 +146,121 @@ export class ReceiptService {
   }
 
   /**
+   * Process a batch of uploaded receipt files (images or PDFs)
+   * Handle single and multiple bill types
+   */
+  async processBatchReceipts(
+    files: Express.Multer.File[],
+    billType: "single" | "multiple",
+    userId: string,
+    accountId: string,
+    eventId?: string,
+    shoppingListId?: string,
+    description?: string,
+    tags?: string[],
+  ) {
+    if (billType === "single") {
+      const results = await Promise.all(
+        files.map((file) =>
+          this.processReceipt(
+            file,
+            userId,
+            accountId,
+            eventId,
+            shoppingListId,
+            description,
+            tags,
+          ),
+        ),
+      );
+      return results;
+    } else {
+      logger.info(
+        `Processing ${files.length} receipts as single bill for user ${userId}`,
+      );
+
+      let combinedRawText = "";
+      for (const file of files) {
+        if (file.mimetype === "application/pdf") {
+          combinedRawText +=
+            (await this.extractTextFromPdf(file.buffer)) + "\n\n";
+        } else {
+          combinedRawText +=
+            (await this.extractTextFromImage(file.buffer)) + "\n\n";
+        }
+      }
+
+      const imageUrls: string[] = [];
+      if (s3Service.isConfigured()) {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const url = await s3Service.uploadFile(
+            file.buffer,
+            S3Folder.RECEIPTS,
+            file.originalname,
+            file.mimetype,
+            userId,
+          );
+          imageUrls.push(url);
+        }
+        logger.info(`Receipt images uploaded to S3: ${imageUrls.join(", ")}`);
+      } else {
+        throw new Error("S3 is not configured for receipt uploads");
+      }
+
+      const imageUrl = imageUrls.join(",");
+
+      let aiResult: AIReceiptAuditResult | null = null;
+      let aiProcessingStatus = "processing";
+      try {
+        aiResult = await receiptAIService.auditAndStructure(combinedRawText);
+        aiProcessingStatus = "completed";
+      } catch (aiError) {
+        logger.error("AI audit failed on combined bill:", aiError);
+        aiProcessingStatus = "failed";
+      }
+
+      const rawParsed = this.parseReceiptText(combinedRawText);
+      const storeName =
+        aiResult?.storeName || rawParsed.storeName || "Unknown Store";
+      const totalAmount = aiResult?.totalAmount ?? rawParsed.totalAmount;
+      const taxAmount = aiResult?.taxAmount ?? rawParsed.taxAmount;
+      const purchaseDate = aiResult?.purchaseDate
+        ? new Date(aiResult.purchaseDate)
+        : rawParsed.purchaseDate;
+      const currency = aiResult?.currency || "USD";
+
+      const db = getDb();
+      const [newReceipt] = await db
+        .insert(receipts)
+        .values({
+          userId,
+          accountId,
+          eventId,
+          shoppingListId,
+          storeName,
+          totalAmount: totalAmount ? totalAmount.toString() : null,
+          taxAmount: taxAmount ? taxAmount.toString() : null,
+          purchaseDate:
+            purchaseDate && !isNaN(purchaseDate.getTime())
+              ? purchaseDate
+              : new Date(),
+          items: rawParsed.items,
+          aiAuditedItems: aiResult?.items || [],
+          aiProcessingStatus,
+          currency,
+          imageUrl,
+          rawText: combinedRawText,
+          description: description || null,
+          tags: tags ?? [],
+        })
+        .returning();
+
+      return newReceipt;
+    }
+  }
+
+  /**
    * Get paginated list of receipts for a user
    */
   async getReceipts(accountId: string, params: ReceiptListParams = {}) {

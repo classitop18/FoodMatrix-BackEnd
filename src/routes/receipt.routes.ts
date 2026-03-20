@@ -22,7 +22,7 @@ router.get("/:id", authenticate, getReceiptById);
 // POST /receipts/upload - Upload and OCR a receipt
 router.post(
   "/upload",
-  [authenticate, receiptUpload.single("file")],
+  [authenticate, receiptUpload.array("files", 10)],
   uploadReceipt,
 );
 

@@ -14,11 +14,12 @@ export const uploadReceipt = async (
   next: NextFunction,
 ) => {
   try {
-    if (!req.file) {
-      throw new AppError("Receipt file is required", 400);
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length === 0) {
+      throw new AppError("Receipt files are required", 400);
     }
 
-    const { eventId, shoppingListId, description, tags } = req.body;
+    const { billType, eventId, shoppingListId, description, tags } = req.body;
     const userId = (req as any).user?.id;
     const accountId =
       (req.headers["x-account-id"] as string) ||
@@ -41,8 +42,9 @@ export const uploadReceipt = async (
       }
     }
 
-    const receipt = await receiptService.processReceipt(
-      req.file,
+    const receipt = await receiptService.processBatchReceipts(
+      files,
+      billType as "single" | "multiple",
       userId,
       accountId,
       eventId,
