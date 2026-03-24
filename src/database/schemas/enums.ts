@@ -21,10 +21,9 @@ export const foodCategoryEnum = pgEnum("food_category", [
 ]);
 
 export const budgetAllocationEnum = pgEnum("budget_allocation", [
-  "daily",
   "weekly",
   "monthly",
-  "annual",
+  "daily",
 ]);
 
 export const budgetModeEnum = pgEnum("budget_mode", ["daily", "weekly"]);

@@ -60,13 +60,11 @@ export class AccountMemberRepository implements IAccountMemberRepository {
           currentAllocation: payload.account.currentAllocation,
 
           weeklyBudget: payload.account.weeklyBudget,
-          dailyBudget: payload.account.dailyBudget,
           monthlyBudget: payload.account.monthlyBudget,
-          annualBudget: payload.account.annualBudget,
 
-          groceriesPercentage: payload.account.groceriesPercentage ?? 70,
-          diningPercentage: payload.account.diningPercentage ?? 20,
-          emergencyPercentage: payload.account.emergencyPercentage ?? 10,
+          groceriesPercentage: payload.account.groceriesPercentage ?? 100,
+          diningPercentage: payload.account.diningPercentage ?? 0,
+          emergencyPercentage: payload.account.emergencyPercentage ?? 0,
         })
         .returning({ id: accounts.id });
 

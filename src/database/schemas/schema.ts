@@ -185,17 +185,15 @@ export const accounts = pgTable("accounts", {
 
   // Budget tracking
   weeklyBudget: numeric("weekly_budget", { precision: 16, scale: 2 }).notNull(),
-  dailyBudget: numeric("daily_budget", { precision: 16, scale: 2 }),
   monthlyBudget: numeric("monthly_budget", { precision: 16, scale: 2 }),
-  annualBudget: numeric("annual_budget", { precision: 16, scale: 2 }),
 
   currentAllocation: budgetAllocationEnum("current_allocation")
     .notNull()
     .default("weekly"),
 
-  groceriesPercentage: integer("groceries_percentage").default(70).notNull(),
-  diningPercentage: integer("dining_percentage").default(20).notNull(),
-  emergencyPercentage: integer("emergency_percentage").default(10).notNull(),
+  groceriesPercentage: integer("groceries_percentage").default(100).notNull(),
+  diningPercentage: integer("dining_percentage").default(0).notNull(),
+  emergencyPercentage: integer("emergency_percentage").default(0).notNull(),
 
   currentWeekFoodSpending: numeric("current_week_food_spending", {
     precision: 10,

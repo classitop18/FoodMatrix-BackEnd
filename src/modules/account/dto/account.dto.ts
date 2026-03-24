@@ -16,13 +16,18 @@ export const createAccountSchema = z
     dailyBudget: z.coerce.number().optional(),
     weeklyBudget: z.coerce.number().optional(),
     monthlyBudget: z.coerce.number().optional(),
-    annualBudget: z.coerce.number().optional(),
 
-    currentAllocation: z.enum(["daily", "weekly", "monthly", "annual"]),
+    currentAllocation: z.enum(["daily", "weekly", "monthly"]),
 
-    groceriesPercentage: z.number().int().min(0).max(100),
-    diningPercentage: z.number().int().min(0).max(100),
-    emergencyPercentage: z.number().int().min(0).max(100),
+    groceriesPercentage: z
+      .number()
+      .int()
+      .min(0)
+      .max(100)
+      .optional()
+      .default(100),
+    diningPercentage: z.number().int().min(0).max(100).optional().default(0),
+    emergencyPercentage: z.number().int().min(0).max(100).optional().default(0),
 
     healthProfile: healthProfileSchema.optional(),
     formattedAddress: z.string().optional(),
@@ -37,13 +42,14 @@ export const createAccountSchema = z
     placeId: z.string().optional(),
   })
   .refine(
-    (data) =>
-      data.groceriesPercentage +
-        data.diningPercentage +
-        data.emergencyPercentage ===
-      100,
+    (data) => {
+      const g = data.groceriesPercentage ?? 100;
+      const d = data.diningPercentage ?? 0;
+      const e = data.emergencyPercentage ?? 0;
+      return g + d + e === 100;
+    },
     {
-      message: "Budget percentages must total 100%",
+      message: "Total budget percentages must equal 100%",
       path: ["groceriesPercentage"],
     },
   );
@@ -56,16 +62,10 @@ export const updateAccountSchema = z.object({
   accountName: z.string().min(2).optional(),
   description: z.string().optional(),
   status: z.enum(["active", "inactive"]).optional(),
-  dailyBudget: z.coerce.number().positive().optional(),
   weeklyBudget: z.coerce.number().positive().optional(),
   monthlyBudget: z.coerce.number().positive().optional(),
-  annualBudget: z.coerce.number().positive().optional(),
-  currentAllocation: z
-    .enum(["daily", "weekly", "monthly", "annual"])
-    .optional(),
+  currentAllocation: z.enum(["weekly", "monthly"]).optional(),
   groceriesPercentage: z.number().int().min(0).max(100).optional(),
-  diningPercentage: z.number().int().min(0).max(100).optional(),
-  emergencyPercentage: z.number().int().min(0).max(100).optional(),
   formattedAddress: z.string().optional(),
   location: z
     .object({

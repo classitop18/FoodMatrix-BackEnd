@@ -2,11 +2,9 @@ export interface AccountCreationInput {
   accountType: "family" | "individual";
   accountName: string;
   description?: string;
-  dailyBudget?: number | string;
   weeklyBudget: number | string;
   monthlyBudget?: number | string;
-  annualBudget?: number | string;
-  currentAllocation: "daily" | "weekly" | "monthly" | "annual";
+  currentAllocation: "weekly" | "monthly" | "daily";
   groceriesPercentage?: number;
   diningPercentage?: number;
   emergencyPercentage?: number;

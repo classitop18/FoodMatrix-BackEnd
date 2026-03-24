@@ -88,21 +88,14 @@ export class BudgetService {
   async updateBudget(input: UpdateBudgetInput) {
     await this.ensureMembership(input.userId, input.accountId);
 
-    if (input.overrideCurrentWeek) {
-      const status = await this.getCurrentWeekStatus(input.accountId);
-      if (status.attemptsLeft <= 0) {
-        throw new AppError(
-          "Maximum attempts reached for overriding the current week's budget.",
-          400,
-        );
-      }
-    }
-
     let activeConfig = await this.budgetRepo.getActiveBudgetConfig(
       input.accountId,
     );
 
+    let isInitialConfig = false;
+
     if (!activeConfig) {
+      isInitialConfig = true;
       // Create an initial empty config if it doesn't exist so the pipeline can continue
       activeConfig = await this.budgetRepo.createBudgetConfig({
         accountId: input.accountId,
@@ -110,6 +103,19 @@ export class BudgetService {
         dailyAmount: 0,
         weeklyAmount: 0,
       });
+    } else if (parseFloat(activeConfig.dailyAmount || "0") === 0) {
+      // Treat setups where they initialized with 0 as purely initial configurations
+      isInitialConfig = true;
+    }
+
+    if (input.overrideCurrentWeek && !isInitialConfig) {
+      const status = await this.getCurrentWeekStatus(input.accountId);
+      if (status.attemptsLeft <= 0) {
+        throw new AppError(
+          "Maximum attempts reached for overriding the current week's budget.",
+          400,
+        );
+      }
     }
 
     const newMode = input.mode || activeConfig.mode;
@@ -183,9 +189,11 @@ export class BudgetService {
       dailyAmount: parseFloat(activeConfig.dailyAmount || "0"),
       weeklyAmount: parseFloat(activeConfig.weeklyAmount || "0"),
       changedBy: input.userId,
-      changeReason: input.overrideCurrentWeek
-        ? "Current week budget override"
-        : input.changeReason || "Budget updated",
+      changeReason: isInitialConfig
+        ? "Initial budget configuration"
+        : input.overrideCurrentWeek
+          ? "Current week budget override"
+          : input.changeReason || "Budget updated",
     });
 
     const updatedConfig = await this.budgetRepo.updateBudgetConfig(
@@ -341,64 +349,79 @@ export class BudgetService {
 
     const activeConfig = await this.budgetRepo.getActiveBudgetConfig(accountId);
 
+    // Fetch account percentages
+    const { getDb } = await import("../../database/db.js");
+    const { accounts } = await import("../../database/schemas/schema.js");
+    const { eq } = await import("drizzle-orm");
+    const db = getDb();
+
+    let accountRecord = null;
+    try {
+      const [foundAccount] = await db
+        .select({
+          groceriesPercentage: accounts.groceriesPercentage,
+          diningPercentage: accounts.diningPercentage,
+          emergencyPercentage: accounts.emergencyPercentage,
+        })
+        .from(accounts)
+        .where(eq(accounts.id, accountId))
+        .limit(1);
+      accountRecord = foundAccount;
+    } catch (e) {
+      console.error(e);
+    }
+
+    const groceriesPercentage = accountRecord?.groceriesPercentage || 100;
+    const diningPercentage = accountRecord?.diningPercentage || 0;
+    const emergencyPercentage = accountRecord?.emergencyPercentage || 0;
+
     // Try to find budget for today
     const dailyBudget = await this.budgetRepo.getDailyBudgetByDate(
       accountId,
       today,
     );
 
-    // Fallback: if no budget for today, use the most recent previous budget or active config
-    if (!dailyBudget && activeConfig) {
+    let baseTotalBudget = 0;
+    let isFallback = false;
+    let fallbackFromDate = null;
+    let configId = activeConfig?.id || null;
+    let hasExpenseLogged = false;
+    let amountSpent = 0;
+
+    if (dailyBudget) {
+      baseTotalBudget = parseFloat(dailyBudget.dailyBudget.allocatedAmount);
+      hasExpenseLogged = !!dailyBudget.expense;
+      amountSpent = dailyBudget.expense
+        ? parseFloat(dailyBudget.expense.amountSpent)
+        : 0;
+    } else if (activeConfig) {
       const previousBudget = await this.budgetRepo.getMostRecentPreviousBudget(
         accountId,
         today,
       );
 
       if (previousBudget) {
-        // Return with fallback data (don't auto-create — let user explicitly set)
-        return {
-          date: this.formatLocalToISO(today),
-          allocatedAmount: parseFloat(previousBudget.allocatedAmount),
-          amountSpent: 0,
-          balance: parseFloat(previousBudget.allocatedAmount),
-          hasExpenseLogged: false,
-          isFallback: true,
-          fallbackFromDate: previousBudget.date,
-          configId: activeConfig.id,
-        };
+        baseTotalBudget = parseFloat(previousBudget.allocatedAmount);
+        isFallback = true;
+        fallbackFromDate = previousBudget.date;
+        configId = activeConfig.id;
       } else if (activeConfig.dailyAmount) {
-        // Fallback to active configuration default
-        const fallbackAmount = parseFloat(activeConfig.dailyAmount);
-        return {
-          date: this.formatLocalToISO(today),
-          allocatedAmount: fallbackAmount,
-          amountSpent: 0,
-          balance: fallbackAmount,
-          hasExpenseLogged: false,
-          isFallback: true,
-          fallbackFromDate: null,
-          configId: activeConfig.id,
-        };
+        baseTotalBudget = parseFloat(activeConfig.dailyAmount);
+        isFallback = true;
+        configId = activeConfig.id;
       }
     }
 
-    if (!dailyBudget || !activeConfig) {
-      return {
-        date: this.formatLocalToISO(today),
-        allocatedAmount: 0,
-        amountSpent: 0,
-        balance: 0,
-        hasExpenseLogged: false,
-        isFallback: false,
-        fallbackFromDate: null,
-        configId: activeConfig?.id || null,
-      };
-    }
+    const allocatedAmount = parseFloat(
+      ((baseTotalBudget * groceriesPercentage) / 100).toFixed(2),
+    );
+    const diningBudgetOffset = parseFloat(
+      ((baseTotalBudget * diningPercentage) / 100).toFixed(2),
+    );
+    const emergencyBudgetOffset = parseFloat(
+      ((baseTotalBudget * emergencyPercentage) / 100).toFixed(2),
+    );
 
-    const allocatedAmount = parseFloat(dailyBudget.dailyBudget.allocatedAmount);
-    const amountSpent = dailyBudget.expense
-      ? parseFloat(dailyBudget.expense.amountSpent)
-      : 0;
     const balance = allocatedAmount - amountSpent;
 
     return {
@@ -406,10 +429,16 @@ export class BudgetService {
       allocatedAmount,
       amountSpent,
       balance,
-      hasExpenseLogged: !!dailyBudget.expense,
-      isFallback: false,
-      fallbackFromDate: null,
-      configId: activeConfig.id,
+      hasExpenseLogged,
+      isFallback,
+      fallbackFromDate,
+      configId,
+      totalBudgetAmount: baseTotalBudget,
+      diningBudgetOffset,
+      emergencyBudgetOffset,
+      groceriesPercentage,
+      diningPercentage,
+      emergencyPercentage,
     };
   }
 
@@ -438,6 +467,32 @@ export class BudgetService {
     let totalSpent = 0;
     let lastKnownBudgetAmount = 0;
 
+    // Fetch account percentages
+    const { getDb } = await import("../../database/db.js");
+    const { accounts } = await import("../../database/schemas/schema.js");
+    const { eq } = await import("drizzle-orm");
+    const db = getDb();
+
+    let accountRecord = null;
+    try {
+      const [foundAccount] = await db
+        .select({
+          groceriesPercentage: accounts.groceriesPercentage,
+          diningPercentage: accounts.diningPercentage,
+          emergencyPercentage: accounts.emergencyPercentage,
+        })
+        .from(accounts)
+        .where(eq(accounts.id, accountId))
+        .limit(1);
+      accountRecord = foundAccount;
+    } catch (e) {
+      console.error(e);
+    }
+
+    const groceriesPercentage = accountRecord?.groceriesPercentage || 100;
+    const diningPercentage = accountRecord?.diningPercentage || 0;
+    const emergencyPercentage = accountRecord?.emergencyPercentage || 0;
+
     // Active config
     const activeConfig = await this.budgetRepo.getActiveBudgetConfig(accountId);
     if (activeConfig?.dailyAmount) {
@@ -465,14 +520,14 @@ export class BudgetService {
 
       console.log(`Daily data : ${dailyData}`);
 
-      let allocatedAmount = 0;
+      let baseTotalBudget = 0;
       let amountSpent = 0;
       let hasBudget = false;
       let hasExpense = false;
       let isFallback = false;
 
       if (dailyData) {
-        allocatedAmount = parseFloat(dailyData.dailyBudget.allocatedAmount);
+        baseTotalBudget = parseFloat(dailyData.dailyBudget.allocatedAmount);
         amountSpent = dailyData.expense
           ? parseFloat(dailyData.expense.amountSpent)
           : 0;
@@ -480,11 +535,21 @@ export class BudgetService {
         hasBudget = true;
         hasExpense = !!dailyData.expense;
 
-        lastKnownBudgetAmount = allocatedAmount;
+        lastKnownBudgetAmount = baseTotalBudget;
       } else if (lastKnownBudgetAmount > 0) {
-        allocatedAmount = lastKnownBudgetAmount;
+        baseTotalBudget = lastKnownBudgetAmount;
         isFallback = true;
       }
+
+      const allocatedAmount = parseFloat(
+        ((baseTotalBudget * groceriesPercentage) / 100).toFixed(2),
+      );
+      const diningBudgetOffset = parseFloat(
+        ((baseTotalBudget * diningPercentage) / 100).toFixed(2),
+      );
+      const emergencyBudgetOffset = parseFloat(
+        ((baseTotalBudget * emergencyPercentage) / 100).toFixed(2),
+      );
 
       totalBudget += allocatedAmount;
       totalSpent += amountSpent;
@@ -498,6 +563,9 @@ export class BudgetService {
         hasBudget,
         hasExpense,
         isFallback,
+        totalBudgetAmount: baseTotalBudget,
+        diningBudgetOffset,
+        emergencyBudgetOffset,
       });
     }
 

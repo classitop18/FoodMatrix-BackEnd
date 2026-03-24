@@ -34,15 +34,11 @@ export class AccountService {
 
         currentAllocation: data.currentAllocation,
 
-        dailyBudget: data.dailyBudget ? Number(data.dailyBudget) : undefined,
-
         weeklyBudget: Number(data.weeklyBudget),
 
         monthlyBudget: data.monthlyBudget
           ? Number(data.monthlyBudget)
           : undefined,
-
-        annualBudget: data.annualBudget ? Number(data.annualBudget) : undefined,
 
         groceriesPercentage: data.groceriesPercentage,
         diningPercentage: data.diningPercentage,
