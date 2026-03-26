@@ -437,13 +437,32 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
             }
             ],
 
-            "shoppingList": [
-              {
-                "ingredientName": "name of ingredient to buy (standardized)",
-                "quantity": "amount to buy (converted to standard weight/volume)",
-                "unit": "standard purchasing unit (MUST use 'kg', 'g', 'lb' for solid produce like tomatoes/onions, and 'l', 'ml' for liquids. Do NOT use 'piece', 'each', or quantity counts for these items.)"
-              }
-            ],
+           "shoppingList": [
+  {
+    "ingredientName": "Canonical, singular, standardized ingredient name. Must be lowercase, no plural forms, no brand names, and no unnecessary adjectives. Examples: 'tomato', 'onion', 'milk', 'egg', 'bread'. All variations must map to a single common name.",
+    
+    "quantity": "Numeric value only. Aggregate total required quantity. Use decimal format if needed (e.g., 0.5, 1.25). Do not include units in this field.",
+    
+    "unit": "Use standardized units based on item type:
+    
+    - For measurable solids (vegetables, fruits, grains, etc.): use ONLY 'kg', 'g', or 'lb'
+      (e.g., tomato → kg, onion → kg, rice → kg)
+    
+    - For liquids: use ONLY 'l' or 'ml'
+      (e.g., milk → l, oil → ml)
+    
+    - Use 'piece' ONLY for items that are naturally counted and cannot be meaningfully expressed in weight/volume
+      (e.g., egg, bread loaf, banana, lemon)
+    
+    - Use 'pack' ONLY for packaged goods where weight/volume is unknown or irrelevant
+      (e.g., bread pack, biscuit pack)
+    
+    Strict Rules:
+    - DO NOT use 'piece' for items that are typically bought by weight (e.g., tomato, onion, potato)
+    - DO NOT use 'pack' if weight/volume can be reasonably estimated
+    - Prefer weight/volume units whenever possible"
+  }
+]
             
             "instructions": [
             "Step 1: Detailed action with timing and temperature",

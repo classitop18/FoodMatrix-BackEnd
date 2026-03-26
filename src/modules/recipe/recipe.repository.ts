@@ -1222,8 +1222,18 @@ export class RecipeStorage implements RecipeStorageInterface {
       recipeIds.map((id) => this.retrieveShoppingList(id)),
     );
 
+    console.log("📦 Raw Lists from DB:");
+    lists.forEach((list, index) => {
+      console.log(
+        `➡️ Recipe ${recipeIds[index]} list:`,
+        JSON.stringify(list, null, 2),
+      );
+    });
+
     // Flatten
     allItems = lists.flat();
+
+    console.log({ allItems });
 
     // Merge logic
     // Group by Ingredient Name + Unit (normalized)

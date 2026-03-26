@@ -100,28 +100,28 @@ export class AIRecipeService {
       const prompt = await this.promptBuilder.buildPrompt(enhancedRequest);
 
       // Write full prompt to file to avoid truncation
-      try {
-        const logsDir = path.join(process.cwd(), "logs");
-        if (!fs.existsSync(logsDir)) {
-          await fsPromises.mkdir(logsDir, { recursive: true });
-        }
-        const logFile = path.join(logsDir, "last_ai_prompt.log");
-        const logContent = `
-==========================================
-TIMESTAMP: ${new Date().toISOString()}
-==========================================
-REQUEST DATA:
-${JSON.stringify(enhancedRequest, null, 2)}
-==========================================
-GENERATED PROMPT:
-${typeof prompt === "string" ? prompt : JSON.stringify(prompt, null, 2)}
-==========================================
-`;
-        await fsPromises.writeFile(logFile, logContent);
-        console.log(`✅ Detailed AI Prompt written to: ${logFile}`);
-      } catch (err) {
-        console.error("Failed to write prompt debug log:", err);
-      }
+      //       try {
+      //         const logsDir = path.join(process.cwd(), "logs");
+      //         if (!fs.existsSync(logsDir)) {
+      //           await fsPromises.mkdir(logsDir, { recursive: true });
+      //         }
+      //         const logFile = path.join(logsDir, "last_ai_prompt.log");
+      //         const logContent = `
+      // ==========================================
+      // TIMESTAMP: ${new Date().toISOString()}
+      // ==========================================
+      // REQUEST DATA:
+      // ${JSON.stringify(enhancedRequest, null, 2)}
+      // ==========================================
+      // GENERATED PROMPT:
+      // ${typeof prompt === "string" ? prompt : JSON.stringify(prompt, null, 2)}
+      // ==========================================
+      // `;
+      // await fsPromises.writeFile(logFile, logContent);
+      // console.log(`✅ Detailed AI Prompt written to: ${logFile}`);
+      // } catch (err) {
+      //   console.error("Failed to write prompt debug log:", err);
+      // }
 
       // Generate recipes using AI
       const maxTokens = this.calculateMaxTokens(request.recipeCount);
@@ -136,6 +136,10 @@ ${typeof prompt === "string" ? prompt : JSON.stringify(prompt, null, 2)}
         tokensUsed: response.usage?.totalTokens || "N/A",
       });
       console.log("AI RESPONSE:", JSON.stringify(response, null, 2));
+
+      console.log({
+        ai_response: response?.content,
+      });
       // Parse and validate recipes
       const recipes = this.recipeParser.parse(
         response.content,
