@@ -3,6 +3,7 @@ import {
   AIRecipeRequest,
   RecipePromptBuilder,
   RecipeScore,
+  ShoppingListItem,
 } from "../interfaces/ai.interfaces.js";
 
 export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
@@ -913,5 +914,65 @@ Member ${index + 1}:
         ✅ Tips and variations included
         ✅ Valid JSON format (no extra text)
         ${dietaryRestrictions?.length ? "✅ Dietary restrictions fully respected" : ""}`;
+  }
+
+  async buildShoppingListMergePrompt(
+    items: ShoppingListItem[],
+  ): Promise<string> {
+    const itemsList = items
+      .map(
+        (i, idx) =>
+          `${idx + 1}. ${i.ingredientName}: ${i.quantity} ${i.unit} (Category: ${i.category || "unknown"})`,
+      )
+      .join("\n");
+
+    return `You are an expert grocery logistics assistant. Your mission is to take multiple fragments of shopping lists from different recipes and synthesize them into a single, high-efficiency consolidated shopping session.
+
+**INCOMING LIST FRAGMENTS:**
+${itemsList}
+
+**LOGISTICS RULES:**
+1. **Canonical Normalization**: Standardize all ingredient names to their singular, lowercase, base form (e.g., "Organic Red Onions" → "onion", "Large Brown Eggs" → "egg", "cloves of garlic" → "garlic").
+2. **Unit Harmonization & Mathematically Correct Conversion**:
+   - If an item appears in multiple units (e.g., tbsp and g, cups and ml), you MUST convert them to a single dominant unit before summing.
+   - **Conversion Weights (Approximate for 2025 Standard):**
+     - 1 cup All-purpose Flour = 120g
+     - 1 cup Granulated Sugar = 200g
+     - 1 tbsp Salt = 18g
+     - 1 tsp Salt = 6g
+     - 1 tbsp Olive Oil = 14g
+     - 1 cup Water/Milk = 240ml
+     - 1 cup Rice = 185g
+     - 1 tbsp Butter = 14g
+   - **Target Units:**
+     - Weight: "kg" or "g" (default to kg for items > 1kg)
+     - Volume: "l" or "ml" (default to l for > 1l)
+     - Count: "piece", "clove", "pack"
+3. **Smart Categorization**: Every item MUST belong to exactly one of these categories: "Produce", "Dairy", "Meat/Seafood", "Pantry", "Spices", "Bakery", "Frozen", "Beverages", "Other".
+4. **Estimated Pricing**: Provide a realistic, budget-conscious USD price estimate for the TOTAL quantity of each item based on USA 2025 grocery prices.
+
+**OUTPUT FORMAT (STRICT JSON ONLY):**
+Return a JSON array of objects with the following structure:
+\`\`\`json
+[
+  {
+    "ingredientName": "singular canonical name",
+    "quantity": "total numeric quantity (as a string)",
+    "unit": "standardized unit (kg|g|l|ml|piece|clove|pack|cup|tbsp|tsp)",
+    "displayQuantity": "human-friendly string (e.g. '1/2' or '1.5')",
+    "displayUnit": "human-friendly unit full name",
+    "category": "Produce|Dairy|Meat/Seafood|Pantry|Spices|Bakery|Frozen|Beverages|Other",
+    "price": "estimated total cost (string, e.g. '4.50')",
+    "isCommonPantryItem": true|false
+  }
+]
+\`\`\`
+
+**CONSTRAINTS:**
+- NO preamble. NO code blocks. NO explanations.
+- Return ONLY valid JSON array.
+- Ensure the mathematical sums are correct after conversions.
+- If an item is a common staple (salt, pepper, oil, water), set isCommonPantryItem to true.
+`;
   }
 }

@@ -89,7 +89,9 @@ export class RecipeController {
       const accountId = this.getAccountId(req);
       if (!accountId) throw new AppError("Account ID is required", 401);
 
-      const recipe = await this.recipeService.getRecipeDetails(req.params.id);
+      const recipe = await this.recipeService.getRecipeDetails(
+        req.params.id as string,
+      );
       if (!recipe) throw new AppError("Recipe not found", 404);
 
       return sendResponse(res, recipe, "Recipe fetched successfully", 200);
@@ -126,7 +128,7 @@ export class RecipeController {
       if (!accountId) throw new AppError("Account ID is required", 401);
 
       const updated = await this.recipeService.updateRecipe(
-        req.params.id,
+        req.params.id as string,
         accountId,
         req.body,
       );
@@ -449,6 +451,72 @@ export class RecipeController {
 
       const list = await this.recipeService.getMergedShoppingList(recipeIds);
       return sendResponse(res, list, "Merged shopping list fetched", 200);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  // 📝 Save shopping session
+  saveShoppingSession = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const accountId = this.getAccountId(req);
+      const userId = req.user?.id;
+      if (!accountId || !userId) throw new AppError("Unauthorized", 401);
+
+      const { name, items } = req.body;
+      if (!items || !Array.isArray(items)) {
+        throw new AppError("Items are required", 400);
+      }
+
+      const session = await this.recipeService.saveShoppingSession(
+        accountId,
+        userId,
+        name || `Shopping List - ${new Date().toLocaleDateString()}`,
+        items,
+      );
+
+      return sendResponse(res, session, "Shopping session saved", 201);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  // 📝 Get shopping session
+  getShoppingSession = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const session = await this.recipeService.getShoppingSession(
+        req.params.id,
+      );
+      if (!session) throw new AppError("Session not found", 404);
+
+      return sendResponse(res, session, "Shopping session fetched", 200);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  // 📝 Update item status
+  updateShoppingItemStatus = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { isPurchased } = req.body;
+      const result = await this.recipeService.updateShoppingItemStatus(
+        req.params.itemId,
+        isPurchased,
+      );
+
+      return sendResponse(res, result, "Item status updated", 200);
     } catch (err) {
       next(err);
     }

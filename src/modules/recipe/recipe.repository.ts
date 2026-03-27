@@ -17,12 +17,16 @@ import {
   recipeIngredients,
   recipeShoppingListItems,
   userRecipeInteractions,
+  shoppingSessions,
+  shoppingSessionItems,
   Ingredient,
   InsertRecipe,
   InsertRecipeIngredient,
   InsertRecipeShoppingListItem,
   Recipe,
   RecipeIngredient,
+  InsertShoppingSession,
+  InsertShoppingSessionItem,
 } from "../../database/schemas/schema.js";
 
 import {
@@ -1326,5 +1330,50 @@ export class RecipeStorage implements RecipeStorageInterface {
     } catch {
       return fallback;
     }
+  }
+
+  async saveShoppingSession(
+    session: InsertShoppingSession,
+    items: InsertShoppingSessionItem[],
+  ) {
+    return await this.db.transaction(async (tx: any) => {
+      const [newSession] = await tx
+        .insert(shoppingSessions)
+        .values(session)
+        .returning();
+
+      if (items.length > 0) {
+        const itemsWithSessionId = items.map((item) => ({
+          ...item,
+          sessionId: newSession.id,
+        }));
+        await tx.insert(shoppingSessionItems).values(itemsWithSessionId);
+      }
+
+      return newSession;
+    });
+  }
+
+  async getShoppingSession(sessionId: string) {
+    const session = await this.db.query.shoppingSessions.findFirst({
+      where: eq(shoppingSessions.id, sessionId),
+    });
+
+    if (!session) return null;
+
+    const items = await this.db
+      .select()
+      .from(shoppingSessionItems)
+      .where(eq(shoppingSessionItems.sessionId, sessionId));
+
+    return { ...session, items };
+  }
+
+  async updateShoppingItemStatus(itemId: string, isPurchased: boolean) {
+    return await this.db
+      .update(shoppingSessionItems)
+      .set({ isPurchased })
+      .where(eq(shoppingSessionItems.id, itemId))
+      .returning();
   }
 }

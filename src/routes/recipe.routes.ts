@@ -96,4 +96,12 @@ recipeRoutes.delete(
   recipeController.removeIngredient,
 );
 
+// 📝 Shopping Sessions
+recipeRoutes.post("/shopping-sessions", recipeController.saveShoppingSession);
+recipeRoutes.get("/shopping-sessions/:id", recipeController.getShoppingSession);
+recipeRoutes.patch(
+  "/shopping-sessions/items/:itemId",
+  recipeController.updateShoppingItemStatus,
+);
+
 export default recipeRoutes;

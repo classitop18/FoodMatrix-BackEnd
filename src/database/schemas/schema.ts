@@ -993,3 +993,52 @@ export type InsertReceiptExpense = typeof receiptExpenses.$inferInsert;
 
 export type Activity = typeof activity.$inferSelect;
 export type InsertActivity = typeof activity.$inferInsert;
+
+// ================== SHOPPING SESSIONS ==================
+export const shoppingSessions = pgTable("shopping_sessions", {
+  id: varchar("id", { length: 36 })
+    .default(sql`gen_random_uuid()`)
+    .primaryKey(),
+  accountId: varchar("account_id", { length: 36 })
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  createdBy: varchar("created_by", { length: 36 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  status: varchar("status", { length: 20 }).default("active").notNull(), // active, completed, cancelled
+  name: text("name"),
+  totalEstimatedCost: numeric("total_estimated_cost", {
+    precision: 16,
+    scale: 2,
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .default(sql`now()`)
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .default(sql`now()`)
+    .notNull(),
+});
+
+export const shoppingSessionItems = pgTable("shopping_session_items", {
+  id: varchar("id", { length: 36 })
+    .default(sql`gen_random_uuid()`)
+    .primaryKey(),
+  sessionId: varchar("session_id", { length: 36 })
+    .notNull()
+    .references(() => shoppingSessions.id, { onDelete: "cascade" }),
+  ingredientName: text("ingredient_name").notNull(),
+  quantity: varchar("quantity"),
+  unit: varchar("unit"),
+  category: text("category"),
+  isPurchased: boolean("is_purchased").default(false).notNull(),
+  price: numeric("price", { precision: 16, scale: 2 }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .default(sql`now()`)
+    .notNull(),
+});
+
+export type ShoppingSession = typeof shoppingSessions.$inferSelect;
+export type InsertShoppingSession = typeof shoppingSessions.$inferInsert;
+export type ShoppingSessionItem = typeof shoppingSessionItems.$inferSelect;
+export type InsertShoppingSessionItem =
+  typeof shoppingSessionItems.$inferInsert;

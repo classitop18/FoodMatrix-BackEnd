@@ -7,6 +7,7 @@ import {
   RECIPE_GENERATION_SYSTEM_PROMPT,
   RecipeParser,
   RecipeStorage,
+  ShoppingListItem,
 } from "../interfaces/ai.interfaces.js";
 import fs from "fs";
 import fsPromises from "fs/promises";
@@ -1229,6 +1230,37 @@ Follow all requirements from single recipe search for EACH variation.`;
     } catch (error) {
       console.error("Failed to estimate ingredient costs:", error);
       return {};
+    }
+  }
+
+  async mergeShoppingLists(
+    items: ShoppingListItem[],
+  ): Promise<ShoppingListItem[]> {
+    try {
+      if (!items || items.length === 0) return [];
+
+      const prompt =
+        await this.promptBuilder.buildShoppingListMergePrompt(items);
+
+      const response = await this.aiProvider.createCompletion({
+        prompt,
+        systemPrompt:
+          "You are an expert grocery logistics assistant. Return ONLY JSON array. Do NOT return any preamble or extra text.",
+        maxTokens: 3000,
+        temperature: 0.2, // Low for accuracy
+      });
+
+      const jsonMatch = response.content.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        console.warn("AI Merge Shopping List: No JSON found in response");
+        return items; // Fallback to raw items (unmerged but safe)
+      }
+
+      const mergedList = JSON.parse(jsonMatch[0]);
+      return mergedList;
+    } catch (error) {
+      console.error("Failed to merge shopping lists using AI:", error);
+      return items; // Fallback
     }
   }
 }

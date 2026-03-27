@@ -40,6 +40,7 @@ export interface RecipePromptBuilder {
     servings: number,
     dietaryRestrictions?: string[],
   ): Promise<string>;
+  buildShoppingListMergePrompt(items: ShoppingListItem[]): Promise<string>;
 }
 
 export interface RecipeParser {
@@ -204,6 +205,11 @@ export interface ShoppingListItem {
   ingredientName: string;
   quantity: string;
   unit: string;
+  category?: string;
+  displayQuantity?: string;
+  displayUnit?: string;
+  price?: string;
+  isCommonPantryItem?: boolean;
 }
 
 export const RECIPE_GENERATION_SYSTEM_PROMPT = `You are an elite AI chef and nutritionist specializing in personalized family meal planning with advanced machine learning capabilities.

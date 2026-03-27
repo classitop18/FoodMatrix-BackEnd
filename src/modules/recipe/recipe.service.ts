@@ -10,7 +10,10 @@ import { IngredientsRepository } from "../ingredients/ingredients.repository.js"
 export type { RecipeFilters };
 
 import { AIRecipeService } from "../ai/services/ai-recipe.service.js";
-import { AIRecipeRequest } from "../ai/interfaces/ai.interfaces.js";
+import {
+  AIRecipeRequest,
+  ShoppingListItem,
+} from "../ai/interfaces/ai.interfaces.js";
 import {
   IMemberRepository,
   MemberRepository,
@@ -451,6 +454,63 @@ export class RecipeService {
 
   // 🛍️🛒 Get merged shopping list
   async getMergedShoppingList(recipeIds: string[]) {
-    return await this.storage.retrieveMergedShoppingList(recipeIds);
+    // 1. Fetch individual shopping lists for each recipe with recipe details
+    const individualLists = await Promise.all(
+      recipeIds.map(async (id) => {
+        const recipe = await this.storage.getRecipeById(id);
+        const list = await this.storage.retrieveShoppingList(id);
+        return {
+          recipeId: id,
+          recipeName: recipe?.name || "Unknown Recipe",
+          items: list || [],
+        };
+      }),
+    );
+
+    // 2. Flatten for merging
+    const allItems: ShoppingListItem[] = individualLists.flatMap(
+      (l) => l.items,
+    );
+
+    // 3. Merged list using AI (enhanced)
+    const mergedList = await this.aiRecipeService.mergeShoppingLists(allItems);
+
+    return {
+      individualLists,
+      mergedList,
+    };
+  }
+
+  async saveShoppingSession(
+    accountId: string,
+    userId: string,
+    name: string,
+    items: any[],
+  ) {
+    const sessionItems = items.map((item) => ({
+      ingredientName: item.name,
+      quantity: item.displayQuantity?.toString() || item.quantity?.toString(),
+      unit: item.displayUnit || item.unit,
+      category: item.category,
+      price: item.price?.toString(),
+    }));
+
+    return await this.storage.saveShoppingSession(
+      {
+        accountId,
+        createdBy: userId,
+        name,
+        status: "active",
+      },
+      sessionItems as any,
+    );
+  }
+
+  async getShoppingSession(sessionId: string) {
+    return await this.storage.getShoppingSession(sessionId);
+  }
+
+  async updateShoppingItemStatus(itemId: string, isPurchased: boolean) {
+    return await this.storage.updateShoppingItemStatus(itemId, isPurchased);
   }
 }
