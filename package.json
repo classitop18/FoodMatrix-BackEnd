@@ -17,6 +17,7 @@
     "format": "prettier --write .",
     "db:generate": "npm run build && drizzle-kit generate",
     "db:push": "npm run build && drizzle-kit push",
+    "db:migrate": "npm run build && tsx src/database/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/seed/run-seed-cli.ts",
     "prepare": "husky"

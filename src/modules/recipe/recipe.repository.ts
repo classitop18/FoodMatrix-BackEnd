@@ -1366,13 +1366,52 @@ export class RecipeStorage implements RecipeStorageInterface {
       .from(shoppingSessionItems)
       .where(eq(shoppingSessionItems.sessionId, sessionId));
 
-    return { ...session, items };
+    // Reconstruct pricing metadata from stored items
+    const pricedItems = items.map((item: (typeof items)[0]) => ({
+      ...item,
+      estimatedPrice: item.price ? parseFloat(item.price) : null,
+      priceUnavailable: !item.price,
+      priceSource: (item.price ? "curated_db" : "unavailable") as
+        | "curated_db"
+        | "unavailable",
+    }));
+
+    const priceAvailableItems = pricedItems.filter(
+      (i: (typeof pricedItems)[0]) => i.estimatedPrice !== null,
+    );
+    const totalEstimatedCost = session.totalEstimatedCost
+      ? parseFloat(session.totalEstimatedCost)
+      : priceAvailableItems.reduce(
+          (sum: number, i: (typeof pricedItems)[0]) =>
+            sum + (i.estimatedPrice || 0),
+          0,
+        );
+
+    const pricingMetadata = {
+      totalEstimatedCost: Math.round(totalEstimatedCost * 100) / 100,
+      pricedItemCount: priceAvailableItems.length,
+      unavailableItemCount: pricedItems.length - priceAvailableItems.length,
+      priceSource: "curated_db",
+    };
+
+    return {
+      session,
+      items: pricedItems,
+      pricingMetadata,
+    };
   }
 
   async updateShoppingItemStatus(itemId: string, isPurchased: boolean) {
     return await this.db
       .update(shoppingSessionItems)
       .set({ isPurchased })
+      .where(eq(shoppingSessionItems.id, itemId))
+      .returning();
+  }
+
+  async deleteShoppingItem(itemId: string) {
+    return await this.db
+      .delete(shoppingSessionItems)
       .where(eq(shoppingSessionItems.id, itemId))
       .returning();
   }

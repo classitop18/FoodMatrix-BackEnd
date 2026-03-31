@@ -103,5 +103,9 @@ recipeRoutes.patch(
   "/shopping-sessions/items/:itemId",
   recipeController.updateShoppingItemStatus,
 );
+recipeRoutes.delete(
+  "/shopping-sessions/items/:itemId",
+  recipeController.deleteShoppingItem,
+);
 
 export default recipeRoutes;

@@ -18,23 +18,27 @@ import {
   IMemberRepository,
   MemberRepository,
 } from "../member/member.repository.js";
+import { GroceryPricingService } from "../grocery/grocery-pricing.service.js";
 
 export class RecipeService {
   private storage: RecipeStorage;
   private ingredientStorage: IngredientsRepository;
   private aiRecipeService: AIRecipeService;
   private memberRepository: IMemberRepository;
+  private groceryPricingService: GroceryPricingService;
 
   constructor(
     storage: RecipeStorage,
     ingredientStorage: IngredientsRepository,
     aiRecipeService: AIRecipeService,
     memberRepository: IMemberRepository = new MemberRepository(),
+    groceryPricingService: GroceryPricingService = new GroceryPricingService(),
   ) {
     this.storage = storage;
     this.ingredientStorage = ingredientStorage;
     this.aiRecipeService = aiRecipeService;
     this.memberRepository = memberRepository;
+    this.groceryPricingService = groceryPricingService;
   }
 
   // 🧑‍🍳 Create a new recipe
@@ -487,23 +491,108 @@ export class RecipeService {
     name: string,
     items: any[],
   ) {
-    const sessionItems = items.map((item) => ({
-      ingredientName: item.name,
-      quantity: item.displayQuantity?.toString() || item.quantity?.toString(),
-      unit: item.displayUnit || item.unit,
-      category: item.category,
-      price: item.price?.toString(),
+    console.log(
+      "🛒 ShoppingSession: Enriching",
+      items.length,
+      "items with real grocery prices...",
+    );
+
+    // 1. Prepare items for pricing service
+    const preparedItems = items.map((item) => ({
+      ingredientName: item.ingredientName || item.name || "",
+      quantity: (item.quantity || item.displayQuantity || "1").toString(),
+      unit: item.unit || item.displayUnit || "piece",
+      category: item.category || "Other",
+      displayQuantity: item.displayQuantity?.toString(),
+      displayUnit: item.displayUnit,
     }));
 
-    return await this.storage.saveShoppingSession(
+    // 2. Fetch real prices for all items
+    // items from the AI merge step are already in retail units (piece, pack, kg, bottle)
+    // so we skip unit re-normalization and go straight to price lookup
+    let pricedItems;
+
+    console.log(`Step1: Preparing items`, { preparedItems });
+    try {
+      pricedItems = await this.groceryPricingService.enrichWithPrices(
+        preparedItems,
+        {
+          skipUnitNormalization: true,
+        },
+      );
+
+      console.log(`Step last: Priced Items`, { pricedItems });
+    } catch (err) {
+      console.error(
+        "❌ Grocery pricing failed, falling back to price_unavailable:",
+        err,
+      );
+      pricedItems = preparedItems.map((item) => ({
+        ...item,
+        retailQuantity: 1,
+        retailUnit: item.unit,
+        estimatedPrice: null,
+        priceUnavailable: true,
+        priceSource: "unavailable" as const,
+        displayQuantity: item.displayQuantity || item.quantity,
+        displayUnit: item.displayUnit || item.unit,
+        imageUrl: null,
+      }));
+    }
+
+    // 3. Calculate total
+    const totalInfo = this.groceryPricingService.calculateTotal(
+      pricedItems as any,
+    );
+    const totalEstimatedCost = totalInfo.total.toFixed(2);
+
+    console.log("✅ Pricing complete:", {
+      total: `$${totalEstimatedCost}`,
+      priced: totalInfo.availableCount,
+      unavailable: totalInfo.unavailableCount,
+    });
+
+    // 4. Map to DB items
+    const sessionItems = pricedItems.map((item) => ({
+      ingredientName: item.ingredientName,
+      quantity: item.displayQuantity || item.retailQuantity?.toString() || "1",
+      unit: item.displayUnit || item.retailUnit || item.unit,
+      category: item.category,
+      price: item.estimatedPrice?.toString() || null,
+      imageUrl: item.imageUrl || null,
+    }));
+
+    const session = await this.storage.saveShoppingSession(
       {
         accountId,
         createdBy: userId,
         name,
         status: "active",
+        totalEstimatedCost,
       },
       sessionItems as any,
     );
+
+    // 5. Return enriched session with pricing metadata
+    return {
+      ...session,
+      pricingMetadata: {
+        totalEstimatedCost: parseFloat(totalEstimatedCost),
+        pricedItemCount: totalInfo.availableCount,
+        unavailableItemCount: totalInfo.unavailableCount,
+        priceSource: process.env.KROGER_CLIENT_ID
+          ? "kroger+curated_db"
+          : "curated_db",
+      },
+      items: pricedItems.map((item, idx) => ({
+        ...sessionItems[idx],
+        estimatedPrice: item.estimatedPrice,
+        priceUnavailable: item.priceUnavailable,
+        priceSource: item.priceSource,
+        retailQuantity: item.retailQuantity,
+        retailUnit: item.retailUnit,
+      })),
+    };
   }
 
   async getShoppingSession(sessionId: string) {
@@ -512,5 +601,9 @@ export class RecipeService {
 
   async updateShoppingItemStatus(itemId: string, isPurchased: boolean) {
     return await this.storage.updateShoppingItemStatus(itemId, isPurchased);
+  }
+
+  async deleteShoppingItem(itemId: string) {
+    return await this.storage.deleteShoppingItem(itemId);
   }
 }

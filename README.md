@@ -66,7 +66,7 @@ FoodMatrix Backend is a scalable, enterprise-grade REST API built with TypeScrip
   - Budget allocation and tracking
 
 - ✅ **Budget Management**
-  - Flexible budget periods (weekly, monthly, annual)
+  - Flexible budget periods (weekly, monthly)
   - Category-based allocation (groceries, dining, emergency)
   - Spending streak tracking
   - Budget override management with admin approval
@@ -566,7 +566,7 @@ Manages household accounts and budget settings.
   dailyBudget: decimal (nullable)
   monthlyBudget: decimal (nullable)
   annualBudget: decimal (nullable)
-  currentAllocation: enum ('daily', 'weekly', 'monthly', 'annual')
+  currentAllocation: enum ('daily', 'weekly', 'monthly')
   // Budget distribution
   groceriesPercentage: integer (default: 70)
   diningPercentage: integer (default: 20)
@@ -579,7 +579,7 @@ Manages household accounts and budget settings.
   lastFoodBudgetReset: timestamp
   // Settings
   requiresAdminApprovalForOverrides: boolean (default: true)
-  defaultPlanningPeriod: enum ('weekly', 'monthly', 'annual')
+  defaultPlanningPeriod: enum ('weekly', 'monthly')
   autoGenerateGroceryLists: boolean (default: true)
   createdAt: timestamp
 }
@@ -610,7 +610,7 @@ Tracks household members (both users and internal members).
 accountTypeEnum: "individual" | "family";
 
 // Budget Allocation Periods
-budgetAllocationEnum: "daily" | "weekly" | "monthly" | "annual";
+budgetAllocationEnum: "daily" | "weekly" | "monthly"
 
 // Member Roles
 rolesEnum: "owner" | "super_admin" | "member" | "viewer";

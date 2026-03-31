@@ -1,6 +1,6 @@
 {
-  "id": "e0fe1c35-60e6-42cf-8c8a-9778d01fa352",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "d223b7c1-6956-4f9d-a21f-0154df4a8197",
+  "prevId": "e0fe1c35-60e6-42cf-8c8a-9778d01fa352",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3300,13 +3300,13 @@
         },
         "quantity": {
           "name": "quantity",
-          "type": "varchar",
+          "type": "varchar(100)",
           "primaryKey": false,
           "notNull": false
         },
         "unit": {
           "name": "unit",
-          "type": "varchar",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
         },

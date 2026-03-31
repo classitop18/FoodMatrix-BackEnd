@@ -1027,11 +1027,12 @@ export const shoppingSessionItems = pgTable("shopping_session_items", {
     .notNull()
     .references(() => shoppingSessions.id, { onDelete: "cascade" }),
   ingredientName: text("ingredient_name").notNull(),
-  quantity: varchar("quantity"),
-  unit: varchar("unit"),
+  quantity: varchar("quantity", { length: 100 }),
+  unit: varchar("unit", { length: 255 }),
   category: text("category"),
   isPurchased: boolean("is_purchased").default(false).notNull(),
   price: numeric("price", { precision: 16, scale: 2 }),
+  imageUrl: text("image_url"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`now()`)
     .notNull(),

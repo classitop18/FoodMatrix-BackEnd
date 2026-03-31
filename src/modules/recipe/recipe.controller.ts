@@ -1,4 +1,4 @@
-import { NextFunction, Response } from "express";
+import { NextFunction, Response, Request } from "express";
 import { RecipeService } from "./recipe.service.js";
 import { AuthenticatedRequest } from "../../middlewares/auth.middleware.js";
 import { sendResponse } from "@/utils/response.utils.js";
@@ -487,13 +487,13 @@ export class RecipeController {
 
   // 📝 Get shopping session
   getShoppingSession = async (
-    req: AuthenticatedRequest,
+    req: Request,
     res: Response,
     next: NextFunction,
   ) => {
     try {
       const session = await this.recipeService.getShoppingSession(
-        req.params.id,
+        req.params.id as string,
       );
       if (!session) throw new AppError("Session not found", 404);
 
@@ -517,6 +517,22 @@ export class RecipeController {
       );
 
       return sendResponse(res, result, "Item status updated", 200);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  // 🗑️ Delete shopping item (remove from list when already available)
+  deleteShoppingItem = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const result = await this.recipeService.deleteShoppingItem(
+        req.params.itemId,
+      );
+      return sendResponse(res, result, "Item removed from shopping list", 200);
     } catch (err) {
       next(err);
     }

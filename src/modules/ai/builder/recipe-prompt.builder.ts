@@ -932,47 +932,117 @@ Member ${index + 1}:
 ${itemsList}
 
 **LOGISTICS RULES:**
-1. **Canonical Normalization**: Standardize all ingredient names to their singular, lowercase, base form (e.g., "Organic Red Onions" → "onion", "Large Brown Eggs" → "egg", "cloves of garlic" → "garlic").
-2. **Unit Harmonization & Mathematically Correct Conversion**:
-   - If an item appears in multiple units (e.g., tbsp and g, cups and ml), you MUST convert them to a single dominant unit before summing.
-   - **Conversion Weights (Approximate for 2025 Standard):**
-     - 1 cup All-purpose Flour = 120g
-     - 1 cup Granulated Sugar = 200g
-     - 1 tbsp Salt = 18g
-     - 1 tsp Salt = 6g
-     - 1 tbsp Olive Oil = 14g
-     - 1 cup Water/Milk = 240ml
-     - 1 cup Rice = 185g
-     - 1 tbsp Butter = 14g
-   - **Target Units:**
-     - Weight: "kg" or "g" (default to kg for items > 1kg)
-     - Volume: "l" or "ml" (default to l for > 1l)
-     - Count: "piece", "clove", "pack"
-3. **Smart Categorization**: Every item MUST belong to exactly one of these categories: "Produce", "Dairy", "Meat/Seafood", "Pantry", "Spices", "Bakery", "Frozen", "Beverages", "Other".
-4. **Estimated Pricing**: Provide a realistic, budget-conscious USD price estimate for the TOTAL quantity of each item based on USA 2025 grocery prices.
+
+1. **Canonical Normalization**:
+- Standardize all ingredient names to their singular, lowercase, base form
+(e.g., "Organic Red Onions" → "onion", "Large Brown Eggs" → "egg")
+
+---
+
+2. **Unit Harmonization & Mathematical Conversion**:
+- Convert all units into a single consistent base before merging
+
+**Conversion Weights (Approximate):**
+- 1 tbsp Salt = 18g
+- 1 tsp Salt = 6g
+- 1 tbsp Oil = 14g
+- 1 cup Water/Milk = 240ml
+- 1 cup Rice = 185g
+- 1 tbsp Butter = 14g
+
+---
+
+3. **🚨 FINAL OUTPUT MUST BE PURCHASABLE UNITS (VERY IMPORTANT)**:
+
+Spices (salt, turmeric, chili powder, cumin, pepper, garam masala, etc.) → **"pack"**
+- Any amount (1 tsp or 100g) → 1 pack
+- Even if multiple recipes use the same spice → still 1 pack
+
+Oil, liquid condiments → **"bottle"**
+- Any amount ≤ 1 litre → 1 bottle
+
+Milk → **"litre"**
+
+Grains (rice, flour, lentils, oats) → **"kg"** if ≥500g, else **"pack"**
+
+Canned goods (chickpeas, kidney beans, tomato sauce) → **"can"**
+
+---
+
+4. **🚨 UNIT PRESERVATION RULE (CRITICAL — DO NOT VIOLATE)**:
+
+**If an ingredient's input unit is already a COUNT/PIECE unit (piece, pieces, pcs, whole, unit, clove, bunch, head), you MUST output it as "piece" — NEVER convert it to kg or g.**
+
+Examples:
+- Input: "1 piece onion" → Output: "piece" unit ✅ (NEVER "kg")
+- Input: "2 pieces tomato" → Output: "piece" unit ✅ (NEVER "kg")
+- Input: "3 cloves garlic" → Output: "piece" unit ✅ (NEVER "kg")
+- Input: "1 whole lemon" → Output: "piece" unit ✅
+
+---
+
+5. **Vegetable & Fruit Unit Rules (STRICT)**:
+
+**These vegetables are ALWAYS sold/counted by PIECE — output unit MUST be "piece":**
+onion, tomato, potato, carrot, lemon, lime, apple, banana, orange, garlic, cucumber, bell pepper, capsicum, avocado, corn, eggplant, zucchini, egg, beetroot, sweet potato, turnip, chili, ginger (small piece), broccoli head, cauliflower head, lettuce head
+
+For these, convert weight to approximate piece count IF input is in grams:
+- 1 onion ≈ 150g → 200g input = 1-2 pieces
+- 1 tomato ≈ 100g → 300g input = 3 pieces
+- 1 potato ≈ 200g → 400g input = 2 pieces
+
+**These vegetables may be sold by WEIGHT — output unit is "kg":**
+spinach, cabbage, mushrooms, green beans, peas, herbs (large quantity), nuts
+
+---
+
+6. **Smart Aggregation (CRITICAL)**:
+- Merge duplicate items across recipes
+- DO NOT increase pack count unnecessarily
+- Example: 1 tsp salt + 2 tsp salt → 1 pack salt (NOT 2 packs)
+- Example: 1 piece onion + 1 piece onion → 2 piece onion (SUM the pieces, keep unit "piece")
+
+---
+
+7. **Smart Categorization**:
+Must assign exactly one category:
+"Produce", "Dairy", "Meat/Seafood", "Pantry", "Spices", "Bakery", "Frozen", "Beverages", "Other"
+
+---
 
 **OUTPUT FORMAT (STRICT JSON ONLY):**
-Return a JSON array of objects with the following structure:
-\`\`\`json
+
 [
   {
-    "ingredientName": "singular canonical name",
-    "quantity": "total numeric quantity (as a string)",
-    "unit": "standardized unit (kg|g|l|ml|piece|clove|pack|cup|tbsp|tsp)",
-    "displayQuantity": "human-friendly string (e.g. '1/2' or '1.5')",
-    "displayUnit": "human-friendly unit full name",
-    "category": "Produce|Dairy|Meat/Seafood|Pantry|Spices|Bakery|Frozen|Beverages|Other",
-    "price": "estimated total cost (string, e.g. '4.50')",
-    "isCommonPantryItem": true|false
+    "ingredientName": "salt",
+    "quantity": "1",
+    "unit": "pack",
+    "displayQuantity": "1",
+    "displayUnit": "packet",
+    "category": "Spices",
+    "isCommonPantryItem": true
+  },
+  {
+    "ingredientName": "onion",
+    "quantity": "3",
+    "unit": "piece",
+    "displayQuantity": "3",
+    "displayUnit": "piece",
+    "category": "Produce",
+    "isCommonPantryItem": false
   }
 ]
-\`\`\`
+
+---
 
 **CONSTRAINTS:**
-- NO preamble. NO code blocks. NO explanations.
-- Return ONLY valid JSON array.
-- Ensure the mathematical sums are correct after conversions.
-- If an item is a common staple (salt, pepper, oil, water), set isCommonPantryItem to true.
+- NO cooking units in final output (no tsp, tbsp, ml, pinch, dash)
+- ONLY purchasable units: pack, bottle, kg, litre, piece, can
+- NEVER convert piece/count units to kg
+- NO duplicate items
+- JSON only — no explanation text, no markdown
+- Mathematically correct merging before conversion
+- Optimize for minimum purchase quantity
 `;
   }
 }
