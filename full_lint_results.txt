@@ -1,0 +1,50 @@
+
+> foodmatrix-backend@1.0.0 lint
+> eslint .
+
+
+/home/ubuntu/VishalSharma/OngoingProjects/FoodMatrix-App/backend/src/modules/ai/builder/recipe-prompt.builder.ts
+  432:40   error  Unnecessary escape character: \"  no-useless-escape
+  432:45   error  Unnecessary escape character: \"  no-useless-escape
+  432:48   error  Unnecessary escape character: \"  no-useless-escape
+  432:54   error  Unnecessary escape character: \"  no-useless-escape
+  432:57   error  Unnecessary escape character: \"  no-useless-escape
+  432:62   error  Unnecessary escape character: \"  no-useless-escape
+  432:65   error  Unnecessary escape character: \"  no-useless-escape
+  432:69   error  Unnecessary escape character: \"  no-useless-escape
+  432:72   error  Unnecessary escape character: \"  no-useless-escape
+  432:76   error  Unnecessary escape character: \"  no-useless-escape
+  432:79   error  Unnecessary escape character: \"  no-useless-escape
+  432:86   error  Unnecessary escape character: \"  no-useless-escape
+  432:89   error  Unnecessary escape character: \"  no-useless-escape
+  432:93   error  Unnecessary escape character: \"  no-useless-escape
+  432:96   error  Unnecessary escape character: \"  no-useless-escape
+  432:100  error  Unnecessary escape character: \"  no-useless-escape
+  432:103  error  Unnecessary escape character: \"  no-useless-escape
+  432:108  error  Unnecessary escape character: \"  no-useless-escape
+  432:111  error  Unnecessary escape character: \"  no-useless-escape
+  432:118  error  Unnecessary escape character: \"  no-useless-escape
+  432:121  error  Unnecessary escape character: \"  no-useless-escape
+  432:128  error  Unnecessary escape character: \"  no-useless-escape
+  432:131  error  Unnecessary escape character: \"  no-useless-escape
+  432:138  error  Unnecessary escape character: \"  no-useless-escape
+  432:141  error  Unnecessary escape character: \"  no-useless-escape
+  432:148  error  Unnecessary escape character: \"  no-useless-escape
+  432:151  error  Unnecessary escape character: \"  no-useless-escape
+  432:156  error  Unnecessary escape character: \"  no-useless-escape
+  432:159  error  Unnecessary escape character: \"  no-useless-escape
+  432:166  error  Unnecessary escape character: \"  no-useless-escape
+  432:169  error  Unnecessary escape character: \"  no-useless-escape
+  432:174  error  Unnecessary escape character: \"  no-useless-escape
+
+/home/ubuntu/VishalSharma/OngoingProjects/FoodMatrix-App/backend/src/modules/grocery/grocery-pricing.service.ts
+  614:5  error  'skipUnitNormalization' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  618:9  error  'retailQuantity' is defined but never used. Allowed unused vars must match /^_/u                  @typescript-eslint/no-unused-vars
+  619:9  error  'retailUnit' is defined but never used. Allowed unused vars must match /^_/u                      @typescript-eslint/no-unused-vars
+
+/home/ubuntu/VishalSharma/OngoingProjects/FoodMatrix-App/backend/src/modules/recipe/recipe.service.ts
+  579:15  error  'buyQty' is assigned a value but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  580:15  error  'buyUnit' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 37 problems (37 errors, 0 warnings)
+

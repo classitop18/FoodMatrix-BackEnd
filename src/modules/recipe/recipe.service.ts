@@ -479,9 +479,27 @@ export class RecipeService {
     // 3. Merged list using AI (enhanced)
     const mergedList = await this.aiRecipeService.mergeShoppingLists(allItems);
 
+    // 4. Enrich merged list with real grocery prices
+    const preparedItems = mergedList.map((item: any) => ({
+      ingredientName: item.ingredientName || item.name || "",
+      quantity: (item.quantity || "1").toString(),
+      unit: item.unit || "unit",
+      category: item.category || "Other",
+    }));
+
+    let pricedMergedList = mergedList;
+    try {
+      pricedMergedList = (await this.groceryPricingService.enrichWithPrices(
+        preparedItems,
+        { skipUnitNormalization: false },
+      )) as any;
+    } catch (err) {
+      console.error("❌ Grocery pricing failed mapping merged list:", err);
+    }
+
     return {
       individualLists,
-      mergedList,
+      mergedList: pricedMergedList,
     };
   }
 
@@ -500,11 +518,7 @@ export class RecipeService {
     // 1. Prepare items for pricing service
     const preparedItems = items.map((item) => ({
       ingredientName: item.ingredientName || item.name || "",
-      quantity: (item.quantity || item.displayQuantity || "1").toString(),
-      unit: item.unit || item.displayUnit || "piece",
       category: item.category || "Other",
-      displayQuantity: item.displayQuantity?.toString(),
-      displayUnit: item.displayUnit,
     }));
 
     // 2. Fetch real prices for all items
@@ -529,38 +543,64 @@ export class RecipeService {
       );
       pricedItems = preparedItems.map((item) => ({
         ...item,
-        retailQuantity: 1,
-        retailUnit: item.unit,
         estimatedPrice: null,
         priceUnavailable: true,
         priceSource: "unavailable" as const,
-        displayQuantity: item.displayQuantity || item.quantity,
-        displayUnit: item.displayUnit || item.unit,
         imageUrl: null,
+        budget_impact_price: null,
+        recommended_package_size: null,
+        consumption_cost: null,
       }));
     }
 
     // 3. Calculate total
-    const totalInfo = this.groceryPricingService.calculateTotal(
-      pricedItems as any,
+    const krogerItems = pricedItems.filter(
+      (item) => item.priceSource === "kroger",
     );
-    const totalEstimatedCost = totalInfo.total.toFixed(2);
+    const totalEstimatedCost = krogerItems
+      .reduce((acc, item) => acc + (item.budget_impact_price || 0), 0)
+      .toFixed(2);
 
     console.log("✅ Pricing complete:", {
       total: `$${totalEstimatedCost}`,
-      priced: totalInfo.availableCount,
-      unavailable: totalInfo.unavailableCount,
+      priced: krogerItems.length,
+      unavailable: pricedItems.length - krogerItems.length,
     });
 
-    // 4. Map to DB items
-    const sessionItems = pricedItems.map((item) => ({
-      ingredientName: item.ingredientName,
-      quantity: item.displayQuantity || item.retailQuantity?.toString() || "1",
-      unit: item.displayUnit || item.retailUnit || item.unit,
-      category: item.category,
-      price: item.estimatedPrice?.toString() || null,
-      imageUrl: item.imageUrl || null,
-    }));
+    // 4. Map to DB items - correctly separating Recipe requirement and Kroger package size in metadata
+    const sessionItems = pricedItems.map((item) => {
+      const isKroger = item.priceSource === "kroger";
+
+      // const reqQty = item.displayQuantity || item.quantity;
+      // const reqUnit = item.displayUnit || item.unit;
+
+      // const finalQuantity = reqQty?.toString() || "1";
+      // const finalUnit = reqUnit?.toString() || "";
+
+      let metadata = {};
+      if (isKroger) {
+        console.log({ item }, "987878787");
+        const _buyQty = item.retailQuantity || 1;
+        const _buyUnit =
+          item.recommended_package_size || item.retailUnit || item.unit;
+
+        metadata = {
+          krogerPrice: item.budget_impact_price?.toString() || null,
+          krogerPackageSize: `${item?.sourceUnit}`,
+          priceSource: "kroger",
+        };
+      }
+
+      return {
+        ingredientName: item.ingredientName,
+        // quantity: finalQuantity,
+        // unit: finalUnit,
+        category: item.category,
+        price: isKroger ? item.budget_impact_price?.toString() || null : null,
+        imageUrl: item.imageUrl || null,
+        metadata,
+      };
+    });
 
     const session = await this.storage.saveShoppingSession(
       {
@@ -573,24 +613,19 @@ export class RecipeService {
       sessionItems as any,
     );
 
-    // 5. Return enriched session with pricing metadata
+    // 5. Return session with only the sanitized, Kroger-enforced session items
+    // We intentionally omit 'estimatedPrice' so the UI doesn't incorrectly render fallback DB prices.
     return {
       ...session,
       pricingMetadata: {
         totalEstimatedCost: parseFloat(totalEstimatedCost),
-        pricedItemCount: totalInfo.availableCount,
-        unavailableItemCount: totalInfo.unavailableCount,
-        priceSource: process.env.KROGER_CLIENT_ID
-          ? "kroger+curated_db"
-          : "curated_db",
+        pricedItemCount: krogerItems.length,
+        unavailableItemCount: pricedItems.length - krogerItems.length,
+        priceSource: "kroger",
       },
-      items: pricedItems.map((item, idx) => ({
-        ...sessionItems[idx],
-        estimatedPrice: item.estimatedPrice,
-        priceUnavailable: item.priceUnavailable,
-        priceSource: item.priceSource,
-        retailQuantity: item.retailQuantity,
-        retailUnit: item.retailUnit,
+      items: sessionItems.map((item, idx) => ({
+        ...item,
+        id: `temp-${Date.now()}-${idx}`, // Provide a temporary ID for immediate React rendering before refresh
       })),
     };
   }

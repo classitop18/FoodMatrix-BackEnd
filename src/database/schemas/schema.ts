@@ -1033,6 +1033,7 @@ export const shoppingSessionItems = pgTable("shopping_session_items", {
   isPurchased: boolean("is_purchased").default(false).notNull(),
   price: numeric("price", { precision: 16, scale: 2 }),
   imageUrl: text("image_url"),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Used for Kroger retail info, etc.
   createdAt: timestamp("created_at", { withTimezone: true })
     .default(sql`now()`)
     .notNull(),

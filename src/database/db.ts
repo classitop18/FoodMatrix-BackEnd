@@ -1,19 +1,22 @@
-import { Pool } from "pg";
-import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
+import { neonConfig, Pool } from "@neondatabase/serverless";
+import { drizzle, NeonDatabase } from "drizzle-orm/neon-serverless";
+import ws from "ws";
 import * as schema from "./schemas/index.js";
 import { CONFIG } from "../utils/env.config.js";
 import { logger } from "../utils/logger.utils.js";
 
-let db: NodePgDatabase<typeof schema> | null = null;
+// Node.js environment mein WebSocket polyfill chahiye
+neonConfig.webSocketConstructor = ws;
+
+let db: NeonDatabase<typeof schema> | null = null;
 
 export async function connectDatabase() {
   try {
-    const pool = new Pool({
-      connectionString: CONFIG.DATABASE_URL,
-      ssl: { rejectUnauthorized: false }, // important for Neon
-    });
-
+    const pool = new Pool({ connectionString: CONFIG.DATABASE_URL });
     db = drizzle(pool, { schema });
+
+    // Connection test
+    await pool.query("SELECT 1");
 
     logger.info("🚀 Database connected successfully");
     return db;
@@ -23,7 +26,7 @@ export async function connectDatabase() {
   }
 }
 
-export function getDb(): NodePgDatabase<typeof schema> {
+export function getDb(): NeonDatabase<typeof schema> {
   if (!db) {
     throw new Error("Database not initialized. Call connectDatabase() first.");
   }

@@ -429,7 +429,7 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
             {
                 "name": "ingredient name (singular, standard name, e.g., 'Tomato' not 'Fresh Diced Tomatoes')",
                 "quantity": "precise amount (number or fraction)",
-                "unit": "measurement (["cup","tbsp","tsp","oz","lb","gram","kg","ml","liter","piece","clove","slice","dozen","can","bunch","jar"])",
+                "unit": "measurement (['cup','tbsp','tsp','oz','lb','fl oz','pt','qt','gal','piece','clove','slice','dozen','can','bunch','jar']) - USA units ONLY",
                 "isOptional": false,
                 "notes": "preparation tips (e.g. 'diced', 'peeled') or substitutions",
                 "estimatedCost": <realistic USD amount based on USA 2025 prices>,
@@ -444,13 +444,13 @@ export class AdvancedRecipePromptBuilder implements RecipePromptBuilder {
     
     "quantity": "Numeric value only. Aggregate total required quantity. Use decimal format if needed (e.g., 0.5, 1.25). Do not include units in this field.",
     
-    "unit": "Use standardized units based on item type:
+    "unit": "Use standardized USA units based on item type:
     
-    - For measurable solids (vegetables, fruits, grains, etc.): use ONLY 'kg', 'g', or 'lb'
-      (e.g., tomato → kg, onion → kg, rice → kg)
+    - For measurable solids (vegetables, fruits, grains, etc.): use ONLY 'lb' or 'oz'
+      (e.g., tomato → lb, onion → lb, rice → lb, salt → oz)
     
-    - For liquids: use ONLY 'l' or 'ml'
-      (e.g., milk → l, oil → ml)
+    - For liquids: use ONLY 'gal', 'qt', 'pt', or 'fl oz'
+      (e.g., milk → gal, oil → fl oz)
     
     - Use 'piece' ONLY for items that are naturally counted and cannot be meaningfully expressed in weight/volume
       (e.g., egg, bread loaf, banana, lemon)
@@ -823,7 +823,7 @@ Member ${index + 1}:
             {
             "name": "ingredient name (singular, standard name)",
             "quantity": "precise amount",
-            "unit": "standard measurement",
+            "unit": "USA standard measurement (oz, lb, fl oz, cup, tbsp, tsp, piece)",
             "isOptional": boolean,
             "notes": "prep notes or substitutions",
             "estimatedCost": <realistic USD, budget-conscious>,
@@ -836,7 +836,7 @@ Member ${index + 1}:
             {
             "ingredientName": "name of ingredient to buy (standardized)",
             "quantity": "amount to buy (converted as weight/volume)",
-            "unit": "sstandard purchasing unit (MUST use 'kg', 'g', 'lb' for solid produce, 'l', 'ml' for liquids. Do NOT use 'piece' or counts.)"
+            "unit": "standard purchasing unit (MUST use 'lb' or 'oz' for solid produce, 'gal' or 'fl oz' for liquids. Do NOT use metric units. Do NOT use 'piece' or counts.)"
             }
         ],
         
@@ -959,11 +959,11 @@ Spices (salt, turmeric, chili powder, cumin, pepper, garam masala, etc.) → **"
 - Even if multiple recipes use the same spice → still 1 pack
 
 Oil, liquid condiments → **"bottle"**
-- Any amount ≤ 1 litre → 1 bottle
+- Any amount ≤ 32 fl oz → 1 bottle
 
-Milk → **"litre"**
+Milk → **"gal"** or **"qt"**
 
-Grains (rice, flour, lentils, oats) → **"kg"** if ≥500g, else **"pack"**
+Grains (rice, flour, lentils, oats) → **"lb"** if ≥ 1lb, else **"pack"**
 
 Canned goods (chickpeas, kidney beans, tomato sauce) → **"can"**
 
@@ -971,12 +971,12 @@ Canned goods (chickpeas, kidney beans, tomato sauce) → **"can"**
 
 4. **🚨 UNIT PRESERVATION RULE (CRITICAL — DO NOT VIOLATE)**:
 
-**If an ingredient's input unit is already a COUNT/PIECE unit (piece, pieces, pcs, whole, unit, clove, bunch, head), you MUST output it as "piece" — NEVER convert it to kg or g.**
+**If an ingredient's input unit is already a COUNT/PIECE unit (piece, pieces, pcs, whole, unit, clove, bunch, head), you MUST output it as "piece" — NEVER convert it to lb or oz.**
 
 Examples:
-- Input: "1 piece onion" → Output: "piece" unit ✅ (NEVER "kg")
-- Input: "2 pieces tomato" → Output: "piece" unit ✅ (NEVER "kg")
-- Input: "3 cloves garlic" → Output: "piece" unit ✅ (NEVER "kg")
+- Input: "1 piece onion" → Output: "piece" unit ✅ (NEVER "lb")
+- Input: "2 pieces tomato" → Output: "piece" unit ✅ (NEVER "lb")
+- Input: "3 cloves garlic" → Output: "piece" unit ✅ (NEVER "lb")
 - Input: "1 whole lemon" → Output: "piece" unit ✅
 
 ---
@@ -986,12 +986,12 @@ Examples:
 **These vegetables are ALWAYS sold/counted by PIECE — output unit MUST be "piece":**
 onion, tomato, potato, carrot, lemon, lime, apple, banana, orange, garlic, cucumber, bell pepper, capsicum, avocado, corn, eggplant, zucchini, egg, beetroot, sweet potato, turnip, chili, ginger (small piece), broccoli head, cauliflower head, lettuce head
 
-For these, convert weight to approximate piece count IF input is in grams:
-- 1 onion ≈ 150g → 200g input = 1-2 pieces
-- 1 tomato ≈ 100g → 300g input = 3 pieces
-- 1 potato ≈ 200g → 400g input = 2 pieces
+For these, convert weight to approximate piece count IF input is in ounces:
+- 1 onion ≈ 5 oz → 7 oz input = 1-2 pieces
+- 1 tomato ≈ 4 oz → 12 oz input = 3 pieces
+- 1 potato ≈ 7 oz → 14 oz input = 2 pieces
 
-**These vegetables may be sold by WEIGHT — output unit is "kg":**
+**These vegetables may be sold by WEIGHT — output unit is "lb" or "oz":**
 spinach, cabbage, mushrooms, green beans, peas, herbs (large quantity), nuts
 
 ---
@@ -1037,8 +1037,8 @@ Must assign exactly one category:
 
 **CONSTRAINTS:**
 - NO cooking units in final output (no tsp, tbsp, ml, pinch, dash)
-- ONLY purchasable units: pack, bottle, kg, litre, piece, can
-- NEVER convert piece/count units to kg
+- ONLY purchasable units: pack, bottle, lb, oz, gal, fl oz, pt, qt, piece, can
+- NEVER convert piece/count units to weight
 - NO duplicate items
 - JSON only — no explanation text, no markdown
 - Mathematically correct merging before conversion

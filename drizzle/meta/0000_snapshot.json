@@ -1,5 +1,5 @@
 {
-  "id": "e0fe1c35-60e6-42cf-8c8a-9778d01fa352",
+  "id": "563a7ccb-1653-4f83-b95a-bec7f6376a75",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -3300,13 +3300,13 @@
         },
         "quantity": {
           "name": "quantity",
-          "type": "varchar",
+          "type": "varchar(100)",
           "primaryKey": false,
           "notNull": false
         },
         "unit": {
           "name": "unit",
-          "type": "varchar",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
         },
@@ -3334,6 +3334,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::jsonb"
         },
         "created_at": {
           "name": "created_at",

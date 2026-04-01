@@ -1366,15 +1366,35 @@ export class RecipeStorage implements RecipeStorageInterface {
       .from(shoppingSessionItems)
       .where(eq(shoppingSessionItems.sessionId, sessionId));
 
-    // Reconstruct pricing metadata from stored items
-    const pricedItems = items.map((item: (typeof items)[0]) => ({
-      ...item,
-      estimatedPrice: item.price ? parseFloat(item.price) : null,
-      priceUnavailable: !item.price,
-      priceSource: (item.price ? "curated_db" : "unavailable") as
-        | "curated_db"
-        | "unavailable",
-    }));
+    // Reconstruct pricing metadata from stored items and unwrap JSONB metadata
+    const pricedItems = items.map((item: any) => {
+      const meta = item.metadata || {};
+      const actualPriceSource =
+        meta.priceSource || (item.price ? "curated_db" : "unavailable");
+
+      console.log({ meta });
+
+      return {
+        id: item.id,
+        sessionId: item.sessionId,
+        ingredientName: item.ingredientName,
+        quantity: item.quantity,
+        unit: item.unit,
+        category: item.category,
+        isPurchased: item.isPurchased,
+        price: item.price,
+        imageUrl: item.imageUrl,
+
+        // Extracted Kroger Data (Key-Value pairs as requested)
+        krogerPrice: meta.krogerPrice || null,
+        krogerPackageSize: meta.krogerPackageSize || null,
+        priceSource: actualPriceSource,
+
+        // Fallback for UI if it still requires estimatedPrice
+        estimatedPrice: item.price ? parseFloat(item.price) : null,
+        priceUnavailable: !item.price,
+      };
+    });
 
     const priceAvailableItems = pricedItems.filter(
       (i: (typeof pricedItems)[0]) => i.estimatedPrice !== null,

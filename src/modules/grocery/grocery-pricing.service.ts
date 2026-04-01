@@ -14,6 +14,17 @@ interface PricedItem {
   displayUnit: string;
   imageUrl?: string;
   sourceUnit?: string;
+
+  required_quantity: string;
+  required_unit: string;
+  recommended_package_size: string | null;
+  package_price: number | null;
+  budget_impact_price: number | null;
+  consumption_cost: number | null;
+  pantry_coverage_status:
+    | "not_available"
+    | "partially_available"
+    | "fully_available";
 }
 
 /**
@@ -581,11 +592,7 @@ export class GroceryPricingService {
   async enrichWithPrices(
     items: Array<{
       ingredientName: string;
-      quantity: string;
-      unit: string;
       category: string;
-      displayQuantity?: string;
-      displayUnit?: string;
     }>,
     options: { skipUnitNormalization?: boolean } = {},
   ): Promise<PricedItem[]> {
@@ -604,44 +611,19 @@ export class GroceryPricingService {
   private async processItem(
     item: {
       ingredientName: string;
-      quantity: string;
-      unit: string;
       category: string;
-      displayQuantity?: string;
-      displayUnit?: string;
     },
-    skipUnitNormalization = false,
-  ): Promise<PricedItem> {
+    _skipUnitNormalization = false,
+  ): Promise<any> {
     const normalizedName = this.normalizeName(item.ingredientName);
-
-    let retailQuantity: number;
-    let retailUnit: string;
-
-    if (skipUnitNormalization) {
-      // Items already in retail units (e.g. from AI merge) — trust them directly
-      retailQuantity = parseFloat(item.displayQuantity || item.quantity) || 1;
-      retailUnit = (item.displayUnit || item.unit || "piece").toLowerCase();
-    } else {
-      const converted = this.convertToRetailUnit(
-        normalizedName,
-        parseFloat(item.quantity) || 1,
-        item.unit,
-      );
-      retailQuantity = converted.retailQuantity;
-      retailUnit = converted.retailUnit;
-    }
-
-    // Generate display values
-    const displayQuantity =
-      item.displayQuantity || this.formatQuantity(retailQuantity);
-    const displayUnit =
-      item.displayUnit || this.formatRetailUnit(retailUnit, normalizedName);
 
     // Try Kroger API first, then fallback to curated DB
     let estimatedPrice: number | null = null;
     let priceSource: PricedItem["priceSource"] = "unavailable";
     let imageUrl: string | undefined;
     let sourceUnit: string | undefined;
+    let package_price: number | null = null;
+    let recommended_package_size: string | null = null;
 
     // 1. Try Kroger if configured
     let krogerResult: {
@@ -653,16 +635,14 @@ export class GroceryPricingService {
 
     if (process.env.KROGER_CLIENT_ID && process.env.KROGER_CLIENT_SECRET) {
       try {
-        krogerResult = await this.fetchKrogerPrice(
-          normalizedName,
-          retailQuantity,
-          retailUnit,
-        );
+        krogerResult = await this.fetchKrogerPrice(normalizedName);
         if (krogerResult !== null) {
           estimatedPrice = krogerResult.price;
           priceSource = "kroger";
           imageUrl = krogerResult.imageUrl;
           sourceUnit = krogerResult.unit;
+          package_price = krogerResult.basePrice;
+          recommended_package_size = krogerResult.unit;
         }
         console.log({ krogerResult });
       } catch (err) {
@@ -673,40 +653,50 @@ export class GroceryPricingService {
       }
     }
 
-    // 2. Fallback to curated price DB
-    if (estimatedPrice === null) {
-      const curatedResult = this.fetchCuratedPrice(
-        normalizedName,
-        retailQuantity,
-        retailUnit,
-      );
-      if (curatedResult !== null) {
-        estimatedPrice = curatedResult;
-        priceSource = "curated_db";
-      }
-    }
+    // // 2. Fallback to curated price DB
+    // if (estimatedPrice === null) {
+    //   const curatedResult = this.fetchCuratedPrice(
+    //     normalizedName,
+    //   );
+    //   if (curatedResult !== null) {
+    //     estimatedPrice = curatedResult;
+    //     priceSource = "curated_db";
 
-    // Update display unit with specific price info if available
-    let finalDisplayUnit = displayUnit;
-    if (priceSource === "kroger" && sourceUnit && krogerResult) {
-      // Format: "kg (Kroger: $20.00 for 1.5 lb | Est: $6.67)"
-      finalDisplayUnit = `${displayUnit} (Kroger: $${krogerResult.basePrice.toFixed(2)} for ${sourceUnit} | Est: $${krogerResult.price.toFixed(2)})`;
-    }
+    //     let dbEntry = CURATED_PRICE_DB[normalizedName];
+    //     if (!dbEntry) {
+    //       const keys = Object.keys(CURATED_PRICE_DB);
+    //       const match = keys.find(
+    //         (k) => k.includes(normalizedName) || normalizedName.includes(k),
+    //       );
+    //       if (match) dbEntry = CURATED_PRICE_DB[match];
+    //     }
+
+    //     if (dbEntry) {
+    //       package_price = dbEntry.price;
+    //       recommended_package_size = `${dbEntry.quantity || 1} ${dbEntry.retailUnit}`;
+    //     }
+    //   }
+    // }
+
+    // Update display unit (we now rely on distinct keys, so we no longer pollute the unit string)
+    // let finalDisplayUnit = displayUnit;
+
+    // User requested: No scaling. Just whatever data comes from Kroger, store exactly that.
+    const budget_impact_price = package_price !== null ? package_price : null;
+    // const consumption_cost = package_price !== null ? Number((package_price * retailQuantity).toFixed(2)) : null;
 
     return {
       ingredientName: normalizedName,
-      quantity: item.quantity,
-      unit: item.unit,
       category: item.category || "Other",
-      retailQuantity,
-      retailUnit,
       estimatedPrice,
       priceUnavailable: estimatedPrice === null,
       priceSource,
-      displayQuantity,
-      displayUnit: finalDisplayUnit,
       imageUrl,
       sourceUnit,
+      recommended_package_size: recommended_package_size,
+      package_price,
+      budget_impact_price,
+      pantry_coverage_status: "not_available",
     };
   }
 
@@ -882,11 +872,7 @@ export class GroceryPricingService {
    * Fetch price from Kroger API (official free tier, requires OAuth2 credentials)
    */
 
-  private async fetchKrogerPrice(
-    itemName: string,
-    retailQuantity: number,
-    retailUnit: string,
-  ): Promise<{
+  private async fetchKrogerPrice(itemName: string): Promise<{
     price: number;
     unit: string;
     imageUrl: string;
@@ -920,7 +906,7 @@ export class GroceryPricingService {
 
       const searchTerm = searchMap[itemName] || itemName;
       console.log(
-        `[Kroger] 🔍 Searching | itemName: "${itemName}" → searchTerm: "${searchTerm}" | qty: ${retailQuantity} ${retailUnit}`,
+        `[Kroger] 🔍 Searching | itemName: "${itemName}" → searchTerm: "${searchTerm}"`,
       );
 
       const response = await axios.get("https://api.kroger.com/v1/products", {
@@ -1037,31 +1023,10 @@ export class GroceryPricingService {
         return null;
       }
 
-      // ✅ LEVEL 6: Scaling logic
-      let finalPrice = basePrice;
-
+      // ✅ User requested: Whatever data comes from Kroger, store exactly that. No scaling math.
+      const roundedPrice = Math.round(basePrice * 100) / 100;
       console.log(
-        `[Kroger] ⚖️  Scaling | basePrice: ${basePrice} | unit: "${retailUnit}" | qty: ${retailQuantity}`,
-      );
-
-      if (
-        retailUnit === "kg" ||
-        retailUnit === "litre" ||
-        retailUnit === "pieces" ||
-        retailUnit === "packet" ||
-        retailUnit === "can" ||
-        retailUnit === "bottle"
-      ) {
-        finalPrice = basePrice * retailQuantity;
-      } else {
-        console.log(
-          `[Kroger] ℹ️  Unit "${retailUnit}" not in scale list — using basePrice as-is`,
-        );
-      }
-
-      const roundedPrice = Math.round(finalPrice * 100) / 100;
-      console.log(
-        `[Kroger] ✅ Final price for "${itemName}" (${retailQuantity} ${retailUnit}): $${roundedPrice}`,
+        `[Kroger] ✅ Final unscaled literal price for "${itemName}": $${roundedPrice}`,
       );
 
       return {
